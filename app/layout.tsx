@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import { ReactNode } from 'react';
+
 
 export const metadata: Metadata = {
     title: 'My Next.js PWA',
