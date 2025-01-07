@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
     title: 'My Next.js PWA',
@@ -24,18 +25,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+export default function RootLayout({ children }: { children: ReactNode }) {
+    return (
+        <html lang="en">
+        <body>
         {children}
-      </body>
-    </html>
-  );
+        <ServiceWorkerRegister />
+        </body>
+        </html>
+    );
 }
