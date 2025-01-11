@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 import { ReactNode } from 'react';
-
+import { SessionProvider } from "next-auth/react"
+import { auth } from "@/auth"
 
 export const metadata: Metadata = {
     title: 'My Next.js PWA',
@@ -17,13 +18,17 @@ export const metadata: Metadata = {
 }
 
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+    const session = await auth()
+
     return (
-        <html lang="en">
+        <SessionProvider session={session}>
+        <html lang="en" suppressHydrationWarning>
         <body>
         {children}
         <ServiceWorkerRegister />
         </body>
         </html>
+        </SessionProvider>
     );
 }
