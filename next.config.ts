@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig = {
     images: {
-        domains: ['cdn.discordapp.com'],
+        domains: ['cdn.discordapp.com', "lh3.googleusercontent.com"],
     },
 };
 
