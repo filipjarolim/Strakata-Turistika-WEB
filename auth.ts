@@ -6,7 +6,7 @@ import { getAccountByUserId } from "./data/account";
 
 import { db } from "@/lib/db"
 import authConfig from "@/auth.config"
-import {UserRole} from "@prisma/client";
+import { UserRole } from "@prisma/client";
 
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation"
 
@@ -22,47 +22,27 @@ export const {
     },
     events: {
         async linkAccount({ user }) {
-
             await db.user.update({
                 where: { id: user.id },
-                data: { emailVerified: new Date()}
+                data: { emailVerified: new Date() }
             })
-
         }
     },
     callbacks: {
-
         async signIn({ user, account, profile }) {
-
-            console.log(account, user, profile)
-            // Allow OAuth without email verification
-            console.log("SIGNINSIGNINSIGNINSIGNINSIGNINSIGNINSIGNINSIGNINSIGNINSIGNINSIGNINSIGNIN")
-
-            if (profile?.image_url) {
-                console.log("Updating user image")
-                console.log(profile?.image_url)
-                // await db.user.update({
-                //     where: { id: user.id },
-                //     data: { image: profile?.image_url}
-                // })
-
-            } else if (profile?.picture) {
-                console.log("Updating user image")
-                console.log(profile?.image_url)
-                // await db.user.update({
-                //     where: { id: user.id },
-                //     data: { image: profile?.picture}
-                // })
-
+            if (account?.provider !== "credentials") {
+                const imageUrl = profile?.image_url || profile?.picture;
+                if (imageUrl) {
+                    await db.user.update({
+                        where: { id: user.id },
+                        data: { image: imageUrl }
+                    });
+                }
+                return true;
             }
-
-            if (account?.provider !== "credentials") return true
-
-
 
             const existingUser = await getUserById(user.id);
 
-            // Prevent sign in without email verification
             if (!existingUser?.emailVerified) return false;
 
             if (existingUser.isTwoFactorEnabled) {
@@ -70,14 +50,12 @@ export const {
 
                 if (!twoFactorConfirmation) return false;
 
-                // Delete two factor confirmation for next sign in
                 await db.twoFactorConfirmation.delete({
                     where: { id: twoFactorConfirmation.id }
                 });
             }
 
             return true;
-
         },
 
         async session({ token, session }) {
@@ -103,31 +81,24 @@ export const {
         },
 
         async jwt({ token }) {
-
-            console.log("WE DID GET THERE 1")
             if (!token.sub) return token;
 
             const existingUser = await getUserById(token.sub);
-            console.log("WE DID GET THERE 2")
 
             if (!existingUser) return token;
 
-            const existingAccount = await getAccountByUserId(
-                existingUser.id
-            );
-            console.log("WE DID GET THERE 3")
+            const existingAccount = await getAccountByUserId(existingUser.id);
 
             token.isOAuth = !!existingAccount;
             token.name = existingUser.name;
             token.email = existingUser.email;
             token.role = existingUser.role;
             token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
-            console.log("WE DID GET THERE 4")
 
-            return token
+            return token;
         }
     },
     adapter: PrismaAdapter(db),
     session: { strategy: "jwt" },
     ...authConfig,
-})
+});

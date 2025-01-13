@@ -1,10 +1,10 @@
 import React from 'react'
-import {Navbar} from "@/app/(protected)/_components/navbar";
+import Header from "@/components/structure/Header";
 
 const ProtectedLayout = ({children}: {children: React.ReactNode}) => {
     return (
         <div className={"size-full flex flex-col gap-y-10 items-center justify-center"}>
-            <Navbar />
+            <Header />
             {children}
         </div>
     )

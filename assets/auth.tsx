@@ -1,5 +1,4 @@
-import {LuScanFace, LuPlusCircle} from "react-icons/lu";
-import {Settings, User} from "lucide-react";
+import {Settings, User, ScanFace, CirclePlus} from "lucide-react";
 
 const tooltipIconClass = "mr-2"
 const userMenuIconClass = "mr-2 h-4 w-4"
@@ -9,14 +8,14 @@ export const authprefix = {
         "login": {
             "tooltip": {
                 "label": "Continue to login",
-                "icon": <LuScanFace className={tooltipIconClass} />
+                "icon": <ScanFace className={tooltipIconClass} />
             },
             "label": "Login"
         },
         "register": {
             "tooltip": {
                 "label": "Create an account",
-                "icon": <LuPlusCircle className={tooltipIconClass} />
+                "icon": <CirclePlus className={tooltipIconClass} />
             },
             "label": "Join us"
         },
@@ -28,12 +27,14 @@ export const authprefix = {
                     {
                         "label": "Profile",
                         "shortcut": "⌘P",
-                        "icon": <User className={userMenuIconClass} />
+                        "icon": <User className={userMenuIconClass} />,
+                        "href": "/me"
                     },
                     {
                         "label": "Settings",
                         "shortcut": "⌘S",
-                        "icon": <Settings className={userMenuIconClass} />
+                        "icon": <Settings className={userMenuIconClass} />,
+                        "href": "/settings"
                     }
 
                 ]
