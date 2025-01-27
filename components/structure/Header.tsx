@@ -3,6 +3,7 @@
 import React from 'react'
 
 import Image from 'next/image'
+import Link from 'next/link'
 
 import {useCurrentUser} from "@/hooks/use-current-user";
 import {UserButton} from "@/components/auth/user-button";
@@ -19,10 +20,10 @@ const Header = () => {
     return (
         <header className={"grid grid-cols-7 w-full p-2"}>
 
-            <div className={"flex flex-row items-center justify-start gap-x-2 font-bold"}>
+            <Link href={"/"} className={"flex flex-row items-center justify-start gap-x-2 font-bold"}>
                 <Image src={PageLogo} alt={"Logo"} width={32} height={32} className={"rounded-full"}/>
                 Strakatá turistika
-            </div>
+            </Link>
             <div className={"col-span-5 w-full flex flex-row items-center justify-center"}>
                 <Navbar />
             </div>
@@ -37,9 +38,6 @@ const Header = () => {
                             <UserButton/>
                         </div>
                 }
-                <LogoutButton>
-                    Logout
-                </LogoutButton>
             </div>
 
         </header>

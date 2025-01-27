@@ -32,7 +32,7 @@ export const {
         async signIn({ user, account, profile }) {
             if (account?.provider !== "credentials") {
                 const imageUrl = profile?.image_url || profile?.picture;
-                if (imageUrl) {
+                if (imageUrl && typeof imageUrl === "string") {
                     await db.user.update({
                         where: { id: user.id },
                         data: { image: imageUrl }

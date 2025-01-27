@@ -1,10 +1,11 @@
 import React from 'react'
+import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 
 const Page = () => {
     return (
-        <div>
-            <h1>Kontakty</h1>
-        </div>
+        <CommonPageTemplate contents={{complete: true}}>
+            Kontakty
+        </CommonPageTemplate>
     )
 }
 export default Page

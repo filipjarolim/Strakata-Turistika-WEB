@@ -1,12 +1,25 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 
-import { useRouter } from 'next/router'
+const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
+    const [rok, setRok] = useState<string | null>(null)
 
-const Page = () => {
+    useEffect(() => {
+        params.then(data => {
+            setRok(data.rok)
+        })
+    }, [params])
 
-    const router = useRouter()
-    return <p>Post: {router.query.rok}</p>
+    if (rok === null) {
+        return <p>Loading...</p>
+    }
 
+    return (
+        <CommonPageTemplate contents={{complete: true}}>
+            Vysledky {rok}
+        </CommonPageTemplate>
+    )
 }
+
 export default Page
