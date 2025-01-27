@@ -19,7 +19,7 @@ export const metadata = {
         { rel: 'icon', url: '/icons/icon-192x192.png', type: 'image/png', sizes: '32x32'}
     ],
     themeColor: '#000000',
-    appleTouchIcon: "/apple-icon-180.png",
+    // appleTouchIcon: "/apple-icon-180.png",
     appleWebApp: {
         capable: true,
         statusBarStyle: "black-translucent",
