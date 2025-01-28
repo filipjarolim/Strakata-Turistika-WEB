@@ -50,8 +50,7 @@ const Header = () => {
                 <div className="md:hidden flex items-center z-60">
                     <Sheet>
                         <SheetTrigger asChild>
-                            <div className={`hamburger ${menuOpen ? 'open' : ''}`} onClick={toggleMenu}>
-                                <span></span>
+                            <div className={`hamburger`} onClick={toggleMenu}>
                                 <span></span>
                                 <span></span>
                             </div>

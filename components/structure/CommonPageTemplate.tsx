@@ -10,7 +10,7 @@ const CommonPageTemplate = ({
     contents: { complete?: boolean; header?: boolean; footer?: boolean };
 }) => {
     return (
-        <main className="min-h-screen p-4 sm:p-6 flex flex-col items-center justify-start">
+        <main className="min-h-screen p-4 sm:p-6 flex flex-col items-start justify-start">
             {(contents.complete || contents.header) && <Header />}
             {children}
             {(contents.complete || contents.footer) && <Footer />}

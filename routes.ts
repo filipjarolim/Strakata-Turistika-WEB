@@ -4,7 +4,10 @@
  */
 export const publicRoutes = [
     "/",
-    "/auth/new-verification"
+    "/auth/new-verification",
+    "/pravidla",
+    "/vysledky",
+    "/vysledky/*"
 ]
 /*
     * An array of public routes that do not require authentication

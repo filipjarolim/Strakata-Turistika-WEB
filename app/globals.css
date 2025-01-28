@@ -92,32 +92,23 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 18px;
+  height: 12px; /* Adjusted height for two lines */
   width: 24px;
-  transition: transform 0.3s ease;
   z-index: 60;
 }
 
 .hamburger span {
   display: block;
-  height: 2px;
+  height: 3px;
   width: 100%;
+  border-radius: 3px;
   background-color: black;
-  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .hamburger.open span:nth-child(1) {
-  transform: translateY(8px) rotate(45deg);
+  transform: translateY(5px) rotate(45deg);
 }
 
 .hamburger.open span:nth-child(2) {
-  opacity: 0;
-}
-
-.hamburger.open span:nth-child(3) {
-  transform: translateY(-8px) rotate(-45deg);
-}
-
-.hamburger.open span:nth-child(3) {
-  transform: translateY(-8px) rotate(45deg);
+  transform: translateY(-5px) rotate(-45deg);
 }
