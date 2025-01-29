@@ -85,3 +85,10 @@ model TwoFactorConfirmation {
 
   @@unique([userId])
 }
+
+model News {
+  id        String   @id @default(cuid()) @map("_id")
+  title     String
+  content   String?
+  createdAt DateTime @default(now())
+}

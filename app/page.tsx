@@ -11,6 +11,9 @@ import {useCurrentUser} from "@/hooks/use-current-user";
 import {useCurrentRole} from "@/hooks/use-current-role";
 import { currentUser } from "@/lib/auth";
 import { currentRole } from "@/lib/auth";
+import DogEmoji from "@/assets/img/dog_emoji.png";
+import PinEmoji from "@/assets/img/pin_emoji.png";
+import News from "@/components/blocks/News";
 
 
 const Home = async () => {
@@ -25,55 +28,49 @@ const Home = async () => {
                     <h1 className="text-7xl font-bold mb-4 ">
                         {basicInfo.name}
                     </h1>
-                    <p className="text-6xl  font-semibold mb-4 text-gray-700/60 ">
+                    <p className="text-6xl  font-semibold mb-4 text-gray-700/60">
                         aneb poznáváme
                         {" "}
-                        <span className={"inline-block bg-red-300 text-red-950/70 rounded-full text-5xl w-fit px-4 pb-1 pt-3"}>
+                        <span
+                            className={"inline-block bg-red-300 text-red-950/70 rounded-full text-5xl w-fit px-4 pb-1 pt-3"}>
                             <span className={"flex flex-row items-center justify-start"}>
                                 <span className={"text-4xl"}>
-                                📌
+                                    <Image src={PinEmoji} alt="emoji" width={48} height={48} className="rounded-full inline-block"/>
+
                             </span>
                             Česko
                             </span>
                         </span>
                         {" "}
-                        s českým strakatým psem
+                        s českým strakatým
                         {" "}
-                        <Image src={basicInfo.img.icons.small} alt="Logo" width={64} height={64} className="rounded-full inline-block"/>
+                        <span
+                                className={"inline-block bg-amber-300 text-amber-950/70 bg rounded-full text-5xl w-fit px-4"}>
+                            <span className={"flex flex-row items-center justify-start"}>
+                                <span className={"text-4xl"}>
+                                    <Image src={DogEmoji} alt="emoji" width={64} height={64} className="rounded-full inline-block"/>
+
+                                </span>
+                             psem
+                            </span>
+                        </span>
+                        .
+
 
                     </p>
                     <div className={"flex gap-x-2 flex-row items-center justify-start py-4 w-full"}>
-                    <Button variant={"outline"} className={"rounded-full"}>
+                        <Button variant={"outline"} className={"rounded-full"}>
                             Prozkoumat
                         </Button>
                         <InstallButton/>
                     </div>
                 </div>
                 <div className={"flex flex-row items-center justify-center"}>
-                    <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[90%]"}/>
+                <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[90%]"}/>
                 </div>
             </div>
             <Separator />
-            <div className={"p-8"}>
-                <h2 className="text-4xl font-bold mb-6 ">
-                    Aktuality
-                </h2>
-                <div className={"flex flex-wrap items-center justify-start gap-8 w-full"}>
-                    <Card className={"w-[400px] h-[260px] p-6 rounded-[25px]"}>
-                        <h3 className="text-2xl font-bold mb-4 text-gray-700/90">
-                            Nový vzhled webu
-                        </h3>
-                    </Card> <Card className={"w-[400px] h-[260px] p-6 rounded-[25px]"}>
-                        <h3 className="text-2xl font-bold mb-4 text-gray-700/90">
-                            Nový vzhled webu
-                        </h3>
-                    </Card> <Card className={"w-[400px] h-[260px] p-6 rounded-[25px]"}>
-                        <h3 className="text-2xl font-bold mb-4 text-gray-700/90">
-                            Nový vzhled webu
-                        </h3>
-                    </Card>
-                </div>
-            </div>
+            <News />
         </CommonPageTemplate>
     );
 }

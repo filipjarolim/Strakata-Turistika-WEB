@@ -4,6 +4,10 @@ import { ReactNode } from 'react';
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
+import localFont from 'next/font/local'
+
+const myFont = localFont({ src: '../assets/fonts/GeistVF.woff' })
+
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -209,7 +213,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     return (
         <SessionProvider session={session}>
         <html lang="en" suppressHydrationWarning>
-        <body>
+        <body
+            // className={myFont.className}
+        >
         {children}
         </body>
         </html>

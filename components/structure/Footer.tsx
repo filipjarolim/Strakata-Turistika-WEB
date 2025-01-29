@@ -18,12 +18,12 @@ const Footer = ({
 
     return (
         <footer className="w-full mt-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            {
-                JSON.stringify(user)
-            }
-            {
-                JSON.stringify(role)
-            }
+            {/*{*/}
+            {/*    JSON.stringify(user)*/}
+            {/*}*/}
+            {/*{*/}
+            {/*    JSON.stringify(role)*/}
+            {/*}*/}
             <Separator />
             <div className="container px-4 md:px-8">
                 <div className="grid grid-cols-1 sm:grid-cols-3 py-6 gap-6 text-center sm:text-left">
