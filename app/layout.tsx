@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
 import localFont from 'next/font/local'
+import ServiceWorker from "@/components/pwa/ServiceWorker"; // Import Service Worker component
 
 const myFont = localFont({ src: '../assets/fonts/GeistVF.woff' })
 
@@ -208,17 +209,16 @@ export const metadata = {
 
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-    const session = await auth()
+    const session = await auth();
 
     return (
         <SessionProvider session={session}>
-        <html lang="en" suppressHydrationWarning>
-        <body
-            // className={myFont.className}
-        >
-        {children}
-        </body>
-        </html>
+            <html lang="en" suppressHydrationWarning>
+            <body>
+            <ServiceWorker /> {/* Ensures background tracking is registered */}
+            {children}
+            </body>
+            </html>
         </SessionProvider>
     );
 }

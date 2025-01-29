@@ -1,10 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTracking } from "@/hooks/use-tracking";
 
 export default function TrackingPage() {
     const { tracking, setTracking, locations, startTime, distance } = useTracking();
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker
+                .register("/service-worker.js")
+                .then((registration) => console.log("Service Worker registered", registration))
+                .catch((err) => console.error("Service Worker failed:", err));
+        }
+
+        if ("Notification" in window && Notification.permission !== "granted") {
+            Notification.requestPermission().then((permission) => {
+                if (permission === "granted") {
+                    console.log("Notifications enabled");
+                }
+            });
+        }
+
+        if ("SyncManager" in window && navigator.serviceWorker) {
+            navigator.serviceWorker.ready.then((registration) => {
+                registration.sync.register("background-tracking");
+            });
+        }
+    }, []);
 
     const stopTracking = async () => {
         if (!startTime) return;
