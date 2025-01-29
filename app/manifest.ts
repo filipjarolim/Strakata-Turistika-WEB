@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next'
+import basicInfo from "@/lib/settings/basicInfo";
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Strakatá turistika',
-        short_name: 'strakataturistika',
-        description: 'Aplikace pro soutěž českých strakáčů',
+        name: basicInfo.name,
+        short_name: basicInfo.name,
+        description: basicInfo.description,
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',

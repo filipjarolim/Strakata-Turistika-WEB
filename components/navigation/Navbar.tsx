@@ -66,7 +66,11 @@ export const Navbar = () => {
     const [activeButtonId, setActiveButtonId] = useState<number | null>(null);
 
     return (
-        <nav className="gap-x-2 flex justify-between items-center px-4">
+        <nav className="gap-x-2 flex justify-between items-center px-4" style={
+            {
+                zIndex: 100
+            }
+        }>
             <NavigationMenu>
                 <NavigationMenuList>
                     <NavigationMenuItem>

@@ -62,16 +62,16 @@ export const LoginForm = () => {
                     setShowTwoFactor(true)
                 }
             })
-                .catch(() => setError("Something went wrong!"))
+                .catch(() => setError("Něco se pokazilo!"))
         })
     }
 
     return (
         <CardWrapper
-            headerLabel={"Login to **serviceName**"}
+            headerLabel={"Přihlašte se do aplikace **serviceName**"}
             backButtonLabel={{
-                message: "Don't have an account?",
-                link: "Sign up"
+                message: "Nemáte účet?",
+                link: "Vytvořte si jej"
             }}
             backButtonHref={"/auth/register"}
             showSocial
@@ -112,7 +112,7 @@ export const LoginForm = () => {
                                                 <Input
                                                     {...field}
                                                     disabled={isPending}
-                                                    placeholder={"john.doe@example.com"}
+                                                    placeholder={"jan.novak@priklad.com"}
                                                     type={"email"}
                                                 />
                                             </FormControl>
@@ -154,7 +154,7 @@ export const LoginForm = () => {
                     <FormError message={error || urlError} />
                     <FormSuccess message={success} />
                     <Button type={"submit"} disabled={isPending} className={"w-full flex flex-row items-center justify-center"}>
-                        Continue
+                        Pokračovat
                     </Button>
                 </form>
             </Form>

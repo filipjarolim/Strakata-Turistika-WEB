@@ -3,6 +3,7 @@ import "./globals.css";
 import { ReactNode } from 'react';
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
+import basicInfo from "@/lib/settings/basicInfo";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -11,8 +12,8 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata = {
     metadataBase: new URL(defaultUrl),
-    title: 'Strakatá turistika',
-    description: 'A Progressive Web App built with Next.js',
+    title: basicInfo.name,
+    description: basicInfo.description,
     viewport: 'width=device-width, initial-scale=1',
     icons: [
         { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png' },

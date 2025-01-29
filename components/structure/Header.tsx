@@ -3,12 +3,10 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useCurrentUser } from "@/hooks/use-current-user"
 import { UserButton } from "@/components/auth/user-button"
-import { Navbar } from "@/app/(protected)/_components/navbar"
+import { Navbar } from "@/components/navigation/Navbar"
 import { LoginButton } from "@/components/auth/login-button"
 import { LogoutButton } from "@/components/auth/logout-button"
-import PageLogo from "@/public/icons/icon-192x192.png"
 import { Button } from "@/components/ui/button"
 import {
     Sheet,
@@ -20,9 +18,14 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet"
+import basicInfo from "@/lib/settings/basicInfo";
 
-const Header = () => {
-    const user = useCurrentUser()
+const Header = ({
+                    user, role
+}: {
+    user?: object
+    role?: string
+}) => {
     const [menuOpen, setMenuOpen] = useState(false)
 
     const toggleMenu = () => {
@@ -32,8 +35,8 @@ const Header = () => {
     return (
         <header className="grid grid-cols-2 md:grid-cols-7 w-full p-2">
             <Link href="/" className="flex flex-row items-center justify-start gap-x-2 font-bold">
-                <Image src={PageLogo} alt="Logo" width={32} height={32} className="rounded-full" />
-                Strakatá turistika
+                <Image src={basicInfo.img.icons.small} alt="Logo" width={32} height={32} className="rounded-full" />
+                {basicInfo.name}
             </Link>
             <div className="col-span-1 md:col-span-5 hidden w-full flex-row items-center justify-center md:flex">
                 <Navbar />
@@ -41,11 +44,11 @@ const Header = () => {
             <div className="flex flex-row items-center justify-end">
                 <div className="hidden md:flex flex-row items-center justify-center gap-x-2">
                     {!user ? (
-                        <LoginButton>Join us</LoginButton>
+                        <LoginButton>Připojte se</LoginButton>
                     ) : (
                         <UserButton />
                     )}
-                    <LogoutButton>Leave</LogoutButton>
+                    <LogoutButton>Odejít</LogoutButton>
                 </div>
                 <div className="md:hidden flex items-center z-60">
                     <Sheet>
@@ -59,24 +62,24 @@ const Header = () => {
                             <SheetHeader>
                                 <SheetTitle>Menu</SheetTitle>
                                 <SheetDescription>
-                                    Navigation and user options.
+                                    Navigace a uživatelské rozhraní.
                                 </SheetDescription>
                             </SheetHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Link href="/profile" className="col-span-4">
-                                        Profile
+                                        Profil
                                     </Link>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Link href="/settings" className="col-span-4">
-                                        Settings
+                                        Nastavení
                                     </Link>
                                 </div>
                             </div>
                             <SheetFooter>
                                 <SheetClose asChild>
-                                    <Button type="button">Close</Button>
+                                    <Button type="button">Zavřít</Button>
                                 </SheetClose>
                             </SheetFooter>
                         </SheetContent>

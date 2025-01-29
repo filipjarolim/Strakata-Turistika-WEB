@@ -8,7 +8,7 @@ interface HeaderProps {
 export const Header = ({ label }: HeaderProps) => {
     return (
         <div className={"w-full flex flex-col gap-y-4 items-start justify-center"}>
-            <Image src={basicInfo.img} alt={"notes logo"} width={64} height={64} />
+            <Image src={basicInfo.img.icons.small} alt={"logo"} width={64} height={64} />
             <p className={"text-[24px] font-bold"}>
                 {label.replace("**serviceName**", `${basicInfo.name}`)}
             </p>

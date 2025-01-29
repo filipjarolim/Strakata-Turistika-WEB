@@ -7,31 +7,31 @@ export const authprefix = {
     buttons: {
         "login": {
             "tooltip": {
-                "label": "Continue to login",
+                "label": "Pokračovat k přihlášení",
                 "icon": <ScanFace className={tooltipIconClass} />
             },
             "label": "Login"
         },
         "register": {
             "tooltip": {
-                "label": "Create an account",
+                "label": "Vytvořit účet",
                 "icon": <CirclePlus className={tooltipIconClass} />
             },
-            "label": "Join us"
+            "label": "Připojte se"
         },
         "user": {
-            "label": "Account",
+            "label": "Účet",
             "menu": {
-                "label": "My account",
+                "label": "Můj účet",
                 "options": [
                     {
-                        "label": "Profile",
+                        "label": "Profil",
                         "shortcut": "⌘P",
                         "icon": <User className={userMenuIconClass} />,
                         "href": "/me"
                     },
                     {
-                        "label": "Settings",
+                        "label": "Nastavení",
                         "shortcut": "⌘S",
                         "icon": <Settings className={userMenuIconClass} />,
                         "href": "/settings"

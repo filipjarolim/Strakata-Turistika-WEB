@@ -1,5 +1,6 @@
 import React from 'react'
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
+import {currentRole, currentUser} from "@/lib/auth";
 
 //Bodování
 // Pravidla soutěže
@@ -82,9 +83,13 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 //
 // A ještě prosba: hodně nám pomůže, když fotku, kterou nahráváte pojmenujete podle místa, kde byla pořízená. Někteří z vás to tak dělají a pro uložení a zapsání bodů je to velká pomoc. Díky :-)
 
-const Page = () => {
+const Page = async () => {
+
+    const user = await currentUser()
+    const role = await currentRole()
+
     return (
-        <CommonPageTemplate contents={{complete: true}}>
+        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
             <div className={"font-bold text-6xl"}>
                 Pravidla
             </div>
