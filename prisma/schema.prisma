@@ -29,6 +29,7 @@ model User {
   accounts              Account[]
   isTwoFactorEnabled    Boolean                @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
+  TrackingSession       TrackingSession[]
 }
 
 model Account {
@@ -91,4 +92,17 @@ model News {
   title     String
   content   String?
   createdAt DateTime @default(now())
+}
+
+model TrackingSession {
+  id        String    @id @default(cuid()) @map("_id")
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startTime DateTime
+  endTime   DateTime?
+  duration  Int?
+  distance  Float?
+  path      Json // Stores an array of lat/lon points
+
+  @@index([userId])
 }
