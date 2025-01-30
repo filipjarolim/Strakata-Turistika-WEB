@@ -21,7 +21,7 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
         const { default: withSerwist } = await import("@serwist/next");
 
         return withSerwist({
-            swSrc: "src/service-worker/app-worker.ts",
+            swSrc: "public/service-worker/app-worker.ts",
             swDest: "public/sw.js",
             reloadOnOnline: true,
         })(nextConfig);
