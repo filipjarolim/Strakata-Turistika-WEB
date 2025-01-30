@@ -17,7 +17,7 @@ const Footer = ({
     const currentYear = currentDate.getFullYear();
 
     return (
-        <footer className="w-full mt-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <footer className="w-full mt-auto bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
             {/*{*/}
             {/*    JSON.stringify(user)*/}
             {/*}*/}

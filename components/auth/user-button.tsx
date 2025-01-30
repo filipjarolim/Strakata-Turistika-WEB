@@ -33,7 +33,7 @@ export const UserButton = () => {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button size={"lg"} className={"rounded-full select-none outline-none shadow-none border flex flex-row items-center pr-4 dark:bg-[#111] bg-white text-black font-semibold dark:text-white hover:bg-[#fff] hover:text-[#000] dark:hover:bg-[#000] p-2"}>
+                <Button size={"lg"} className={"rounded-full select-none outline-hidden shadow-none border flex flex-row items-center pr-4 dark:bg-[#111] bg-white text-black font-semibold dark:text-white hover:bg-[#fff] hover:text-[#000] dark:hover:bg-[#000] p-2"}>
                     <Avatar className={"w-[22px] h-[22px] mr-2"}>
                         {user?.image ? (
                             <Image src={user.image} alt="User Image" width={22} height={22} className="rounded-full" />

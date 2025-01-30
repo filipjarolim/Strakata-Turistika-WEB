@@ -23,7 +23,7 @@ export const UserInfo = ({
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
                     <p className="text-sm font-medium">
                         ID
                     </p>
@@ -31,7 +31,7 @@ export const UserInfo = ({
                         {user?.id}
                     </p>
                 </div>
-                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
                     <p className="text-sm font-medium">
                         Name
                     </p>
@@ -39,7 +39,7 @@ export const UserInfo = ({
                         {user?.name}
                     </p>
                 </div>
-                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
                     <p className="text-sm font-medium">
                         Email
                     </p>
@@ -47,7 +47,7 @@ export const UserInfo = ({
                         {user?.email}
                     </p>
                 </div>
-                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
                     <p className="text-sm font-medium">
                         Role
                     </p>
@@ -56,7 +56,7 @@ export const UserInfo = ({
                     </p>
                 </div>
 
-                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
                     <p className="text-sm font-medium">
                         Two Factor Authentication
                     </p>
