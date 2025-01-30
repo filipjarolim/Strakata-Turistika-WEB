@@ -3,6 +3,9 @@ import basicInfo from "@/lib/settings/basicInfo";
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
+        id: "strakataturistika",
+        dir: "ltr",
+        lang: "cz",
         name: basicInfo.name,
         short_name: basicInfo.name,
         description: basicInfo.description,

@@ -18,6 +18,9 @@ export const metadata = {
     metadataBase: new URL(defaultUrl),
     title: basicInfo.name,
     description: basicInfo.description,
+    manifest:"/manifest.json",
+    category: "website",
+    generator: "Next.js", // framework used
     viewport: 'width=device-width, initial-scale=1',
     icons: [
         { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png' },
