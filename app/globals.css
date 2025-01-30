@@ -180,6 +180,10 @@
   }
 }
 
+body {
+  overflow-x: hidden;
+}
+
 .hamburger {
   cursor: pointer;
   display: flex;
