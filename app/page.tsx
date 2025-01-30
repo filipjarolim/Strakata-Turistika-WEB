@@ -35,7 +35,8 @@ const Home = async () => {
                             className={"inline-block bg-red-300 text-red-950/70 rounded-full text-5xl w-fit px-4 pb-1 pt-3"}>
                             <span className={"flex flex-row items-center justify-start"}>
                                 <span className={"text-4xl"}>
-                                    <Image src={PinEmoji} alt="emoji" width={48} height={48} className="rounded-full inline-block"/>
+                                    <Image src={PinEmoji} alt="emoji" width={48} height={48}
+                                           className="rounded-full inline-block"/>
 
                             </span>
                             Česko
@@ -45,10 +46,11 @@ const Home = async () => {
                         s českým strakatým
                         {" "}
                         <span
-                                className={"inline-block bg-amber-300 text-amber-950/70 bg rounded-full text-5xl w-fit px-4"}>
+                            className={"inline-block bg-amber-300 text-amber-950/70 bg rounded-full text-5xl w-fit px-4"}>
                             <span className={"flex flex-row items-center justify-start"}>
                                 <span className={"text-4xl"}>
-                                    <Image src={DogEmoji} alt="emoji" width={64} height={64} className="rounded-full inline-block"/>
+                                    <Image src={DogEmoji} alt="emoji" width={64} height={64}
+                                           className="rounded-full inline-block"/>
 
                                 </span>
                              psem
@@ -66,11 +68,17 @@ const Home = async () => {
                     </div>
                 </div>
                 <div className={"flex flex-row items-center justify-center"}>
-                <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[90%]"}/>
+                    <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[90%]"}/>
+                </div>
+                <div className={"flex gap-x-2 flex md:hidden flex-row items-center justify-start py-4 w-full"}>
+                    <Button variant={"outline"} className={"rounded-full"}>
+                        Prozkoumat
+                    </Button>
+                    <InstallButton/>
                 </div>
             </div>
-            <Separator />
-            <News />
+            <Separator/>
+            <News/>
         </CommonPageTemplate>
     );
 }

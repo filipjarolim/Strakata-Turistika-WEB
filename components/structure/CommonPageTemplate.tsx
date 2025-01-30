@@ -3,6 +3,7 @@ import Header from "@/components/structure/Header";
 import Footer from "@/components/structure/Footer";
 import SupportMePopup from "@/components/structure/SupportMePopup";
 import {cn} from "@/lib/utils";
+import StatusBlock from "@/components/blocks/StatusBlock";
 
 const CommonPageTemplate = ({
                                 children,
@@ -23,12 +24,14 @@ const CommonPageTemplate = ({
 
 
             {(contents.complete || contents.header) && <Header user={currentUser} role={currentRole} />}
-            {currentRole}
+            <StatusBlock />
             {children}
 
             {(contents.complete || contents.footer) && <Footer user={currentUser} role={currentRole} />}
-            {(contents.complete || contents.supportMePopup) && <SupportMePopup />}
 
+            <div className="hidden md:block">
+                {(contents.complete || contents.supportMePopup) && <SupportMePopup />}
+            </div>
         </main>
     );
 };

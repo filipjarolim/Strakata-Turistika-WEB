@@ -50,7 +50,7 @@ const Header = ({
                     )}
                     <LogoutButton>Odejít</LogoutButton>
                 </div>
-                <div className="md:hidden flex items-center z-60">
+                <div className="md:hidden flex items-center ">
                     <Sheet>
                         <SheetTrigger asChild>
                             <div className={`hamburger`} onClick={toggleMenu}>
@@ -58,7 +58,9 @@ const Header = ({
                                 <span></span>
                             </div>
                         </SheetTrigger>
-                        <SheetContent side="bottom">
+                        <SheetContent side="top" style={{
+                            zIndex: 50,
+                        }}>
                             <SheetHeader>
                                 <SheetTitle>Menu</SheetTitle>
                                 <SheetDescription>

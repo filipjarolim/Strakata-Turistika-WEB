@@ -187,7 +187,7 @@
   justify-content: space-between;
   height: 12px; /* Adjusted height for two lines */
   width: 24px;
-  z-index: 60;
+  z-index:10;
 }
 
 .hamburger span {
