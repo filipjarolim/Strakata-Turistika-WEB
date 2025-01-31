@@ -1,4 +1,3 @@
-"use client"
 import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -13,7 +12,8 @@ import {
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
-import * as Icons from "lucide-react";
+import Icon from "@/components/ui/Icon";
+import * as Icons from 'lucide-react';
 
 type BadgeType = "New" | "Update" | "Event";
 
@@ -30,7 +30,7 @@ type NavConfigType = {
     type: "dropdown" | "link";
     title: string;
     icon?: keyof typeof Icons;
-    gridLayout?: string;
+    columns?: number;
     href?: string;
     shortcut?: string;
     badge?: BadgeType;
@@ -38,12 +38,11 @@ type NavConfigType = {
 }[];
 
 const navConfig: NavConfigType = [
-
     {
         type: "dropdown",
         title: "Getting Started",
         icon: "Rocket",
-        gridLayout: "lg:grid-cols-[1fr_3fr]",
+        columns: 2,
         items: [
             { title: "Introduction", href: "/docs", description: "Re-usable components built using Radix UI and Tailwind CSS.", icon: "Book", shortcut: "⌘I", badge: "New" },
             { title: "Installation", href: "/docs/installation", description: "How to install dependencies and structure your app.", icon: "Download", shortcut: "⌘D" },
@@ -54,9 +53,9 @@ const navConfig: NavConfigType = [
         type: "dropdown",
         title: "Components",
         icon: "Box",
-        gridLayout: "lg:grid-cols-[1fr_3fr]",
+        columns: 3,
         items: [
-            { title: "Alert Dialog", href: "/docs/primitives/alert-dialog", description: "A modal dialog that interrupts the user wth important content.", icon: "AlertCircle", shortcut: "⌘A" },
+            { title: "Alert Dialog", href: "/docs/primitives/alert-dialog", description: "A modal dialog that interrupts the user with important content.", icon: "AlertCircle", shortcut: "⌘A" },
             { title: "Hover Card", href: "/docs/primitives/hover-card", description: "For sighted users to preview content available behind a link.", icon: "MousePointer", shortcut: "⌘H" },
             { title: "Progress", href: "/docs/primitives/progress", description: "Displays an indicator showing the completion progress of a task.", icon: "BarChart", shortcut: "⌘P", badge: "Event" }
         ]
@@ -72,20 +71,19 @@ const navConfig: NavConfigType = [
 
 export const Navbar = () => {
     return (
-        <nav className="gap-x-2 flex justify-between items-center px-4 w-[800px] justify-center" style={{ zIndex: 100 }}>
+        <nav className="gap-x-2 flex justify-between items-center px-4" style={{ zIndex: 100 }}>
             <NavigationMenu>
                 <NavigationMenuList>
                     {navConfig.map((navItem, index) => {
-                        const IconComponent = navItem.icon ? Icons[navItem.icon] : null;
                         return navItem.type === "dropdown" ? (
                             <NavigationMenuItem key={index} className="cursor-pointer">
                                 <NavigationMenuTrigger>
-                                    {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
+                                    {navItem.icon && <Icon name={navItem.icon} className="w-4 h-4 mr-2" />}
                                     {navItem.title}
                                     {navItem.badge && <StyledBadge type={navItem.badge} />}
                                 </NavigationMenuTrigger>
                                 <NavigationMenuContent>
-                                    <ul className={`grid gap-3 p-4 w-[650px] ${navItem.gridLayout}`}>
+                                    <ul className={`grid gap-3 p-4 w-[800px] grid-cols-${navItem.columns || 1}`}>
                                         {navItem.items?.map((item, i) => (
                                             <ListItem key={i} title={item.title} href={item.href} icon={item.icon} shortcut={item.shortcut} badge={item.badge}>
                                                 {item.description}
@@ -98,7 +96,7 @@ export const Navbar = () => {
                             <NavigationMenuItem key={index} className="cursor-pointer">
                                 <Link href={navItem.href as string} legacyBehavior passHref>
                                     <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
+                                        {navItem.icon && <Icon name={navItem.icon} className="w-4 h-4 mr-2" />}
                                         {navItem.title}
                                         {navItem.shortcut && <span className="ml-auto text-xs text-muted-foreground">{navItem.shortcut}</span>}
                                         {navItem.badge && <StyledBadge type={navItem.badge} />}
@@ -112,11 +110,11 @@ export const Navbar = () => {
         </nav>
     );
 };
+
 const ListItem = React.forwardRef<
     React.ElementRef<"a">,
     React.ComponentPropsWithoutRef<"a"> & { icon?: keyof typeof Icons; shortcut?: string; badge?: BadgeType }
 >(({ className, title, children, icon, shortcut, badge, ...props }, ref) => {
-    const LucideIcon = icon ? Icons[icon as keyof typeof Icons] : null;
     return (
         <li className="w-[300px]">
             <NavigationMenuLink asChild>
@@ -130,7 +128,7 @@ const ListItem = React.forwardRef<
                         {...props}
                     >
                         <div className="flex items-center gap-2 text-sm font-medium leading-none">
-                            {LucideIcon && <LucideIcon className="w-4 h-4" />}
+                            {icon && <Icon name={icon} className="w-4 h-4" />}
                             {title}
                             {shortcut && <span className="ml-auto text-xs text-muted-foreground">{shortcut}</span>}
                             {badge && <StyledBadge type={badge} />}
@@ -142,6 +140,7 @@ const ListItem = React.forwardRef<
         </li>
     );
 });
+
 const StyledBadge = ({ type }: { type: BadgeType }) => {
     const badgeColors = {
         New: "bg-green-500 text-white",
