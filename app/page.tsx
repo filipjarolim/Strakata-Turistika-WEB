@@ -68,7 +68,7 @@ const Home = async () => {
                     </div>
                 </div>
                 <div className={"flex flex-row items-center justify-center"}>
-                    <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[90%]"}/>
+                    <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[100%]"}/>
                 </div>
                 <div className={"flex gap-x-2 flex md:hidden flex-row items-center justify-start py-4 w-full"}>
                     <Button variant={"outline"} className={"rounded-full"}>

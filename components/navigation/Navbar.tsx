@@ -1,17 +1,8 @@
 "use client"
-import React, {useState} from "react";
-
+import React from "react";
 import { usePathname } from "next/navigation";
-
-import { Button } from "@/components/ui/button";
-import { UserButton } from "@/components/auth/user-button";
-import {LoginButton} from "@/components/auth/login-button";
-import {RegisterButton} from "@/components/auth/register-button";
-import {useCurrentUser} from "@/hooks/use-current-user";
-
-import Link from "next/link"
-
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 import {
     NavigationMenu,
     NavigationMenuContent,
@@ -20,147 +11,146 @@ import {
     NavigationMenuList,
     NavigationMenuTrigger,
     navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
-const components: { title: string; href: string; description: string }[] = [
+} from "@/components/ui/navigation-menu";
+import { Badge } from "@/components/ui/badge";
+import * as Icons from "lucide-react";
+
+type BadgeType = "New" | "Update" | "Event";
+
+type NavItem = {
+    title: string;
+    href: string;
+    description?: string;
+    icon?: keyof typeof Icons;
+    shortcut?: string;
+    badge?: BadgeType;
+};
+
+type NavConfigType = {
+    type: "dropdown" | "link";
+    title: string;
+    icon?: keyof typeof Icons;
+    gridLayout?: string;
+    href?: string;
+    shortcut?: string;
+    badge?: BadgeType;
+    items?: NavItem[];
+}[];
+
+const navConfig: NavConfigType = [
+
     {
-        title: "Alert Dialog",
-        href: "/docs/primitives/alert-dialog",
-        description:
-            "A modal dialog that interrupts the user with important content and expects a response.",
+        type: "dropdown",
+        title: "Getting Started",
+        icon: "Rocket",
+        gridLayout: "lg:grid-cols-[1fr_3fr]",
+        items: [
+            { title: "Introduction", href: "/docs", description: "Re-usable components built using Radix UI and Tailwind CSS.", icon: "Book", shortcut: "⌘I", badge: "New" },
+            { title: "Installation", href: "/docs/installation", description: "How to install dependencies and structure your app.", icon: "Download", shortcut: "⌘D" },
+            { title: "Typography", href: "/docs/primitives/typography", description: "Styles for headings, paragraphs, lists...etc.", icon: "Type", shortcut: "⌘T", badge: "Update" }
+        ]
     },
     {
-        title: "Hover Card",
-        href: "/docs/primitives/hover-card",
-        description:
-            "For sighted users to preview content available behind a link.",
+        type: "dropdown",
+        title: "Components",
+        icon: "Box",
+        gridLayout: "lg:grid-cols-[1fr_3fr]",
+        items: [
+            { title: "Alert Dialog", href: "/docs/primitives/alert-dialog", description: "A modal dialog that interrupts the user wth important content.", icon: "AlertCircle", shortcut: "⌘A" },
+            { title: "Hover Card", href: "/docs/primitives/hover-card", description: "For sighted users to preview content available behind a link.", icon: "MousePointer", shortcut: "⌘H" },
+            { title: "Progress", href: "/docs/primitives/progress", description: "Displays an indicator showing the completion progress of a task.", icon: "BarChart", shortcut: "⌘P", badge: "Event" }
+        ]
     },
     {
-        title: "Progress",
-        href: "/docs/primitives/progress",
-        description:
-            "Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.",
-    },
-    {
-        title: "Scroll-area",
-        href: "/docs/primitives/scroll-area",
-        description: "Visually or semantically separates content.",
-    },
-    {
-        title: "Tabs",
-        href: "/docs/primitives/tabs",
-        description:
-            "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
-    },
-    {
-        title: "Tooltip",
-        href: "/docs/primitives/tooltip",
-        description:
-            "A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.",
-    },
-]
+        type: "link",
+        title: "Documentation",
+        icon: "FileText",
+        href: "/docs",
+        shortcut: "⌘D"
+    }
+];
 
 export const Navbar = () => {
-
-    const pathname = usePathname();
-    const user = useCurrentUser();
-    const [activeButtonId, setActiveButtonId] = useState<number | null>(null);
-
     return (
-        <nav className="gap-x-2 flex justify-between items-center px-4" style={
-            {
-                zIndex: 100
-            }
-        }>
+        <nav className="gap-x-2 flex justify-between items-center px-4 w-[800px] justify-center" style={{ zIndex: 100 }}>
             <NavigationMenu>
                 <NavigationMenuList>
-                    <NavigationMenuItem>
-                        <NavigationMenuTrigger>Getting started</NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                            <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                                <li className="row-span-3">
-                                    <NavigationMenuLink asChild>
-                                        <Link
-                                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-linear-to-b from-muted/50 to-muted p-6 no-underline outline-hidden focus:shadow-md"
-                                            href="/"
-                                        >
-                                            {/*<Icons.logo className="h-6 w-6" />*/}
-                                            <div className="mb-2 mt-4 text-lg font-medium">
-                                                shadcn/ui
-                                            </div>
-                                            <p className="text-sm leading-tight text-muted-foreground">
-                                                Beautifully designed components that you can copy and
-                                                paste into your apps. Accessible. Customizable. Open
-                                                Source.
-                                            </p>
-                                        </Link>
+                    {navConfig.map((navItem, index) => {
+                        const IconComponent = navItem.icon ? Icons[navItem.icon] : null;
+                        return navItem.type === "dropdown" ? (
+                            <NavigationMenuItem key={index} className="cursor-pointer">
+                                <NavigationMenuTrigger>
+                                    {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
+                                    {navItem.title}
+                                    {navItem.badge && <StyledBadge type={navItem.badge} />}
+                                </NavigationMenuTrigger>
+                                <NavigationMenuContent>
+                                    <ul className={`grid gap-3 p-4 w-[650px] ${navItem.gridLayout}`}>
+                                        {navItem.items?.map((item, i) => (
+                                            <ListItem key={i} title={item.title} href={item.href} icon={item.icon} shortcut={item.shortcut} badge={item.badge}>
+                                                {item.description}
+                                            </ListItem>
+                                        ))}
+                                    </ul>
+                                </NavigationMenuContent>
+                            </NavigationMenuItem>
+                        ) : (
+                            <NavigationMenuItem key={index} className="cursor-pointer">
+                                <Link href={navItem.href as string} legacyBehavior passHref>
+                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                                        {IconComponent && <IconComponent className="w-4 h-4 mr-2" />}
+                                        {navItem.title}
+                                        {navItem.shortcut && <span className="ml-auto text-xs text-muted-foreground">{navItem.shortcut}</span>}
+                                        {navItem.badge && <StyledBadge type={navItem.badge} />}
                                     </NavigationMenuLink>
-                                </li>
-                                <ListItem href="/docs" title="Introduction">
-                                    Re-usable components built using Radix UI and Tailwind CSS.
-                                </ListItem>
-                                <ListItem href="/docs/installation" title="Installation">
-                                    How to install dependencies and structure your app.
-                                </ListItem>
-                                <ListItem href="/docs/primitives/typography" title="Typography">
-                                    Styles for headings, paragraphs, lists...etc
-                                </ListItem>
-                            </ul>
-                        </NavigationMenuContent>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                        <NavigationMenuTrigger>Components</NavigationMenuTrigger>
-                        <NavigationMenuContent>
-                            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-                                {components.map((component) => (
-                                    <ListItem
-                                        key={component.title}
-                                        title={component.title}
-                                        href={component.href}
-                                    >
-                                        {component.description}
-                                    </ListItem>
-                                ))}
-                            </ul>
-                        </NavigationMenuContent>
-                    </NavigationMenuItem>
-                    <NavigationMenuItem>
-                        <Link href="/docs" legacyBehavior passHref>
-                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                Documentation
-                            </NavigationMenuLink>
-                        </Link>
-                    </NavigationMenuItem>
+                                </Link>
+                            </NavigationMenuItem>
+                        );
+                    })}
                 </NavigationMenuList>
             </NavigationMenu>
-
-            {/*<UserButton/>*/}
         </nav>
-    )
-}
-
+    );
+};
 const ListItem = React.forwardRef<
     React.ElementRef<"a">,
-    React.ComponentPropsWithoutRef<"a">
->(({ className, title, children, ...props }, ref) => {
+    React.ComponentPropsWithoutRef<"a"> & { icon?: keyof typeof Icons; shortcut?: string; badge?: BadgeType }
+>(({ className, title, children, icon, shortcut, badge, ...props }, ref) => {
+    const LucideIcon = icon ? Icons[icon as keyof typeof Icons] : null;
     return (
-        <li>
+        <li className="w-[300px]">
             <NavigationMenuLink asChild>
-                <Link
-                    ref={ref}
-                    href={"#"}
-                    className={cn(
-                        "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-hidden transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                        className
-                    )}
-                    {...props}
-                >
-                    <div className="text-sm font-medium leading-none">{title}</div>
-                    <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        {children}
-                    </p>
+                <Link href={props.href ?? "#"} legacyBehavior passHref>
+                    <a
+                        ref={ref}
+                        className={cn(
+                            "block cursor-pointer select-none space-y-1 rounded-md p-3 leading-none no-underline outline-hidden transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+                            className
+                        )}
+                        {...props}
+                    >
+                        <div className="flex items-center gap-2 text-sm font-medium leading-none">
+                            {LucideIcon && <LucideIcon className="w-4 h-4" />}
+                            {title}
+                            {shortcut && <span className="ml-auto text-xs text-muted-foreground">{shortcut}</span>}
+                            {badge && <StyledBadge type={badge} />}
+                        </div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
+                    </a>
                 </Link>
             </NavigationMenuLink>
         </li>
-    )
-})
-ListItem.displayName = "ListItem"
+    );
+});
+const StyledBadge = ({ type }: { type: BadgeType }) => {
+    const badgeColors = {
+        New: "bg-green-500 text-white",
+        Update: "bg-blue-500 text-white",
+        Event: "bg-red-500 text-white"
+    };
+    return (
+        <Badge variant="default" className={`rounded-full px-2 py-1 text-xs font-semibold ${badgeColors[type]}`}>{type}</Badge>
+    );
+};
+
+ListItem.displayName = "ListItem";

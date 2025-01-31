@@ -24,7 +24,7 @@ const CommonPageTemplate = ({
 
 
             {(contents.complete || contents.header) && <Header user={currentUser} role={currentRole} />}
-            <StatusBlock />
+            {/*<StatusBlock />*/}
             {children}
 
             {(contents.complete || contents.footer) && <Footer user={currentUser} role={currentRole} />}

@@ -1,6 +1,7 @@
 import React from 'react'
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import {currentRole, currentUser} from "@/lib/auth";
+import CompetitionRules from "@/components/blocks/CompetitionRules";
 
 //Bodování
 // Pravidla soutěže
@@ -82,7 +83,15 @@ import {currentRole, currentUser} from "@/lib/auth";
 // O průběžném pořadí budeme pravidelně informovat.
 //
 // A ještě prosba: hodně nám pomůže, když fotku, kterou nahráváte pojmenujete podle místa, kde byla pořízená. Někteří z vás to tak dělají a pro uložení a zapsání bodů je to velká pomoc. Díky :-)
-
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import Link from "next/link";
 const Page = async () => {
 
     const user = await currentUser()
@@ -90,9 +99,26 @@ const Page = async () => {
 
     return (
         <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
-            <div className={"font-bold text-6xl"}>
-                Pravidla
+            <div className={"p-12 w-full"}>
+                <div className={"flex flex-row items-start justify-between w-full"}>
+
+                    <div className={"font-bold text-6xl"}>
+                        Pravidla
+                    </div>
+                    <div className={"flex flex-row items-center justify-end w-full"}>
+
+                        <div>
+                            s
+                        </div>
+                        <div>
+                            d
+                        </div>
+                    </div>
+                </div>
+                <CompetitionRules />
+
             </div>
+
         </CommonPageTemplate>
 
     )

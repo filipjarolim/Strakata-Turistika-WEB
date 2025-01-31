@@ -4,9 +4,8 @@ import { ReactNode } from 'react';
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
-import localFont from 'next/font/local'
 
-const myFont = localFont({ src: '../assets/fonts/GeistVF.woff' })
+
 
 
 const defaultUrl = process.env.VERCEL_URL

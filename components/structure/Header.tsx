@@ -19,7 +19,9 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet"
 import basicInfo from "@/lib/settings/basicInfo";
-
+import localFont from 'next/font/local'
+import {cn} from "@/lib";
+const myFont = localFont({ src: '../../assets/fonts/Nohemi-VF.ttf' })
 const Header = ({
                     user, role
 }: {
@@ -34,9 +36,9 @@ const Header = ({
 
     return (
         <header className="grid grid-cols-2 md:grid-cols-7 w-full p-2">
-            <Link href="/" className="flex flex-row items-center justify-start gap-x-2 font-bold">
-                <Image src={basicInfo.img.icons.small} alt="Logo" width={32} height={32} className="rounded-full" />
-                {basicInfo.name}
+            <Link href="/" className={cn("flex flex-row items-center justify-start  font-extrabold text-gray-900/80 hover:text-gray-900/90 transition-color duration-200", myFont.className)}>
+                <Image src={basicInfo.img.icons.transparentHeader} alt="Logo" width={32} height={32} className={"mr-[5px]"} />
+                Strakatá Turistika
             </Link>
             <div className="col-span-1 md:col-span-5 hidden w-full flex-row items-center justify-center md:flex">
                 <Navbar />
@@ -48,7 +50,6 @@ const Header = ({
                     ) : (
                         <UserButton />
                     )}
-                    <LogoutButton>Odejít</LogoutButton>
                 </div>
                 <div className="md:hidden flex items-center ">
                     <Sheet>
@@ -69,15 +70,17 @@ const Header = ({
                             </SheetHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Link href="/profile" className="col-span-4">
-                                        Profil
+                                    <Link href="/" className="col-span-4">
+                                        Home
                                     </Link>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Link href="/settings" className="col-span-4">
-                                        Nastavení
+                                    <Link href="/playground" className="col-span-4">
+                                        Playground
                                     </Link>
                                 </div>
+                                <LogoutButton>Odejít</LogoutButton>
+
                             </div>
                             <SheetFooter>
                                 <SheetClose asChild>
