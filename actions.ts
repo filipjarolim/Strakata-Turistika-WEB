@@ -11,22 +11,14 @@ webpush.setVapidDetails(
 let subscription: webpush.PushSubscription | null = null
 
 export async function subscribeUser(sub: PushSubscription) {
-    const subJSON = sub.toJSON();
-    if (!subJSON.keys) {
-        throw new Error('Subscription keys are undefined');
-    }
-
-    subscription = {
-        endpoint: sub.endpoint,
-        keys: {
-            p256dh: subJSON.keys.p256dh,
-            auth: subJSON.keys.auth
-        }
-    } as webpush.PushSubscription
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    subscription = sub
     // In a production environment, you would want to store the subscription in a database
     // For example: await db.subscriptions.create({ data: sub })
     return { success: true }
 }
+
 
 export async function unsubscribeUser() {
     subscription = null
