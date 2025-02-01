@@ -33,7 +33,6 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
-
 self.addEventListener('push', function (event) {
     if (event.data) {
         const data = event.data.json();
@@ -42,6 +41,7 @@ self.addEventListener('push', function (event) {
             icon: data.icon || '/icons/icon-192x192.png',
             badge: '/icons/icon-192x192.png',
             vibrate: [100, 50, 100],
+            requireInteraction: true,  // Keeps the notification until user interacts
             data: {
                 dateOfArrival: Date.now(),
                 primaryKey: '2',
@@ -54,5 +54,12 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
     console.log('Notification click received.');
     event.notification.close();
-    event.waitUntil(self.clients.openWindow('https://strakataturistika.vercel.app'));
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+            if (clientList.length > 0) {
+                return clientList[0].focus();
+            }
+            return self.clients.openWindow('https://strakataturistika.vercel.app');
+        })
+    );
 });

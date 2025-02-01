@@ -16,19 +16,21 @@ interface PromptResponseObject {
 const InstallButton: React.FC = () => {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [isInstallable, setIsInstallable] = useState<boolean>(false);
+    const [isIOS, setIsIOS] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
         const handleBeforeInstallPrompt = (e: Event) => {
             const event = e as BeforeInstallPromptEvent;
-            // Prevent the default mini-infobar from appearing
             event.preventDefault();
-            // Save the event to trigger it later
             setDeferredPrompt(event);
-            // Show the install button
             setIsInstallable(true);
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
+
+        setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+        setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
@@ -38,10 +40,7 @@ const InstallButton: React.FC = () => {
     const handleInstallClick = async () => {
         if (!deferredPrompt) return;
 
-        // Show the install prompt
         await deferredPrompt.prompt();
-
-        // Wait for the user's response
         const choiceResult = await deferredPrompt.userChoice;
 
         if (choiceResult.outcome === 'accepted') {
@@ -50,14 +49,22 @@ const InstallButton: React.FC = () => {
             console.log('PWA installation rejected');
         }
 
-        // Clear the deferredPrompt after use
         setDeferredPrompt(null);
     };
 
+    if (isStandalone) return null;
+
     return (
-        <Button variant={"default"} className={"rounded-full"} onClick={handleInstallClick}>
-            Nainstalovat jako aplikaci
-        </Button>
+        <div className="flex flex-col items-center gap-2 p-4 bg-gray-100 rounded-lg">
+            <Button variant={"default"} className={"rounded-full"} onClick={handleInstallClick}>
+                Nainstalovat jako aplikaci
+            </Button>
+            {isIOS && (
+                <p className="text-sm text-gray-600">
+                    To install this app on your iOS device, tap the share button and then &#34;Add to Home Screen&#34;.
+                </p>
+            )}
+        </div>
     );
 };
 

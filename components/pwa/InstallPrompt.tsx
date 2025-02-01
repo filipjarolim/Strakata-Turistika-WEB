@@ -1,37 +1,31 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Smartphone } from 'lucide-react'
 
-function InstallPrompt() {
+export default function InstallPrompt() {
     const [isIOS, setIsIOS] = useState(false)
     const [isStandalone, setIsStandalone] = useState(false)
 
     useEffect(() => {
-        setIsIOS(
-            /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream: unknown }).MSStream
-        )
-
+        setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream)
         setIsStandalone(window.matchMedia('(display-mode: standalone)').matches)
     }, [])
 
-    if (isStandalone) {
-        return null // Don't show install button if already installed
-    }
+    if (isStandalone) return null
 
     return (
-        <div>
-            <h3>Install App</h3>
-            <button>Add to Home Screen</button>
+        <div className="flex flex-col items-center gap-2 p-4 bg-gray-100 rounded-lg">
+            <h3 className="text-lg font-semibold">Install App</h3>
+            <Button>
+                <Smartphone className="mr-2" /> Add to Home Screen
+            </Button>
             {isIOS && (
-                <p>
-                    To install this app on your iOS device, tap the share button
-                    <span role="img" aria-label="share icon"></span>
-                    and then &#34;Add to Home Screen&#34;
-                    <span role="img" aria-label="plus icon"> ➕ </span>.
+                <p className="text-sm text-gray-600">
+                    To install this app on your iOS device, tap the share button and then "Add to Home Screen".
                 </p>
             )}
         </div>
     )
 }
-
-export default InstallPrompt

@@ -5,7 +5,7 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import {currentRole, currentUser} from "@/lib/auth";
 
 import PushNotificationManager from "@/components/pwa/PushNotificationManager";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
+import InstallButton from "@/components/pwa/InstallButton";
 
 const Page = async () => {
 
@@ -16,7 +16,7 @@ const Page = async () => {
         <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
             Playground
             <PushNotificationManager />
-            <InstallPrompt />
+            <InstallButton />
         </CommonPageTemplate>
 
     )
