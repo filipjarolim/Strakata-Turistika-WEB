@@ -23,7 +23,7 @@ export default function InstallPrompt() {
             </Button>
             {isIOS && (
                 <p className="text-sm text-gray-600">
-                    To install this app on your iOS device, tap the share button and then "Add to Home Screen".
+                    To install this app on your iOS device, tap the share button and then &#34;Add to Home Screen&#34;.
                 </p>
             )}
         </div>
