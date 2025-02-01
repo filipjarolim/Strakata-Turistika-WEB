@@ -13,6 +13,12 @@ interface PromptResponseObject {
     platform: string;
 }
 
+declare global {
+    interface Window {
+        MSStream?: unknown;
+    }
+}
+
 const InstallButton: React.FC = () => {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [isInstallable, setIsInstallable] = useState<boolean>(false);
@@ -29,7 +35,7 @@ const InstallButton: React.FC = () => {
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt as EventListener);
 
-        setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+        setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as Window & typeof globalThis).MSStream);
         setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
 
         return () => {
