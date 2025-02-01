@@ -1,4 +1,3 @@
-// next.config.js (CommonJS)
 const {
     PHASE_DEVELOPMENT_SERVER,
     PHASE_PRODUCTION_BUILD,
@@ -17,7 +16,6 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
     };
 
     if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
-        // Dynamically import the ESM module
         const { default: withSerwist } = await import("@serwist/next");
 
         return withSerwist({
