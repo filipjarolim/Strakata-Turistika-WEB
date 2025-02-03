@@ -23,8 +23,8 @@ const CommonPageTemplate = ({
         <main className={cn("min-h-screen  px-4 sm:px-6 flex flex-col items-start justify-start relative", className)}>
 
 
-
             {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} />}
+
             {/*<StatusBlock />*/}
             {children}
 

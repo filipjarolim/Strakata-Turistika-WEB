@@ -55,12 +55,14 @@ const Header = ({
         setMenuOpen(!menuOpen);
     };
 
+
+
     return (
         <>
             <header
                 ref={headerRef}
                 className={cn(
-                    "grid grid-cols-2 md:grid-cols-9 w-[70%] mx-auto px-6 pt-6 pb-4 fixed left-1/2 translate-x-[-50%] rounded-b-2xl",
+                    "grid grid-cols-2 md:grid-cols-9 w-full md:w-[70%] mx-auto px-6 pt-6 pb-4 fixed left-1/2 translate-x-[-50%] rounded-b-2xl",
                     "h-fit"
                 )}
                 style={{
@@ -87,7 +89,7 @@ const Header = ({
                 <div className="col-span-1 md:col-span-5 hidden w-full md:flex flex-row items-center">
                     <Navbar />
                 </div>
-                <div className="flex flex-row items-end justify-end col-span-1 md:col-span-2">
+                <div className="flex flex-row justify-end col-span-1 md:col-span-2">
                     <div className="hidden md:flex flex-row items-end justify-center gap-x-2">
                         {!user ? (
                             <div className={"flex flex-row items-center justify-center gap-x-2"}>
@@ -107,10 +109,12 @@ const Header = ({
                                     <span></span>
                                 </div>
                             </SheetTrigger>
+
                             <SheetContent
                                 side="top"
                                 style={{
-                                    zIndex: 50,
+                                    zIndex: 150,
+                                    display: "relative"
                                 }}
                             >
                                 <SheetHeader>
@@ -143,14 +147,7 @@ const Header = ({
                 </div>
             </header>
 
-            {/* Bottoms div (matches the height of the header) */}
-            <div
-                style={{
-                    height: `${headerHeight}px`, // Dynamically set the height
-                }}
-            >
-
-            </div>
+            <div style={{height: `${headerHeight}px`}}></div>
         </>
     );
 };

@@ -49,10 +49,8 @@ export default function PushNotificationManager() {
     }
 
     async function sendTestNotification() {
-        if (subscription) {
-            await sendNotification(message)
-            setMessage('')
-        }
+        await sendNotification(message)
+        setMessage('')
     }
 
     if (!isSupported) return <p>Push notifications are not supported in this browser.</p>

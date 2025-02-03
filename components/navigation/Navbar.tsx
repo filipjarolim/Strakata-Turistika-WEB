@@ -15,54 +15,52 @@ import { Badge } from "@/components/ui/badge";
 import Icon from "@/components/ui/Icon";
 import * as Icons from 'lucide-react';
 
-type BadgeType = "New" | "Update" | "Event";
+type BadgeType = "Nové" | "Aktualizace" | "Událost";
 
 type NavItem = {
     title: string;
     href: string;
     description?: string;
     icon?: keyof typeof Icons;
-    shortcut?: string;
     badge?: BadgeType;
 };
 
 type NavConfigType = {
-    type: "dropdown" | "link";
+    type: "roletka" | "odkaz";
     title: string;
     icon?: keyof typeof Icons;
     columns?: number;
     href?: string;
-    shortcut?: string;
     badge?: BadgeType;
     items?: NavItem[];
 }[];
 
 const navConfig: NavConfigType = [
     {
-        type: "dropdown",
-        title: "Getting Started",
+        type: "roletka",
+        title: "Začínáme",
         icon: "Rocket",
         columns: 2,
         items: [
-            { title: "Introduction", href: "/docs", description: "Re-usable components built using Radix UI and Tailwind CSS.", icon: "Book", shortcut: "⌘I", badge: "New" },
-            { title: "Installation", href: "/docs/installation", description: "How to install dependencies and structure your app.", icon: "Download", shortcut: "⌘D" },
-            { title: "Typography", href: "/docs/primitives/typography", description: "Styles for headings, paragraphs, lists...etc.", icon: "Type", shortcut: "⌘T", badge: "Update" }
+            { title: "Úvod", href: "/docs", description: "Znovu použitelné komponenty postavené pomocí Radix UI a Tailwind CSS.", icon: "Book", badge: "Nové" },
+            { title: "Instalace", href: "/docs/installation", description: "Jak nainstalovat závislosti a strukturovat aplikaci.", icon: "Download" },
+            { title: "Typografie", href: "/docs/primitives/typography", description: "Styly pro nadpisy, odstavce, seznamy...atd.", icon: "Type", badge: "Aktualizace" }
         ]
     },
     {
-        type: "dropdown",
-        title: "Components",
+        type: "roletka",
+        title: "Komponenty",
         icon: "Box",
         columns: 3,
         items: [
-            { title: "Alert Dialog", href: "/docs/primitives/alert-dialog", description: "A modal dialog that interrupts the user with important content.", icon: "AlertCircle", shortcut: "⌘A" },
-            { title: "Hover Card", href: "/docs/primitives/hover-card", description: "For sighted users to preview content available behind a link.", icon: "MousePointer", shortcut: "⌘H" },
-            { title: "Progress", href: "/docs/primitives/progress", description: "Displays an indicator showing the completion progress of a task.", icon: "BarChart", shortcut: "⌘P", badge: "Event" }
+            { title: "Upozornění", href: "/docs/primitives/alert-dialog", description: "Modální dialog, který upozorní uživatele na důležitý obsah.", icon: "AlertCircle" },
+            { title: "Karta při přejetí", href: "/docs/primitives/hover-card", description: "Pro náhled obsahu za odkazem pro viditelné uživatele.", icon: "MousePointer" },
+            { title: "Pokrok", href: "/docs/primitives/progress", description: "Indikátor ukazující stav dokončení úkolu.", icon: "BarChart", badge: "Událost" }
         ]
     },
     {
-        type: "link",
-        title: "Documentation",
+        type: "odkaz",
+        title: "Dokumentace",
         icon: "FileText",
         href: "/docs",
     }
@@ -76,7 +74,7 @@ export const Navbar = () => {
             <NavigationMenu>
                 <NavigationMenuList>
                     {navConfig.map((navItem, index) => {
-                        return navItem.type === "dropdown" ? (
+                        return navItem.type === "roletka" ? (
                             <NavigationMenuItem key={index} className={"cursor-pointer"}>
                                 <NavigationMenuTrigger className={NavigationMenuTriggerClassName}>
                                     {navItem.icon && <Icon name={navItem.icon} className="size-[13px] mr-2" />}
@@ -86,7 +84,7 @@ export const Navbar = () => {
                                 <NavigationMenuContent>
                                     <ul className={`grid gap-3 p-4 w-[800px] grid-cols-${navItem.columns || 1}`}>
                                         {navItem.items?.map((item, i) => (
-                                            <ListItem key={i} title={item.title} href={item.href} icon={item.icon} shortcut={item.shortcut} badge={item.badge}>
+                                            <ListItem key={i} title={item.title} href={item.href} icon={item.icon} badge={item.badge}>
                                                 {item.description}
                                             </ListItem>
                                         ))}
@@ -99,7 +97,6 @@ export const Navbar = () => {
                                     <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), NavigationMenuTriggerClassName)}>
                                         {navItem.icon && <Icon name={navItem.icon} className="size-[13px] mr-2" />}
                                         {navItem.title}
-                                        {navItem.shortcut && <span className="ml-auto text-xs text-muted-foreground">{navItem.shortcut}</span>}
                                         {navItem.badge && <StyledBadge type={navItem.badge} />}
                                     </NavigationMenuLink>
                                 </Link>
@@ -114,8 +111,8 @@ export const Navbar = () => {
 
 const ListItem = React.forwardRef<
     React.ElementRef<"a">,
-    React.ComponentPropsWithoutRef<"a"> & { icon?: keyof typeof Icons; shortcut?: string; badge?: BadgeType }
->(({ className, title, children, icon, shortcut, badge, ...props }, ref) => {
+    React.ComponentPropsWithoutRef<"a"> & { icon?: keyof typeof Icons; badge?: BadgeType }
+>(({ className, title, children, icon, badge, ...props }, ref) => {
     return (
         <li className="w-[300px]">
             <NavigationMenuLink asChild>
@@ -131,7 +128,6 @@ const ListItem = React.forwardRef<
                         <div className="flex items-center gap-2 text-sm font-medium leading-none">
                             {icon && <Icon name={icon} className="w-4 h-4" />}
                             {title}
-                            {shortcut && <span className="ml-auto text-xs text-muted-foreground">{shortcut}</span>}
                             {badge && <StyledBadge type={badge} />}
                         </div>
                         <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{children}</p>
@@ -144,9 +140,9 @@ const ListItem = React.forwardRef<
 
 const StyledBadge = ({ type }: { type: BadgeType }) => {
     const badgeColors = {
-        New: "bg-green-500 text-white",
-        Update: "bg-blue-500 text-white",
-        Event: "bg-red-500 text-white"
+        Nové: "bg-green-500 text-white",
+        Aktualizace: "bg-blue-500 text-white",
+        Událost: "bg-red-500 text-white"
     };
     return (
         <Badge variant="default" className={`rounded-full px-2 py-1 text-xs font-semibold ${badgeColors[type]}`}>{type}</Badge>
