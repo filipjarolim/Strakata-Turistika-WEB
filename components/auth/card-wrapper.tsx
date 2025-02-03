@@ -30,7 +30,7 @@ export const CardWrapper = ({
     showSocial
 }: CardWrapperProps) => {
     return (
-        <Card className={"w-[600px] border-0 shadow-none bg-transparent"}>
+        <Card className={"w-[90%] md:w-[80%] border-0 shadow-none bg-transparent"}>
             <CardHeader>
                <Header label={headerLabel} />
                <BackButton label={backButtonLabel} href={backButtonHref} />
@@ -47,11 +47,11 @@ export const CardWrapper = ({
                         style={{gridTemplateColumns: "1fr 40px 1fr"}}>
                         <Separator className={"w-full"}/>
                         <div>
-                            OR
+                            NEBO
                         </div>
                         <Separator/>
                     </div>
-                    <CardFooter>
+                    <CardFooter className={"w-full"}>
                         <Social />
                     </CardFooter>
 

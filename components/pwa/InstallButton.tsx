@@ -61,12 +61,12 @@ const InstallButton: React.FC = () => {
     if (isStandalone) return null;
 
     return (
-        <div className="flex flex-col items-center gap-2 p-4 bg-gray-100 rounded-lg">
+        <div className="flex flex-col items-start justify-start gap-2 p-4  rounded-lg">
             <Button variant={"default"} className={"rounded-full"} onClick={handleInstallClick}>
                 Nainstalovat jako aplikaci
             </Button>
             {isIOS && (
-                <p className="text-sm text-gray-600">
+                <p className="text-[8px] text-gray-600">
                     To install this app on your iOS device, tap the share button and then &#34;Add to Home Screen&#34;.
                 </p>
             )}

@@ -43,7 +43,7 @@ export const RegisterButton = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant={"secondary"} size={"lg"} className={"rounded-full border bg-[#111] dark:bg-white hover:bg-[#000] dark:text-black font-semibold text-white "}>
+                    <Button variant={"secondary"} size={"md"} className={"rounded-full border bg-[#111] dark:bg-white hover:bg-[#000] dark:text-black font-semibold text-white "}>
                         {children}
                     </Button>
                 </TooltipTrigger>

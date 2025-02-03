@@ -24,7 +24,7 @@ const Home = async () => {
     return (
         <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
             <div className={"grid grid-cols-1 md:grid-cols-2 w-full"}>
-                <div className={"p-8 py-12 hidden md:flex z-10 w-full flex-col items-start justify-center h-full"}>
+                <div className={"p-8   hidden md:flex z-10 w-full flex-col items-start justify-center h-full"}>
                     <h1 className="text-7xl font-bold mb-4 ">
                         {basicInfo.name}
                     </h1>

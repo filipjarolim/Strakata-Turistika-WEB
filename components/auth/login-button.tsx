@@ -54,11 +54,11 @@ export const LoginButton = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant={"secondary"} size={"lg"} className={"rounded-full border dark:bg-black bg-white  text-black font-semibold dark:text-white hover:bg-[#000] hover:text-[#fff] dark:hover:bg-[#222]"}>
+                    <Button variant={"secondary"} size={"md"} className={"rounded-full border dark:bg-black bg-white  text-black font-semibold dark:text-white hover:bg-[#000] hover:text-[#fff] dark:hover:bg-[#222]"}>
                         {children}
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent className={"flex flex-row items-center justify-center"}>
+                <TooltipContent className={"flex flex-row items-center justify-center"} style={{zIndex: 110}}>
                     {authprefix.buttons.login.tooltip.icon}
                     {authprefix.buttons.login.tooltip.label}
                 </TooltipContent>

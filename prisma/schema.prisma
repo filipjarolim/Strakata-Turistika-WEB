@@ -92,3 +92,16 @@ model News {
   content   String?
   createdAt DateTime @default(now())
 }
+
+model VisitData {
+  id            String    @id @default(cuid()) @map("_id")
+  visitDate     DateTime?
+  fullName      String
+  dogName       String?
+  points        Int
+  visitedPlaces String
+  dogNotAllowed String?
+  routeLink     String?
+  year          Int
+  extraPoints   Json // Uchová všechny bonusové body pro různé roky jako JSON objekt
+}

@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
+import localFont from "next/font/local";
 
 
 
@@ -207,6 +208,7 @@ export const metadata = {
 }
 
 
+const myFont = localFont({ src: "../assets/fonts/SF-Pro.ttf" });
 
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -215,7 +217,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     return (
         <SessionProvider session={session}>
             <html lang="en" suppressHydrationWarning>
-            <body>
+            <body className={myFont.className}>
             {children}
             </body>
             </html>

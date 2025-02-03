@@ -16,22 +16,23 @@ const CommonPageTemplate = ({
     className?: string;
     currentUser?: object;
     currentRole?: string;
-    contents: { complete?: boolean; header?: boolean; footer?: boolean, supportMePopup?: boolean };
+    contents?: { complete?: boolean; header?: boolean; footer?: boolean, supportMePopup?: boolean };
 }) => {
 
     return (
-        <main className={cn("min-h-screen p-4 sm:p-6 flex flex-col items-start justify-start relative", className)}>
+        <main className={cn("min-h-screen  px-4 sm:px-6 flex flex-col items-start justify-start relative", className)}>
 
 
-            {(contents.complete || contents.header) && <Header user={currentUser} role={currentRole} />}
+
+            {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} />}
             {/*<StatusBlock />*/}
             {children}
 
-            {(contents.complete || contents.footer) && <Footer user={currentUser} role={currentRole} />}
+            {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
 
-            <div className="hidden md:block">
-                {(contents.complete || contents.supportMePopup) && <SupportMePopup />}
-            </div>
+            {/*<div className="hidden md:block">*/}
+            {/*    {(contents.complete || contents.supportMePopup) && <SupportMePopup />}*/}
+            {/*</div>*/}
         </main>
     );
 };

@@ -65,20 +65,21 @@ const navConfig: NavConfigType = [
         title: "Documentation",
         icon: "FileText",
         href: "/docs",
-        shortcut: "⌘D"
     }
 ];
 
+const NavigationMenuTriggerClassName = "flex flex-row items-end text-[13px] bg-transparent pr-4  h-fit pl-0 font-small text-black/80 leading-none ";
+
 export const Navbar = () => {
     return (
-        <nav className="gap-x-2 flex justify-between items-center px-4" style={{ zIndex: 100 }}>
+        <nav className="gap-x-2 flex justify-between items-center px-4 " style={{ zIndex: 100 }}>
             <NavigationMenu>
                 <NavigationMenuList>
                     {navConfig.map((navItem, index) => {
                         return navItem.type === "dropdown" ? (
-                            <NavigationMenuItem key={index} className="cursor-pointer">
-                                <NavigationMenuTrigger>
-                                    {navItem.icon && <Icon name={navItem.icon} className="w-4 h-4 mr-2" />}
+                            <NavigationMenuItem key={index} className={"cursor-pointer"}>
+                                <NavigationMenuTrigger className={NavigationMenuTriggerClassName}>
+                                    {navItem.icon && <Icon name={navItem.icon} className="size-[13px] mr-2" />}
                                     {navItem.title}
                                     {navItem.badge && <StyledBadge type={navItem.badge} />}
                                 </NavigationMenuTrigger>
@@ -93,10 +94,10 @@ export const Navbar = () => {
                                 </NavigationMenuContent>
                             </NavigationMenuItem>
                         ) : (
-                            <NavigationMenuItem key={index} className="cursor-pointer">
-                                <Link href={navItem.href as string} legacyBehavior passHref>
-                                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                        {navItem.icon && <Icon name={navItem.icon} className="w-4 h-4 mr-2" />}
+                            <NavigationMenuItem key={index} className="cursor-pointer" >
+                                <Link href={navItem.href as string} legacyBehavior passHref >
+                                    <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), NavigationMenuTriggerClassName)}>
+                                        {navItem.icon && <Icon name={navItem.icon} className="size-[13px] mr-2" />}
                                         {navItem.title}
                                         {navItem.shortcut && <span className="ml-auto text-xs text-muted-foreground">{navItem.shortcut}</span>}
                                         {navItem.badge && <StyledBadge type={navItem.badge} />}

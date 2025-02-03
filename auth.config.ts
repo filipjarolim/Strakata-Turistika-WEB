@@ -4,6 +4,7 @@ import type { NextAuthConfig } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import Discord from "next-auth/providers/discord"
+import Apple from "next-auth/providers/apple"
 
 
 
@@ -28,10 +29,15 @@ export default {
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET
         }),
-        Discord({
-            allowDangerousEmailAccountLinking: true,
-            clientId: process.env.DISCORD_CLIENT_ID,
-            clientSecret: process.env.DISCORD_CLIENT_SECRET
+        // Discord({
+        //     allowDangerousEmailAccountLinking: true,
+        //     clientId: process.env.DISCORD_CLIENT_ID,
+        //     clientSecret: process.env.DISCORD_CLIENT_SECRET
+        // }),
+        // APPLE
+        Apple({
+            clientId: process.env.APPLE_CLIENT_ID,
+            clientSecret: process.env.APPLE_CLIENT_SECRET,
         }),
         Credentials(
             {
