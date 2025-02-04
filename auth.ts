@@ -33,12 +33,21 @@ export const {
             if (account?.provider !== "credentials") {
                 const imageUrl = profile?.image_url || profile?.picture;
                 if (imageUrl && typeof imageUrl === "string") {
-                    await db.user.update({
+                    await db.user.upsert({
                         where: { id: user.id },
-                        data: { image: imageUrl }
+                        update: { image: imageUrl },
+                        create: {
+                            id: user.id,
+                            email: user.email || "",
+                            name: user.name || "",
+                            image: imageUrl
+                        }
                     });
+
                 }
+
                 return true;
+
             }
 
             const existingUser = await getUserById(user.id);
