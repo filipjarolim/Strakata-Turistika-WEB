@@ -8,10 +8,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import basicInfo from "@/lib/settings/basicInfo";
 
 const Footer: React.FC<{ user?: { email?: string }; role?: string }> = ({ user }) => {
-    const currentDate = new Date();
-    const formattedDate = currentDate.toISOString().split("T")[0];
-    const formattedTime = currentDate.toTimeString().split(" ")[0];
-    const currentYear = currentDate.getFullYear();
+
 
     const navLinks = [
         { name: "About Us", href: "/about" },
@@ -66,8 +63,7 @@ const Footer: React.FC<{ user?: { email?: string }; role?: string }> = ({ user }
                         <CardContent>
                             <div className="text-sm text-muted-foreground">
                                 <p>Current User: {user?.email || "Guest"}</p>
-                                <p>Date: {formattedDate}</p>
-                                <p>Time (UTC): {formattedTime}</p>
+                  
                             </div>
                         </CardContent>
                     </Card>
@@ -77,7 +73,7 @@ const Footer: React.FC<{ user?: { email?: string }; role?: string }> = ({ user }
                 {/* Bottom Section */}
                 <div className="border-t pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <p className="text-sm text-muted-foreground">
-                        © {currentYear} {basicInfo.name}. Všechna práva vyhrazena.
+                        © 2025 {basicInfo.name}. Všechna práva vyhrazena.
                     </p>
 
                     {/* GitHub Author Section */}

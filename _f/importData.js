@@ -6,9 +6,7 @@ import XLSX from 'xlsx';
 const prisma = new PrismaClient();
 const filePaths = {
     2019: path.resolve("public/vysledky/vysledky2019.xlsx"),
-    2021: path.resolve("public/vysledky/vysledky2021.xlsx"),
-    2022: path.resolve("public/vysledky/vysledky2022.xlsx"),
-    2023: path.resolve("public/vysledky/vysledky2023.xlsx"),
+
 };
 
 
