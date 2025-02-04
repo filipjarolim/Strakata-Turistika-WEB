@@ -19,26 +19,26 @@ export const Social = () => {
             <Button
                 size={"lg"}
                 className={
-                    "w-fit flex flex-row items-center justify-center text-[12px] font-semibold text-[#222]"
+                    "w-full flex flex-row items-center justify-center text-[12px] font-semibold text-[#222]"
                 }
                 variant={"outline"}
                 onClick={() => onClick("google")}
             >
                 <FaGoogle className={"h-5 w-5 mr-4"} />
-                Pokračujte s Google
+                Pokračujte s Googlem
             </Button>
 
-            <Button
-                size={"lg"}
-                className={
-                    "w-fit flex flex-row items-center justify-center text-[12px] font-semibold text-[#222]"
-                }
-                variant={"outline"}
-                onClick={() => onClick("apple")}
-            >
-                <FaApple className={"h-5 w-5 mr-4"} />
-                Pokračujte s Apple
-            </Button>
+            {/*<Button*/}
+            {/*    size={"lg"}*/}
+            {/*    className={*/}
+            {/*        "w-fit flex flex-row items-center justify-center text-[12px] font-semibold text-[#222]"*/}
+            {/*    }*/}
+            {/*    variant={"outline"}*/}
+            {/*    onClick={() => onClick("apple")}*/}
+            {/*>*/}
+            {/*    <FaApple className={"h-5 w-5 mr-4"} />*/}
+            {/*    Pokračujte s Apple*/}
+            {/*</Button>*/}
         </div>
     );
 };

@@ -51,10 +51,10 @@ export const RegisterForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Create new Notes account"}
+            headerLabel={"Vytvořit nový účet pro aplikaci"}
             backButtonLabel={{
-                message: "Already have an account?",
-                link: "Login",
+                message: "Již máte účet?",
+                link: "Přihlásit se",
             }}
             backButtonHref={"/auth/login"}
             showSocial
@@ -72,7 +72,7 @@ export const RegisterForm = () => {
                                         <Input
                                             {...field}
                                             disabled={isPending}
-                                            placeholder={"john.doe@example.com"}
+                                            placeholder={"jan.novak@priklad.com"}
                                             type={"email"}
                                         />
                                     </FormControl>
@@ -85,12 +85,12 @@ export const RegisterForm = () => {
                             name={"name"}
                             render={({field}) => (
                                 <FormItem>
-                                    <FormLabel>Name</FormLabel>
+                                    <FormLabel>Jméno</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
                                             disabled={isPending}
-                                            placeholder={"John Doe"}
+                                            placeholder={"Jan Novák"}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -102,7 +102,7 @@ export const RegisterForm = () => {
                             name={"password"}
                             render={({field}) => (
                                 <FormItem>
-                                    <FormLabel>Password</FormLabel>
+                                    <FormLabel>Heslo</FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -119,7 +119,7 @@ export const RegisterForm = () => {
                     <FormError message={error} />
                     <FormSuccess message={success} />
                     <Button type={"submit"} disabled={isPending} className={"w-full"}>
-                        Create an  account
+                        Vytvořit účet
                     </Button>
                 </form>
             </Form>

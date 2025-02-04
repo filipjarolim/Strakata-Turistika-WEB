@@ -54,10 +54,10 @@ export const NewPasswordForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Enter a brand new password!"}
+            headerLabel={"Zadejte své nové heslo!"}
             backButtonLabel={{
-                message: "Wanna go back?",
-                link: "Log in"
+                message: "Jít zpět?",
+                link: "Přihlásit se"
             }}
             backButtonHref={"/auth/login"}
 
@@ -87,7 +87,7 @@ export const NewPasswordForm = () => {
                     <FormError message={error} />
                     <FormSuccess message={success} />
                     <Button type={"submit"} disabled={isPending} className={"w-full flex flex-row items-center justify-center"}>
-                        Reset password
+                        Obnovit heslo
                     </Button>
                 </form>
             </Form>

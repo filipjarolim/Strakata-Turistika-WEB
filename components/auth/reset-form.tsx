@@ -50,10 +50,10 @@ export const ResetForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Forgot your password?"}
+            headerLabel={"Zapomněli jste heslo?"}
             backButtonLabel={{
-                message: "Wanna go back?",
-                link: "Log in"
+                message: "Jít zpět?",
+                link: "Přihlásit se"
             }}
             backButtonHref={"/auth/login"}
 
@@ -71,7 +71,7 @@ export const ResetForm = () => {
                                         <Input
                                             {...field}
                                             disabled={isPending}
-                                            placeholder={"john.doe@example.com"}
+                                            placeholder={"jan.novak@priklad.com"}
                                             type={"email"}
                                         />
                                     </FormControl>
@@ -83,7 +83,7 @@ export const ResetForm = () => {
                     <FormError message={error} />
                     <FormSuccess message={success} />
                     <Button type={"submit"} disabled={isPending} className={"w-full flex flex-row items-center justify-center"}>
-                        Send reset email
+                        Poslat ověřovací email
                     </Button>
                 </form>
             </Form>

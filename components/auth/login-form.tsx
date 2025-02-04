@@ -68,7 +68,7 @@ export const LoginForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Přihlašte se do aplikace **serviceName**"}
+            headerLabel={"Přihlašte se do aplikace"}
             backButtonLabel={{
                 message: "Nemáte účet?",
                 link: "Vytvořte si jej"
@@ -127,11 +127,11 @@ export const LoginForm = () => {
                                         <FormItem>
                                             <FormLabel className={"flex flex-row items-center justify-between"}>
                                                 <div>
-                                                    Password
+                                                    Heslo
                                                 </div>
                                                 <Button size={"sm"} variant={"link"} asChild className={"px-0 font-normal"}>
                                                     <Link href={"/auth/reset"}>
-                                                        Forgot Password?
+                                                        Zapomněli jste heslo?
                                                     </Link>
                                                 </Button>
                                             </FormLabel>

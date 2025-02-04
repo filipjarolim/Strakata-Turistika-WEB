@@ -62,7 +62,7 @@ const Header = ({
             <header
                 ref={headerRef}
                 className={cn(
-                    "grid grid-cols-2 md:grid-cols-9 w-full md:w-[70%] mx-auto px-6 pt-6 pb-4 fixed left-1/2 translate-x-[-50%] rounded-b-2xl",
+                    "grid grid-cols-3 md:grid-cols-9 w-full md:w-[70%] mx-auto px-6 pt-6 pb-4 fixed left-1/2 translate-x-[-50%] rounded-b-2xl",
                     "h-fit"
                 )}
                 style={{
@@ -74,7 +74,7 @@ const Header = ({
                 <Link
                     href="/"
                     className={
-                        "flex flex-row items-center justify-start col-span-1 md:col-span-2 text-[20px] font-bold text-black/70 transition-color duration-200"
+                        "flex flex-row items-center justify-start col-span-2 text-[20px] font-bold text-black/70 transition-color duration-200"
                     }
                 >
                     <Image
