@@ -6,6 +6,7 @@ import {currentRole, currentUser} from "@/lib/auth";
 
 import PushNotificationManager from "@/components/pwa/PushNotificationManager";
 import InstallButton from "@/components/pwa/InstallButton";
+import Timer from "@/components/pwa/Timer";
 
 const Page = async () => {
 
@@ -17,6 +18,8 @@ const Page = async () => {
             Playground
             <PushNotificationManager />
             <InstallButton />
+            <Timer />
+
         </CommonPageTemplate>
 
     )
