@@ -16,13 +16,18 @@ const GPSTracker = () => {
     const ACCURACY_LIMIT = 20; // Maximum acceptable accuracy in meters
 
     // Add PositionOptions
-    const geoOptions: PositionOptions = {
+    const geoOptions: {
+        enableHighAccuracy: boolean;
+        maximumAge: number;
+        timeout: number;
+    } = {
         enableHighAccuracy: true,
         timeout: Infinity,
         maximumAge: 0,
     };
 
     // Hook to use geolocation
+
     const { latitude, longitude, accuracy } = usePosition(isTracking, geoOptions)
 
     useEffect(() => {
