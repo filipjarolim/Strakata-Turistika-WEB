@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type {Metadata, Viewport} from "next";
 import "./globals.css";
 import { ReactNode } from 'react';
 import { SessionProvider } from "next-auth/react"
@@ -21,13 +21,10 @@ export const metadata = {
     manifest:"/manifest.json",
     category: "website",
     generator: "Next.js", // framework used
-    viewport: 'width=device-width, initial-scale=1',
     icons: [
         { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png' },
         { rel: 'icon', url: '/icons/icon-192x192.png', type: 'image/png', sizes: '32x32'}
     ],
-    themeColor: '#000000',
-    // appleTouchIcon: "/apple-icon-180.png",
     appleWebApp: {
         capable: true,
         statusBarStyle: "black-translucent",
@@ -205,6 +202,12 @@ export const metadata = {
         ],
     },
 
+}
+
+export const viewport: Viewport = {
+    themeColor: 'black',
+    initialScale: 1,
+    userScalable: true,
 }
 
 

@@ -61,10 +61,7 @@ const Header = ({
         <>
             <header
                 ref={headerRef}
-                className={cn(
-                    "grid grid-cols-3 md:grid-cols-9 w-full md:w-[70%] mx-auto px-6 pt-6 pb-4 fixed left-1/2 translate-x-[-50%] rounded-b-2xl",
-                    "h-fit"
-                )}
+                className={"grid grid-cols-3 select-none md:grid-cols-9 w-full md:w-[70%] mx-auto px-6 pt-6 pb-4 fixed left-1/2 translate-x-[-50%] rounded-b-2xl h-fit"}
                 style={{
                     backgroundColor: "rgba(255, 255, 255, 0.7)", // White with transparency
                     backdropFilter: "blur(8px)", // Apply blur to the background

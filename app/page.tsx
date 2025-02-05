@@ -67,10 +67,26 @@ const Home = async () => {
                         <InstallButton/>
                     </div>
                 </div>
-                <div className={"flex flex-row items-center justify-center"}>
+                <div className={"flex flex-row items-center justify-center select-none"}>
                     <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[100%]"}/>
                 </div>
-                <div className={"flex gap-x-2 flex md:hidden flex-row items-center justify-start py-4 w-full"}>
+                <p className="text-5xl md:hidden text-center  font-semibold mt-4 text-gray-700/60">
+                    aneb poznáváme
+                    {" "}
+                    <span className={"text-black/70 font-bold"}>
+                        Česko
+                    </span>
+                    {" "}
+                    s českým
+                    {" "}
+                    <span className={"text-black/70 font-bold"}>
+                         strakatým psem
+                    </span>
+                    .
+
+
+                </p>
+                <div className={"flex md:hidden flex-row items-center justify-center py-4 w-full"}>
                     <Button variant={"outline"} className={"rounded-full"}>
                         Prozkoumat
                     </Button>

@@ -2,40 +2,47 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Helper function to get the appropriate base URL
+const getBaseUrl = () => {
+    return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
+}
+
 export const sendTwoFactorTokenEmail = async (
     email: string,
     token: string
 ) => {
     await resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "strakataturistika@resend.dev",
         to: email,
-        subject: "2FA Codee",
-        html: `<p>Your 2FA code: ${token}</p>`
+        subject: "2FA Kód",
+        html: `<p>Váš 2FA kód: ${token}</p>`
     })
 }
 
-export const sendPasswodResetEmail = async (
+export const sendPasswordResetEmail = async (
     email: string,
     token: string
 ) => {
-    const resetLink = `http://localhost:3000/auth/new-password?token=${token}`
+    const resetLink = `${getBaseUrl()}/auth/new-password?token=${token}`
 
     await resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "strakataturistika@resend.dev",
         to: email,
-        subject: "Reset your password",
-        html: `<p>Click <a href="${resetLink}" >here</a> to reset password.</p>`
-    })}
+        subject: "Obnovte své heslo",
+        html: `<p>Klikněte <a href="${resetLink}" >zde</a> pro obnovení hesla.</p>`
+    })
+}
+
 export const sendVerificationEmail = async (
     email: string,
     token: string
-)=> {
-    const confirmLink = `http://localhost:3000/auth/new-verification?token=${token}`
+) => {
+    const confirmLink = `${getBaseUrl()}/auth/new-verification?token=${token}`
 
     await resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "strakataturistika@resend.dev",
         to: email,
-        subject: "Confirm your email",
-        html: `<p>Click <a href="${confirmLink}" >here</a> to confirm email.</p>`
+        subject: "Potvrďte svůj email",
+        html: `<p>Klikněte <a href="${confirmLink}" >zde</a> pro potvrzení emailu.</p>`
     })
 }

@@ -63,7 +63,12 @@ const navConfig: NavConfigType = [
         title: "Dokumentace",
         icon: "FileText",
         href: "/docs",
-    }
+    },    {
+        type: "odkaz",
+        title: "Soutěžit",
+        icon: "Trophy",
+        href: "/playground",
+    },
 ];
 
 const NavigationMenuTriggerClassName = "flex flex-row items-end text-[13px] bg-transparent pr-4  h-fit pl-0 font-small text-black/80 leading-none ";
