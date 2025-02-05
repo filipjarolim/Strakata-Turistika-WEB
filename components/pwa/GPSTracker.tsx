@@ -1,87 +1,67 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { MapPin } from "lucide-react"
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { MapPin } from "lucide-react";
+import { usePosition } from "use-position";
+import { getDistance } from "geolib";
 
 const GPSTracker = () => {
-    const [distance, setDistance] = useState(0) // Total distance
-    const [isTracking, setIsTracking] = useState(false) // Tracking active state
-    const [previousPosition, setPreviousPosition] = useState<GeolocationPosition | null>(null) // Last GPS position
+    const [distance, setDistance] = useState(0); // Total distance
+    const [isTracking, setIsTracking] = useState(false); // Tracking status
+    const [previousPosition, setPreviousPosition] = useState<{ latitude: number; longitude: number } | null>(null);
 
-    const THRESHOLD = 5 // Minimum movement in meters to count as new distance
-    const ACCURACY_LIMIT = 20 // Maximum acceptable accuracy in meters
+    const THRESHOLD = 5; // Minimum movement in meters to count as new distance
+    const ACCURACY_LIMIT = 20; // Maximum acceptable accuracy in meters
+
+    // Add PositionOptions
+    const geoOptions: PositionOptions = {
+        enableHighAccuracy: true,
+        timeout: Infinity,
+        maximumAge: 0,
+    };
+
+    // Hook to use geolocation
+    const { latitude, longitude, accuracy } = usePosition(isTracking, geoOptions)
 
     useEffect(() => {
-        let watchId: number
+        if (isTracking && latitude && longitude) {
+            if (accuracy && accuracy <= ACCURACY_LIMIT) {
+                if (previousPosition) {
+                    // Calculate the distance since the last position
+                    const newDistance = getDistance(
+                        {
+                            latitude: previousPosition.latitude,
+                            longitude: previousPosition.longitude,
+                        },
+                        { latitude, longitude }
+                    );
 
-        if (isTracking) {
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    // If position accuracy exceeds limit, ignore the update
-                    if (position.coords.accuracy > ACCURACY_LIMIT) {
-                        console.warn("Position ignored due to poor accuracy:", position.coords.accuracy)
-                        return
+                    // Only update total distance if new distance exceeds the threshold
+                    if (newDistance > THRESHOLD) {
+                        setDistance((prev) => prev + newDistance);
+                        setPreviousPosition({ latitude, longitude });
                     }
-
-                    // Calculate distance only if there's a valid previous position
-                    if (previousPosition) {
-                        const newDistance = calculateDistance(
-                            previousPosition.coords.latitude,
-                            previousPosition.coords.longitude,
-                            position.coords.latitude,
-                            position.coords.longitude
-                        )
-
-                        // Add the new distance only if it exceeds the threshold
-                        if (newDistance > THRESHOLD) {
-                            setDistance((prevDistance) => prevDistance + newDistance)
-                            setPreviousPosition(position)
-                        } else {
-                            console.log("Ignored small movement:", newDistance)
-                        }
-                    } else {
-                        // If this is the first position, save it without calculating
-                        setPreviousPosition(position)
-                    }
-                },
-                (error) => console.error("Error with geolocation:", error),
-                { enableHighAccuracy: true }
-            )
+                } else {
+                    // Set initial GPS position
+                    setPreviousPosition({ latitude, longitude });
+                }
+            } else {
+                console.warn("Poor accuracy: Skipping position update", accuracy);
+            }
         }
-
-        return () => {
-            if (watchId) navigator.geolocation.clearWatch(watchId)
-        }
-    }, [isTracking, previousPosition])
-
-    // Helper function to calculate distance between two latitude-longitude points
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-        const toRad = (value: number) => (value * Math.PI) / 180 // Convert degrees to radians
-        const R = 6371e3 // Radius of Earth in meters
-        const φ1 = toRad(lat1)
-        const φ2 = toRad(lat2)
-        const Δφ = toRad(lat2 - lat1)
-        const Δλ = toRad(lon2 - lon1)
-
-        const a =
-            Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-        return R * c // Distance in meters
-    }
+    }, [latitude, longitude, accuracy, isTracking]);
 
     // Start tracking
     const startTracking = () => {
-        setDistance(0) // Reset distance
-        setPreviousPosition(null) // Clear previous position
-        setIsTracking(true) // Start tracking
-    }
+        setDistance(0);
+        setPreviousPosition(null);
+        setIsTracking(true);
+    };
 
     // Stop tracking
-    const stopTracking = () => setIsTracking(false)
+    const stopTracking = () => setIsTracking(false);
 
     return (
         <Card>
@@ -105,7 +85,7 @@ const GPSTracker = () => {
                 </div>
             </CardContent>
         </Card>
-    )
-}
+    );
+};
 
-export default GPSTracker
+export default GPSTracker;
