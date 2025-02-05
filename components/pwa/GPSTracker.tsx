@@ -5,79 +5,101 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { MapPin } from "lucide-react"
 
+// Average step length in meters (can be customized or calculated dynamically)
+const STEP_LENGTH = 0.7
+
 const GPSTracker = () => {
     const [distance, setDistance] = useState(0) // Total distance
     const [isTracking, setIsTracking] = useState(false) // Whether tracking is active
     const [previousPosition, setPreviousPosition] = useState<GeolocationPosition | null>(null) // Last GPS position
+    const [stepCount, setStepCount] = useState(0) // Step counter
     const [acceleration, setAcceleration] = useState({ x: 0, y: 0, z: 0 }) // Accelerometer data
-    const [rotationRate, setRotationRate] = useState({ alpha: 0, beta: 0, gamma: 0 }) // Gyroscope data
 
-    const THRESHOLD = 5 // Minimum movement in meters to count as new distance
     const ACCURACY_LIMIT = 20 // Maximum acceptable accuracy in meters
+
+    // Filters accelerometer noise (keeps data smoother)
+    const LOW_PASS_FILTER_ALPHA = 0.8
+
+    // Stores previous acceleration for step detection
+    let previousAccelerationMagnitude = 0
+    let stepDetectionCooldown = false // Cooldown between step detections (avoids double counting)
 
     useEffect(() => {
         let watchId: number
+        let motionListener: (event: DeviceMotionEvent) => void
 
         if (isTracking) {
-            // Enable GPS tracking
+            // Start tracking GPS
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
-                    // Check if position accuracy is good
                     if (position.coords.accuracy > ACCURACY_LIMIT) {
-                        console.warn("Position ignored due to poor accuracy:", position.coords.accuracy)
+                        console.warn("GPS Position ignored due to low accuracy:", position.coords.accuracy)
                         return
                     }
 
-                    // Calculate the distance if we have a previous position
+                    // Add distance based on GPS data
                     if (previousPosition) {
-                        const newDistance = calculateDistance(
+                        const gpsDistance = calculateDistance(
                             previousPosition.coords.latitude,
                             previousPosition.coords.longitude,
                             position.coords.latitude,
                             position.coords.longitude
                         )
-
-                        // Only update distance if newDistance exceeds the threshold
-                        if (newDistance > THRESHOLD) {
-                            setDistance((prevDistance) => prevDistance + newDistance)
-                            setPreviousPosition(position)
-                        }
-                    } else {
-                        // If no previous position, simply set the current position
-                        setPreviousPosition(position)
+                        setDistance((prevDistance) => prevDistance + gpsDistance)
                     }
+                    setPreviousPosition(position)
                 },
                 (error) => console.error("Error with geolocation:", error),
                 { enableHighAccuracy: true }
             )
 
-            // Enable accelerometer and gyroscope tracking
-            const handleMotion = (event: DeviceMotionEvent) => {
+            // Start accelerometer tracking for step detection
+            motionListener = (event: DeviceMotionEvent) => {
                 if (event.acceleration) {
-                    setAcceleration({
-                        x: event.acceleration.x || 0,
-                        y: event.acceleration.y || 0,
-                        z: event.acceleration.z || 0,
-                    })
-                }
-                if (event.rotationRate) {
-                    setRotationRate({
-                        alpha: event.rotationRate.alpha || 0,
-                        beta: event.rotationRate.beta || 0,
-                        gamma: event.rotationRate.gamma || 0,
-                    })
+                    // Apply a low-pass filter to reduce noise
+                    const filteredAcceleration = {
+                        x: LOW_PASS_FILTER_ALPHA * acceleration.x + (1 - LOW_PASS_FILTER_ALPHA) * (event.acceleration.x || 0),
+                        y: LOW_PASS_FILTER_ALPHA * acceleration.y + (1 - LOW_PASS_FILTER_ALPHA) * (event.acceleration.y || 0),
+                        z: LOW_PASS_FILTER_ALPHA * acceleration.z + (1 - LOW_PASS_FILTER_ALPHA) * (event.acceleration.z || 0),
+                    }
+
+                    setAcceleration(filteredAcceleration)
+
+                    // Calculate the magnitude of the acceleration vector
+                    const magnitude = Math.sqrt(
+                        Math.pow(filteredAcceleration.x, 2) +
+                        Math.pow(filteredAcceleration.y, 2) +
+                        Math.pow(filteredAcceleration.z, 2)
+                    )
+
+                    // Detect potential steps by looking for peaks in acceleration
+                    if (
+                        magnitude > 1.2 &&
+                        magnitude - previousAccelerationMagnitude > 0.5 &&
+                        !stepDetectionCooldown
+                    ) {
+                        setStepCount((prevStepCount) => prevStepCount + 1)
+                        setDistance((prevDistance) => prevDistance + STEP_LENGTH) // Add step length to distance
+                        stepDetectionCooldown = true
+
+                        // Cooldown to prevent double-counting of a single step
+                        setTimeout(() => {
+                            stepDetectionCooldown = false
+                        }, 300) // Assuming ~300ms per step
+                    }
+
+                    previousAccelerationMagnitude = magnitude
                 }
             }
 
-            window.addEventListener("devicemotion", handleMotion)
-
-            return () => {
-                // Cleanup when tracking stops
-                if (watchId) navigator.geolocation.clearWatch(watchId)
-                window.removeEventListener("devicemotion", handleMotion)
-            }
+            window.addEventListener("devicemotion", motionListener)
         }
-    }, [isTracking, previousPosition])
+
+        return () => {
+            if (watchId) navigator.geolocation.clearWatch(watchId)
+            if (motionListener) window.removeEventListener("devicemotion", motionListener)
+        }
+    }, [isTracking, previousPosition, acceleration])
 
     // Helper function to calculate the distance between two GPS coordinates (Haversine formula)
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -96,14 +118,13 @@ const GPSTracker = () => {
         return R * c // Distance in meters
     }
 
-    // Start tracking (reset distance and past positions)
     const startTracking = () => {
         setDistance(0) // Reset distance
+        setStepCount(0) // Reset step count
         setPreviousPosition(null) // Clear previous position
         setIsTracking(true) // Begin tracking
     }
 
-    // Stop tracking
     const stopTracking = () => setIsTracking(false)
 
     return (
@@ -117,11 +138,16 @@ const GPSTracker = () => {
                         <MapPin className="w-6 h-6 text-green-500" />
                         <h1 className="text-xl">Distance Walked: {distance.toFixed(2)} meters</h1>
                     </div>
-                    <div className="mt-4 text-center">
-                        <h2 className="text-lg">Accelerometer:</h2>
-                        <p>X: {acceleration.x.toFixed(2)}, Y: {acceleration.y.toFixed(2)}, Z: {acceleration.z.toFixed(2)}</p>
-                        <h2 className="text-lg mt-2">Gyroscope:</h2>
-                        <p>α: {rotationRate.alpha.toFixed(2)}, β: {rotationRate.beta.toFixed(2)}, γ: {rotationRate.gamma.toFixed(2)}</p>
+                    <div className="mt-2 flex space-x-4">
+                        <div>
+                            <h2 className="text-lg">Steps: {stepCount}</h2>
+                        </div>
+                        <div>
+                            <h2 className="text-lg">Acceleration:</h2>
+                            <p>X: {acceleration.x.toFixed(2)}</p>
+                            <p>Y: {acceleration.y.toFixed(2)}</p>
+                            <p>Z: {acceleration.z.toFixed(2)}</p>
+                        </div>
                     </div>
                     <div className="mt-4 flex space-x-2">
                         <Button onClick={startTracking} variant="default" disabled={isTracking}>
