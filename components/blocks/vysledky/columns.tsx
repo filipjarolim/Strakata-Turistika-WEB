@@ -1,10 +1,10 @@
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, Column} from '@tanstack/react-table';
 import { VisitData } from './DataTable';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { VisitedPlacesCell } from './VisitedPlacesCell';
 
 // Helper: Render sortable column header
-const renderSortableHeader = (column: any, label: string) => (
+const renderSortableHeader = <TData,>(column: Column<TData, unknown>, label: string) => (
     <div className="flex items-center space-x-1">
         <span>{label}</span>
         <button
@@ -21,6 +21,7 @@ const renderSortableHeader = (column: any, label: string) => (
         </button>
     </div>
 );
+
 
 export const columns: ColumnDef<VisitData>[] = [
     {

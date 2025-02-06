@@ -131,6 +131,11 @@ const Header = ({
                                             Playground
                                         </Link>
                                     </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Link href="/vysledky" className="col-span-4">
+                                            Výsledky
+                                        </Link>
+                                    </div>
                                     <LogoutButton>Odejít</LogoutButton>
                                 </div>
                                 <SheetFooter>
