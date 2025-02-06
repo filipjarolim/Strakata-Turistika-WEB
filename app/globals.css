@@ -6,6 +6,12 @@
 :root {
   --radix-accordion-content-height: 100px; /* Define the custom property with a default value */
 }
+
+[data-scroll-locked][data-scroll-locked] {
+  overflow: scroll !important;
+}
+
+
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
