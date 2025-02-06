@@ -1,4 +1,4 @@
-import { ColumnDef, Column} from '@tanstack/react-table';
+import { ColumnDef, Column } from '@tanstack/react-table';
 import { VisitData } from './DataTable';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { VisitedPlacesCell } from './VisitedPlacesCell';
@@ -21,7 +21,6 @@ const renderSortableHeader = <TData,>(column: Column<TData, unknown>, label: str
         </button>
     </div>
 );
-
 
 export const columns: ColumnDef<VisitData>[] = [
     {
@@ -54,5 +53,29 @@ export const columns: ColumnDef<VisitData>[] = [
         accessorKey: 'visitedPlaces',
         header: 'Navštívená Místa',
         cell: ({ row }) => <VisitedPlacesCell visitedPlaces={row.getValue('visitedPlaces')} />,
+    },
+    {
+        accessorKey: 'dogNotAllowed',
+        header: 'Pes nepovolen',
+        cell: ({ row }) => (row.getValue('dogNotAllowed') ? 'Ano' : 'Ne'),
+    },
+    {
+        accessorKey: 'routeLink',
+        header: 'Odkaz na trasu',
+        cell: ({ row }) => {
+            const link = row.getValue('routeLink') as string | null;
+            return link ? (
+                <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                >
+                    Zobrazit trasu
+                </a>
+            ) : (
+                'N/A'
+            );
+        },
     },
 ];

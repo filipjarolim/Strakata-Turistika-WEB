@@ -24,10 +24,12 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
     const [loading, setLoading] = useState<boolean>(true);
     const user = useCurrentUser();
     const role = useCurrentRole();
+    const [year, setYear] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchVisitData = async () => {
             const { rok } = await params;
+            setYear(parseInt(rok));
             const res = await fetch(`/api/results/${rok}`);
             const data: VisitData[] = await res.json();
             setVisitData(data);
@@ -43,20 +45,16 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
 
     return (
         <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
-            <h1 className="text-2xl font-bold mb-4">Výsledky</h1>
+            <div className="text-4xl font-bold mb-4 text-black/70 pt-4">
+                Výsledky z roku
+                {" "}
+                <span className={"font-bold text-5xl text-black"}>
+                    {year}
+                </span>
+            </div>
 
-            <Tabs defaultValue="detailed" className="w-full">
-                <TabsList className="mb-4">
-                    <TabsTrigger value="detailed">Podrobné výsledky</TabsTrigger>
-                    <TabsTrigger value="work">Práce na vývoji</TabsTrigger>
-                </TabsList>
-                <TabsContent value="detailed" className="w-[95%] mx-auto">
-                    <DataTable data={visitData} />
-                </TabsContent>
-                <TabsContent value="work">
-                    <p>Práce na vývoji</p>
-                </TabsContent>
-            </Tabs>
+            <DataTable data={visitData} year={year?year:0} />
+
         </CommonPageTemplate>
     );
 };
