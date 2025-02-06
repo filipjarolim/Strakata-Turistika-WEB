@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 type tParams = Promise<{ rok: string }>;
 
 export async function GET(request: Request, { params }: { params: tParams }) {
-    const { rok } = await params; // Extract 'rok' from the dynamic route parameters
+    const { rok } = await params;
 
     try {
         const year = parseInt(rok);
@@ -12,22 +12,33 @@ export async function GET(request: Request, { params }: { params: tParams }) {
         if (isNaN(year)) {
             return NextResponse.json(
                 { message: "Invalid year parameter." },
-                { status: 400 } // Bad Request
+                { status: 400 }
             );
         }
 
-        // Fetch all VisitData for the specified year
-        const visitData = await db.visitData.findMany({
+        // Fetch VisitData for the specified year via the Season model
+        const season = await db.season.findUnique({
             where: { year },
-            orderBy: { visitDate: "asc" },
+            include: {
+                visitData: {
+                    orderBy: { visitDate: 'asc' },
+                },
+            },
         });
 
-        return NextResponse.json(visitData);
+        if (!season) {
+            return NextResponse.json(
+                { message: `No data found for year ${year}` },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json(season.visitData);
     } catch (error) {
         console.error("[GET_VISIT_DATA_ERROR]", error);
         return NextResponse.json(
             { message: "Failed to fetch visit data." },
-            { status: 500 } // Internal Server Error
+            { status: 500 }
         );
     }
 }

@@ -1,25 +1,26 @@
-import { PrismaClient } from "@prisma/client";
-import * as fs from "fs";
-import path from "path";
-import XLSX from "xlsx";
+import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
+import path from 'path';
+import XLSX from 'xlsx';
 
 const prisma = new PrismaClient();
 
 const filePaths = {
-    2019: path.resolve("public/vysledky/vysledky2019.xlsx"),
+    2022: path.resolve('public/vysledky/vysledky2022.xlsx'),
+    2023: path.resolve('public/vysledky/vysledky2023.xlsx'),
 };
 
-console.log("Cesty k souborům:", filePaths);
+console.log('Cesty k souborům:', filePaths);
 
-// Column mapping for flexibility
+// Column mapping
 const columnMappings = {
-    visitDate: ["Datum", "Datum navštívení", "Date"],
-    fullName: ["Příjmení a jméno", "Full Name"],
-    dogName: ["Jméno psa", "Volací jméno psa", "Dog Name"],
-    points: ["Body", "Score"],
-    visitedPlaces: ["Navštívená místa", "Visited Places"],
-    dogNotAllowed: ["Psi nevítáni v místě:", "Dogs Not Allowed"],
-    routeLink: ["Odkaz na trasu", "Route Link"],
+    visitDate: ['Datum', 'Datum navštívení', 'Date'],
+    fullName: ['Příjmení a jméno', 'Full Name'],
+    dogName: ['Jméno psa', 'Volací jméno psa', 'Dog Name'],
+    points: ['Body', 'Score'],
+    visitedPlaces: ['Navštívená místa', 'Visited Places'],
+    dogNotAllowed: ['Psi nevítáni v místě:', 'Dogs Not Allowed'],
+    routeLink: ['Odkaz na trasu', 'Route Link'],
 };
 
 function getMappedValue(row, columnNames) {
@@ -28,51 +29,58 @@ function getMappedValue(row, columnNames) {
             return row[columnName];
         }
     }
-    return null; // Default to null if none of the mappings match
+    return null;
 }
 
 function parseExcelDate(value) {
-    // Check if the value is an Excel-formatted date as a number
-    if (typeof value === "number") {
+    if (typeof value === 'number') {
         const parsedDate = XLSX.SSF.parse_date_code(value);
         if (parsedDate) {
-            // Construct JavaScript Date object from parsed date
             return new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d);
         }
-    } else if (typeof value === "string") {
-        // If it's a string (e.g., "01.09.2019"), attempt to parse it normally
-        const [day, month, year] = value.split(".");
+    } else if (typeof value === 'string') {
+        const [day, month, year] = value.split('.');
         return new Date(year, month - 1, day);
     }
-    return null; // Return null if parsing fails
+    return null;
 }
 
 async function importData() {
     for (const [year, filePath] of Object.entries(filePaths)) {
-        console.log(`Import dat pro rok ${year}...`);
+        console.log(`Importing data for year ${year}...`);
+
         if (!fs.existsSync(filePath)) {
-            console.warn(`Soubor pro rok ${year} nenalezen: ${filePath}`);
+            console.warn(`File not found for year ${year}: ${filePath}`);
             continue;
         }
 
         const workbook = XLSX.readFile(filePath);
-        const sheet = workbook.Sheets["data"] || workbook.Sheets["nasbíraná data"];
+        const sheet = workbook.Sheets['data'] || workbook.Sheets['nasbíraná data'];
         if (!sheet) {
-            console.warn(`List "data" nebo "nasbíraná data" nenalezen v souboru pro rok ${year}`);
+            console.warn(`Sheet "data" or "nasbíraná data" not found for year ${year}`);
             continue;
         }
 
         const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-        console.log(`Data ze souboru pro rok ${year}:`);
+        console.log(`Data from file for year ${year}:`);
         console.table(jsonData);
 
-        for (const row of jsonData) {
-            console.log(`Zpracování řádku: ${JSON.stringify(row)}`);
+        // Ensure a Season exists for the year
+        const yearInt = parseInt(year, 10);
+        let season = await prisma.season.findUnique({ where: { year: yearInt } });
+        if (!season) {
+            season = await prisma.season.create({
+                data: { year: yearInt },
+            });
+            console.log(`Created new season for year ${year}`);
+        }
 
-            // Map the values using the column mappings
+        for (const row of jsonData) {
+            console.log(`Processing row: ${JSON.stringify(row)}`);
+
             const visitDateRaw = getMappedValue(row, columnMappings.visitDate);
-            const visitDate = parseExcelDate(visitDateRaw); // Parse the Excel date format
+            const visitDate = parseExcelDate(visitDateRaw);
             const fullName = getMappedValue(row, columnMappings.fullName);
             const dogName = getMappedValue(row, columnMappings.dogName);
             const points = getMappedValue(row, columnMappings.points);
@@ -80,32 +88,33 @@ async function importData() {
             const dogNotAllowed = getMappedValue(row, columnMappings.dogNotAllowed);
             const routeLink = getMappedValue(row, columnMappings.routeLink);
 
-            // Skip rows where the `fullName` field or other mandatory fields are missing or empty
-            if (!fullName || fullName.trim() === "") {
-                console.warn(`Řádek přeskočen kvůli chybějícím nebo prázdným povinným datům: ${JSON.stringify(row)}`);
+            // Skip rows without required data
+            if (!fullName || fullName.trim() === '') {
+                console.warn(`Skipping row due to missing required data: ${JSON.stringify(row)}`);
                 continue;
             }
 
-            // Insert the row into the database if the required fields are present
+            // Insert the VisitData and associate it with the Season
             await prisma.visitData.create({
                 data: {
                     visitDate: visitDate || null,
                     fullName: fullName.trim(),
                     dogName: dogName ? dogName.trim() : null,
                     points: points || 0,
-                    visitedPlaces: visitedPlaces || "",
+                    visitedPlaces: visitedPlaces || '',
                     dogNotAllowed: dogNotAllowed || null,
                     routeLink: routeLink || null,
-                    year: parseInt(year),
-                    extraPoints: row, // Save any remaining unmapped properties
+                    year: yearInt,
+                    seasonId: season.id, // Associate with the season
+                    extraPoints: row,
                 },
             });
 
-            console.log(`Řádek vložen do databáze pro rok ${year}`);
+            console.log(`Inserted row into database for year ${year}`);
         }
     }
 
-    console.log("Data úspěšně importována!");
+    console.log('Data imported successfully!');
 }
 
 importData()

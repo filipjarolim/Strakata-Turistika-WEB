@@ -93,6 +93,12 @@ model News {
   createdAt DateTime @default(now())
 }
 
+model Season {
+  id        String      @id @default(cuid()) @map("_id")
+  year      Int         @unique
+  visitData VisitData[] @relation("SeasonVisitData")
+}
+
 model VisitData {
   id            String    @id @default(cuid()) @map("_id")
   visitDate     DateTime?
@@ -102,6 +108,9 @@ model VisitData {
   visitedPlaces String
   dogNotAllowed String?
   routeLink     String?
-  year          Int
-  extraPoints   Json // Uchová všechny bonusové body pro různé roky jako JSON objekt
+  year          Int       @map("seasonYear") // This remains for simplified queries
+  extraPoints   Json
+
+  seasonId String?
+  season   Season? @relation("SeasonVisitData", fields: [seasonId], references: [id], onDelete: Cascade)
 }
