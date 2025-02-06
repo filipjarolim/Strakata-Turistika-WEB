@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronDown } from "lucide-react";
 import { addDays } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { cs } from "date-fns/locale";
 
 type FilterButtonProps = {
     onDateFilterChange: (
@@ -15,15 +16,16 @@ type FilterButtonProps = {
         dates: [Date | undefined, Date | undefined]
     ) => void;
     onClearDateFilters: () => void; // Focuses on clearing only date filters
+    year: number;
 };
 
-export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, onClearDateFilters }) => {
+export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, onClearDateFilters, year }) => {
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [filterType, setFilterType] = useState<"before" | "after" | "between">("before");
-    const [startYear] = useState(new Date(2019, 0, 1)); // Start in 2019
+    const [startYear] = useState(new Date(year, 0, 1)); // Start in year
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: new Date(2019, 0, 1),
-        to: addDays(new Date(2019, 0, 1), 7), // Default range within 2019
+        from: new Date(year, 0, 1),
+        to: addDays(new Date(year, 0, 1), 7), // Default range within year
     });
     const [selectedSingleDate, setSelectedSingleDate] = useState<Date | undefined>(startYear);
 
@@ -38,23 +40,22 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, 
     };
 
     const handleClearFilter = () => {
-        // Clears the state for date filtering
+        // Reset filter type and date-related states
         setFilterType("before");
         setDateRange(undefined);
         setSelectedSingleDate(undefined);
 
-        // Calls parent callback to clear only date filters
+        // Call parent's callback to clear date filters
         onClearDateFilters();
 
-        // Close the popover when clearing filters
-        setIsPopoverOpen(false);
+        setIsPopoverOpen(false); // Close the popover
     };
 
     return (
         <Popover modal={false} open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2">
-                    <span>Filter</span>
+                    <span>Filtr</span>
                     <ChevronDown className="h-4 w-4" />
                 </Button>
             </PopoverTrigger>
@@ -67,12 +68,12 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, 
                             onValueChange={(value) => setFilterType(value as "before" | "after" | "between")}
                         >
                             <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select filter type" />
+                                <SelectValue placeholder="Vyberte typ filtru" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="before">Before Date</SelectItem>
-                                <SelectItem value="after">After Date</SelectItem>
-                                <SelectItem value="between">Between Dates</SelectItem>
+                                <SelectItem value="before">Před datem</SelectItem>
+                                <SelectItem value="after">Po datu</SelectItem>
+                                <SelectItem value="between">Mezi daty</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -80,7 +81,7 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, 
                     {/* Calendar for date selection */}
                     <div>
                         <p className="text-sm text-muted-foreground">
-                            {filterType === "between" ? "Date Range" : "Select a Date"}
+                            {filterType === "between" ? "Rozsah dat" : "Vyberte datum"}
                         </p>
                         {filterType === "between" ? (
                             <Calendar
@@ -89,6 +90,8 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, 
                                 onSelect={setDateRange}
                                 defaultMonth={startYear}
                                 numberOfMonths={2} // Show 2 months for range
+                                locale={cs} // Localization here
+
                             />
                         ) : (
                             <Calendar
@@ -97,6 +100,9 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, 
                                 onSelect={setSelectedSingleDate}
                                 defaultMonth={startYear}
                                 numberOfMonths={1} // Single month for before/after
+                                locale={cs} // Localization here
+
+
                             />
                         )}
                     </div>
@@ -110,10 +116,10 @@ export const FilterButton: React.FC<FilterButtonProps> = ({ onDateFilterChange, 
                                 ((filterType === "before" || filterType === "after") && !selectedSingleDate)
                             }
                         >
-                            Apply Filter
+                            Použít filtr
                         </Button>
                         <Button variant="secondary" onClick={handleClearFilter}>
-                            Clear Date Filters
+                            Vymazat filtry data
                         </Button>
                     </div>
                 </div>

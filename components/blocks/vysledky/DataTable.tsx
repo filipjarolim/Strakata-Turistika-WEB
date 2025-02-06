@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     SortingState,
     VisibilityState,
@@ -51,7 +51,13 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
     const [isCumulativeView, setIsCumulativeView] = useState(false);
     const [filteredData, setFilteredData] = useState<VisitData[]>(data);
 
-    // Dynamically filter columns based on cumulative view
+    const handleToggleView = () => {
+        if (!isCumulativeView) {
+            handleClearDateFilters();
+        }
+        setIsCumulativeView((prevValue) => !prevValue);
+    };
+
     const filteredColumns = useMemo(() => {
         if (isCumulativeView) {
             return columns.filter(
@@ -61,11 +67,9 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
                     !['visitDate', 'dogNotAllowed', 'routeLink'].includes(col.accessorKey)
             );
         }
-
-        return columns; // Show all columns in individual view
+        return columns;
     }, [isCumulativeView]);
 
-    // Memoize the transformed data: cumulative or detailed
     const transformToCumulativeData = useCallback(() => {
         const cumulativeDataMap = new Map<string, VisitData>();
 
@@ -84,11 +88,10 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
     }, [data]);
 
     const memoizedData = useMemo(
-        () => (isCumulativeView ? transformToCumulativeData(filteredData) : filteredData),
+        () => (isCumulativeView ? transformToCumulativeData() : filteredData),
         [isCumulativeView, filteredData, transformToCumulativeData]
     );
 
-    // Date filter logic
     const handleDateFilterChange = (
         filterType: 'before' | 'after' | 'between',
         dates: [Date | undefined, Date | undefined]
@@ -96,7 +99,7 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
         const [startDate, endDate] = dates;
 
         const filtered = data.filter((log) => {
-            if (!log.visitDate) return false; // Skip if no date available
+            if (!log.visitDate) return false;
             const visitDate = new Date(log.visitDate);
 
             if (filterType === 'before') {
@@ -114,14 +117,23 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
         setFilteredData(filtered);
     };
 
-    const handleSortingChange = useCallback((newSorting: React.SetStateAction<SortingState>) => setSorting(newSorting), []);
+    const handleClearDateFilters = () => {
+        setFilteredData(data);
+    };
+
+    const handleSortingChange = useCallback(
+        (newSorting: React.SetStateAction<SortingState>) => setSorting(newSorting),
+        []
+    );
     const handleColumnVisibilityChange = useCallback(
         (newVisibility: React.SetStateAction<VisibilityState>) => setColumnVisibility(newVisibility),
         []
     );
-    const handleGlobalFilterChange = useCallback((newFilterValue: React.SetStateAction<string>) => setGlobalFilter(newFilterValue), []);
+    const handleGlobalFilterChange = useCallback(
+        (newFilterValue: React.SetStateAction<string>) => setGlobalFilter(newFilterValue),
+        []
+    );
 
-    // React Table instance
     const table = useReactTable({
         data: memoizedData,
         columns: filteredColumns,
@@ -146,24 +158,35 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
 
     return (
         <div className="w-full">
-            <div className="w-full flex items-center justify-between py-4">
-                <SearchFilterInput
-                    filterValue={globalFilter}
-                    setFilterValue={setGlobalFilter}
-                />
-                <div className="flex items-center gap-2">
+            {/* Header Section */}
+            <div className="flex flex-wrap items-center justify-between gap-4 py-4">
+                <div className="flex flex-row items-center gap-2 select-none">
+                    <SearchFilterInput
+                        filterValue={globalFilter}
+                        setFilterValue={setGlobalFilter}
+                    />
+
+                    {!isCumulativeView && (
+                        <FilterButton
+                            onDateFilterChange={handleDateFilterChange}
+                            onClearDateFilters={handleClearDateFilters}
+                            year={year}
+                        />
+                    )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 select-none">
                     <ToggleViewButton
                         isCumulativeView={isCumulativeView}
-                        toggleView={() => setIsCumulativeView(!isCumulativeView)}
+                        toggleView={handleToggleView}
                     />
-                    <FilterButton onDateFilterChange={handleDateFilterChange} />
                     <DownloadDataButton data={memoizedData} year={year} />
                     <ColumnVisibilityMenu table={table} />
                 </div>
             </div>
 
-            <div className="rounded-md border w-full overflow-x-auto">
-                <Table>
+            {/* Table Section */}
+            <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-[640px]">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
@@ -181,10 +204,10 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
                         {table.getRowModel().rows.map((row) => (
                             <TableRow key={row.id}>
                                 {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id}>
+                                    <TableCell key={cell.id} className="whitespace-normal">
                                         {typeof cell.column.columnDef.cell === 'function'
                                             ? cell.column.columnDef.cell(cell.getContext())
-                                            : cell.getValue()} {/* Fallback for simpler columns */}
+                                            : cell.getValue()}
                                     </TableCell>
                                 ))}
                             </TableRow>
@@ -192,6 +215,8 @@ export const DataTable = ({ data, year }: { data: VisitData[]; year: number }) =
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Pagination */}
             <PaginationControls
                 currentPage={table.getState().pagination.pageIndex + 1}
                 totalPages={table.getPageCount()}

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTable } from '@/components/blocks/vysledky/DataTable';
 import CommonPageTemplate from '@/components/structure/CommonPageTemplate';
 import {useCurrentUser} from "@/hooks/use-current-user";
 import {useCurrentRole} from "@/hooks/use-current-role";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 type VisitData = {
     id: string;
@@ -52,8 +52,9 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                     {year}
                 </span>
             </div>
-
-            <DataTable data={visitData} year={year?year:0} />
+            <TooltipProvider>
+                <DataTable data={visitData} year={year?year:0} />
+            </TooltipProvider>
 
         </CommonPageTemplate>
     );
