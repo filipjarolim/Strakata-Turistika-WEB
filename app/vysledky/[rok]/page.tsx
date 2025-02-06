@@ -45,12 +45,12 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
         <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
             <h1 className="text-2xl font-bold mb-4">Výsledky</h1>
 
-            <Tabs defaultValue="detailed">
+            <Tabs defaultValue="detailed" className="w-full">
                 <TabsList className="mb-4">
                     <TabsTrigger value="detailed">Podrobné výsledky</TabsTrigger>
                     <TabsTrigger value="work">Práce na vývoji</TabsTrigger>
                 </TabsList>
-                <TabsContent value="detailed">
+                <TabsContent value="detailed" className="w-[95%] mx-auto">
                     <DataTable data={visitData} />
                 </TabsContent>
                 <TabsContent value="work">
