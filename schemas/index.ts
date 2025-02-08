@@ -1,65 +1,59 @@
 import { UserRole } from "@prisma/client";
-import * as z from  "zod"
+import * as z from "zod";
 
 export const SettingsSchema = z.object({
     name: z.optional(z.string()),
     isTwoFactorEnabled: z.optional(z.boolean()),
-    role: z.enum([UserRole.ADMIN, UserRole.USER]),
+    role: z.enum([UserRole.ADMIN, UserRole.UZIVATEL]),
     email: z.optional(z.string().email()),
     password: z.optional(z.string().min(6)),
     newPassword: z.optional(z.string().min(6)),
 })
     .refine((data) => {
-        if (data.password && !data.newPassword) {
-            return false;
-        }
+        return !(data.password && !data.newPassword);
 
-        return true;
     }, {
-        message: "New password is required!",
+        message: "Nové heslo je vyžadováno!",
         path: ["newPassword"]
     })
     .refine((data) => {
-        if (data.newPassword && !data.password) {
-            return false;
-        }
+        return !(data.newPassword && !data.password);
 
-        return true;
     }, {
-        message: "Password is required!",
+        message: "Heslo je vyžadováno!",
         path: ["password"]
-    })
-
+    });
 
 export const LoginSchema = z.object({
     email: z.string().email({
-        message: "Email is required and must be a valid email address"
+        message: "E-mail je povinný a musí být platná e-mailová adresa"
     }),
     password: z.string().min(1, {
-        message: "Password is required"
+        message: "Heslo je povinné"
     }),
     code: z.optional(z.string())
-})
+});
 
 export const ResetSchema = z.object({
     email: z.string().email({
-        message: "Email is required and must be a valid email address"
+        message: "E-mail je povinný a musí být platná e-mailová adresa"
     })
-})
+});
+
 export const NewPasswordSchema = z.object({
     password: z.string().min(6, {
-        message: "Minimum of 6 characters required"
+        message: "Minimálně 6 znaků je požadováno"
     })
-})
+});
 
 export const RegisterSchema = z.object({
     email: z.string().email({
-        message: "Email is required and must be a valid email address"
+        message: "E-mail je povinný a musí být platná e-mailová adresa"
     }),
     password: z.string().min(6, {
-        message: "Minimum of 6 characters required"
+        message: "Minimálně 6 znaků je požadováno"
     }),
     name: z.string().min(1, {
-        message: "Name is required"
+        message: "Jméno je povinné"
     })
-})
+});
