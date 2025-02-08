@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCurrentRole } from "@/hooks/use-current-role";
 import { FormError } from "@/components/forms/form-error";
 import { FormSuccess } from "@/components/forms/form-success";
 import { UserRole } from "@prisma/client";
@@ -40,6 +41,7 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 
 const SettingsPage = () => {
     const user = useCurrentUser();
+    const role = useCurrentRole();
 
     const [error, setError] = useState<string | undefined>();
     const [success, setSuccess] = useState<string | undefined>();
@@ -76,7 +78,7 @@ const SettingsPage = () => {
     }
 
     return (
-        <CommonPageTemplate contents={{complete: true}}>
+        <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
             <Card className="w-[600px]">
                 <CardHeader>
                     <p className="text-2xl font-semibold text-center">

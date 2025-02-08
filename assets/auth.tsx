@@ -28,13 +28,13 @@ export const authprefix = {
                         "label": "Profil",
                         "shortcut": "⌘P",
                         "icon": <User className={userMenuIconClass} />,
-                        "href": "/me"
+                        "href": "/auth/profil"
                     },
                     {
                         "label": "Nastavení",
                         "shortcut": "⌘S",
                         "icon": <Settings className={userMenuIconClass} />,
-                        "href": "/settings"
+                        "href": "/nastaveni"
                     }
 
                 ]
