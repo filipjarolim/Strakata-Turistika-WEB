@@ -188,7 +188,7 @@ const SettingsPage = () => {
                                                         Admin
                                                     </SelectItem>
                                                     <SelectItem value={UserRole.UZIVATEL}>
-                                                        User
+                                                        Uživatel
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>

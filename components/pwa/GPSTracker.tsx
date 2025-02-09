@@ -3,70 +3,103 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { MapPin, Play, Soup, RefreshCw, Download } from "lucide-react";
 import { usePosition } from "use-position";
-import { getDistance } from "geolib";
+import { getDistance, getSpeed } from "geolib";
+import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import * as toGeoJSON from "togpx";
 
 const GPSTracker = () => {
-    const [distance, setDistance] = useState(0); // Total distance
-    const [isTracking, setIsTracking] = useState(false); // Tracking status
+    const [distance, setDistance] = useState(0);
+    const [speed, setSpeed] = useState(0);
+    const [isTracking, setIsTracking] = useState(false);
     const [previousPosition, setPreviousPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [path, setPath] = useState<{ latitude: number; longitude: number }[]>([]);
+    const [history, setHistory] = useState<{ distance: number; path: { latitude: number; longitude: number }[] }[]>([]);
 
-    const THRESHOLD = 5; // Minimum movement in meters to count as new distance
-    const ACCURACY_LIMIT = 20; // Maximum acceptable accuracy in meters
+    const THRESHOLD = 5;
+    const ACCURACY_LIMIT = 20;
 
-    // Add PositionOptions
-    const geoOptions: {
-        enableHighAccuracy: boolean;
-        maximumAge: number;
-        timeout: number;
-    } = {
+    const geoOptions = {
         enableHighAccuracy: true,
         timeout: Infinity,
         maximumAge: 0,
     };
 
-    // Hook to use geolocation
-
-    const { latitude, longitude, accuracy } = usePosition(isTracking, geoOptions)
+    const { latitude, longitude, accuracy, timestamp } = usePosition(isTracking, geoOptions);
 
     useEffect(() => {
         if (isTracking && latitude && longitude) {
             if (accuracy && accuracy <= ACCURACY_LIMIT) {
                 if (previousPosition) {
-                    // Calculate the distance since the last position
                     const newDistance = getDistance(
-                        {
-                            latitude: previousPosition.latitude,
-                            longitude: previousPosition.longitude,
-                        },
+                        { latitude: previousPosition.latitude, longitude: previousPosition.longitude },
                         { latitude, longitude }
                     );
+                    const newSpeed = getSpeed(
+                        { latitude: previousPosition.latitude, longitude: previousPosition.longitude, time: timestamp },
+                        { latitude, longitude, time: Date.now() }
+                    );
 
-                    // Only update total distance if new distance exceeds the threshold
                     if (newDistance > THRESHOLD) {
                         setDistance((prev) => prev + newDistance);
+                        setSpeed(newSpeed);
                         setPreviousPosition({ latitude, longitude });
+                        setPath((prev) => [...prev, { latitude, longitude }]);
                     }
                 } else {
-                    // Set initial GPS position
                     setPreviousPosition({ latitude, longitude });
+                    setPath([{ latitude, longitude }]);
                 }
             } else {
                 console.warn("Poor accuracy: Skipping position update", accuracy);
             }
         }
-    }, [latitude, longitude, accuracy, isTracking]);
+    }, [latitude, longitude, accuracy, isTracking, timestamp]);
 
-    // Start tracking
     const startTracking = () => {
         setDistance(0);
+        setSpeed(0);
         setPreviousPosition(null);
+        setPath([]);
         setIsTracking(true);
     };
 
-    // Stop tracking
-    const stopTracking = () => setIsTracking(false);
+    const stopTracking = () => {
+        setIsTracking(false);
+        setHistory((prev) => [...prev, { distance, path }]);
+    };
+
+    const resetTracker = () => {
+        setDistance(0);
+        setSpeed(0);
+        setPreviousPosition(null);
+        setPath([]);
+    };
+
+    const exportToGPX = () => {
+        const geoJSON = {
+            type: "FeatureCollection",
+            features: [
+                {
+                    type: "Feature",
+                    geometry: {
+                        type: "LineString",
+                        coordinates: path.map(p => [p.longitude, p.latitude]),
+                    },
+                    properties: {},
+                },
+            ],
+        };
+        const gpx = toGeoJSON(geoJSON);
+        const blob = new Blob([gpx], { type: "application/gpx+xml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "path.gpx";
+        a.click();
+    };
 
     return (
         <Card>
@@ -78,14 +111,52 @@ const GPSTracker = () => {
                     <div className="flex items-center space-x-2">
                         <MapPin className="w-6 h-6 text-green-500" />
                         <h1 className="text-xl">Distance Walked: {distance.toFixed(2)} meters</h1>
+                        <h1 className="text-xl">Speed: {speed.toFixed(2)} m/s</h1>
                     </div>
                     <div className="mt-4 flex space-x-2">
                         <Button onClick={startTracking} variant="default" disabled={isTracking}>
-                            Start Tracking
+                            <Play className="mr-2" /> Start Tracking
                         </Button>
                         <Button onClick={stopTracking} variant="secondary" disabled={!isTracking}>
-                            Stop Tracking
+                            <Soup className="mr-2" /> Stop Tracking
                         </Button>
+                        <Button onClick={resetTracker} variant="outline">
+                            <RefreshCw className="mr-2" /> Reset
+                        </Button>
+                        <Button onClick={exportToGPX} variant="outline">
+                            <Download className="mr-2" /> Export to GPX
+                        </Button>
+                    </div>
+                    {path.length > 0 && (
+                        <MapContainer center={[path[0].latitude, path[0].longitude]} zoom={15} style={{ height: "400px", width: "100%" }}>
+                            <TileLayer
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            <Polyline positions={path.map(p => [p.latitude, p.longitude])} pathOptions={{ color: 'blue' }} />
+                            {path.map((p, index) => (
+                                <Marker key={index} position={[p.latitude, p.longitude]}>
+                                    <Popup>
+                                        Point {index + 1}: [{p.latitude}, {p.longitude}]
+                                    </Popup>
+                                </Marker>
+                            ))}
+                        </MapContainer>
+                    )}
+                    <div className="mt-4">
+                        <h2 className="text-lg">History</h2>
+                        <ul>
+                            {history.map((entry, index) => (
+                                <li key={index} className="mb-4">
+                                    <h3>Walked {entry.distance.toFixed(2)} meters</h3>
+                                    <MapContainer center={[entry.path[0].latitude, entry.path[0].longitude]} zoom={15} style={{ height: "200px", width: "100%" }}>
+                                        <TileLayer
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        />
+                                        <Polyline positions={entry.path.map(p => [p.latitude, p.longitude])} pathOptions={{ color: 'blue' }} />
+                                    </MapContainer>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </div>
             </CardContent>
