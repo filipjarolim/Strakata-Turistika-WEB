@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import dynamic from 'next/dynamic';
+import 'leaflet/dist/leaflet.css'; // Ensure Leaflet styles are correctly imported
 import { Button } from '@/components/ui/button';
 import { Play, StopCircle } from 'lucide-react';
+
+// Dynamically import Map components for client-side rendering only
+const MapContainerWrapper = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayerWrapper = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const PolylineWrapper = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false });
 
 // Haversine formula to calculate the distance between two coordinates
 const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -30,7 +35,7 @@ const GpsTracker: React.FC = () => {
     const MIN_UPDATE_INTERVAL = 10000; // Minimum time threshold = 10 seconds
 
     useEffect(() => {
-        // Get user’s initial position and set the map center
+        // Get user's initial position and set the map center
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 setMapCenter([pos.coords.latitude, pos.coords.longitude]);
@@ -70,7 +75,7 @@ const GpsTracker: React.FC = () => {
                     return [...prev, newPos];
                 });
             },
-            (err) => console.error(err),
+            (err) => console.error('Error watching position:', err),
             { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
         );
         setWatchId(id);
@@ -94,32 +99,42 @@ const GpsTracker: React.FC = () => {
 
     return (
         <div className="flex flex-col items-center gap-4 p-4">
+            {/* Display the map only if mapCenter is set */}
             {mapCenter ? (
-                <MapContainer
+                <MapContainerWrapper
                     center={mapCenter}
                     zoom={13}
-                    className="w-full h-[400px] rounded-lg"
+                    style={{ height: "500px", width: "100%" }}
                 >
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <TileLayerWrapper
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {/* Draw a polyline if there are multiple positions */}
                     {positions.length > 1 && (
-                        <Polyline
-                            positions={positions}
-                            pathOptions={{ color: 'blue' }}
-                        />
+                        <PolylineWrapper positions={positions} color="blue" />
                     )}
-                </MapContainer>
+                </MapContainerWrapper>
             ) : (
-                <p>Loading map...</p> // Show a loading indicator while waiting for the initial position
+                <p>Loading map...</p>
             )}
-            <div className="flex gap-2">
-                <Button onClick={startTracking} disabled={tracking}>
-                    <Play className="mr-2" /> Start Tracking
-                </Button>
-                <Button onClick={stopTracking} disabled={!tracking} variant="destructive">
-                    <StopCircle className="mr-2" /> Stop Tracking
-                </Button>
+
+            <div className="mt-4 flex flex-col items-center">
+                <p>Distance traveled: {calculateDistance()} km</p>
+                <div className="flex gap-2 mt-2">
+                    {!tracking ? (
+                        <Button onClick={startTracking} className="flex items-center gap-2">
+                            <Play />
+                            Start Tracking
+                        </Button>
+                    ) : (
+                        <Button onClick={stopTracking} className="flex items-center gap-2">
+                            <StopCircle />
+                            Stop Tracking
+                        </Button>
+                    )}
+                </div>
             </div>
-            {positions.length > 1 && <p>Distance walked: {calculateDistance()} km</p>}
         </div>
     );
 };
