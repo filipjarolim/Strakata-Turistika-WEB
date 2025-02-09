@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { PartyPopper } from "lucide-react"; // Icon for fun feedback
+import { PartyPopper } from "lucide-react";
+import Link from "next/link"; // Icon for fun feedback
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
@@ -69,7 +70,7 @@ const InstallButton: React.FC = () => {
                         altText="Learn more about the app"
                         asChild
                     >
-                        <a href="/">Learn More</a>
+                        <Link href="/">Learn More</Link>
                     </ToastAction>
                 ),
             });
