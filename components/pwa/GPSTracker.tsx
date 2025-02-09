@@ -1,144 +1,87 @@
-"use client"
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MapPin, Play, Soup, RefreshCw } from "lucide-react";
-import { usePosition } from "use-position";
-import { getDistance, getSpeed } from "geolib";
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Button } from '@/components/ui/button';
+import { Play, StopCircle } from 'lucide-react';
 
-const GPSTracker = () => {
-    const [distance, setDistance] = useState(0);
-    const [speed, setSpeed] = useState(0);
-    const [isTracking, setIsTracking] = useState(false);
-    const [previousPosition, setPreviousPosition] = useState<{ latitude: number; longitude: number } | null>(null);
-    const [path, setPath] = useState<{ latitude: number; longitude: number }[]>([]);
-    const [history, setHistory] = useState<{ distance: number; path: { latitude: number; longitude: number }[] }[]>([]);
+interface Position {
+    latitude: number;
+    longitude: number;
+}
 
-    const THRESHOLD = 1; // Lower the threshold to 1 meter
-    const ACCURACY_LIMIT = 50; // Increase the accuracy limit to 50 meters
-
-    const geoOptions = {
-        enableHighAccuracy: true,
-        timeout: Infinity,
-        maximumAge: 0,
-    };
-
-    const { latitude, longitude, accuracy, timestamp } = usePosition(isTracking, geoOptions);
+const GpsTracker: React.FC = () => {
+    const [tracking, setTracking] = useState<boolean>(false);
+    const [positions, setPositions] = useState<[number, number][]>([]);
+    const [watchId, setWatchId] = useState<number | null>(null);
 
     useEffect(() => {
-        if (isTracking && latitude && longitude) {
-            if (accuracy && accuracy <= ACCURACY_LIMIT) {
-                if (previousPosition) {
-                    const newDistance = getDistance(
-                        { latitude: previousPosition.latitude, longitude: previousPosition.longitude },
-                        { latitude, longitude }
-                    );
-                    const newSpeed = getSpeed(
-                        { latitude: previousPosition.latitude, longitude: previousPosition.longitude, time: timestamp ?? Date.now() },
-                        { latitude, longitude, time: Date.now() }
-                    );
-
-                    if (newDistance > THRESHOLD) {
-                        setDistance((prev) => prev + newDistance);
-                        setSpeed(newSpeed);
-                        setPreviousPosition({ latitude, longitude });
-                        setPath((prev) => [...prev, { latitude, longitude }]);
-                    }
-                } else {
-                    setPreviousPosition({ latitude, longitude });
-                    setPath([{ latitude, longitude }]);
-                }
-            } else {
-                console.warn("Poor accuracy: Skipping position update", accuracy);
-            }
-        }
-    }, [latitude, longitude, accuracy, isTracking, timestamp]);
+        return () => {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+        };
+    }, [watchId]);
 
     const startTracking = () => {
-        setDistance(0);
-        setSpeed(0);
-        setPreviousPosition(null);
-        setPath([]);
-        setIsTracking(true);
+        setTracking(true);
+        const id = navigator.geolocation.watchPosition(
+            (pos) => {
+                setPositions((prev) => [...prev, [pos.coords.latitude, pos.coords.longitude]]);
+            },
+            (err) => console.error(err),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+        setWatchId(id);
     };
 
     const stopTracking = () => {
-        setIsTracking(false);
-        setHistory((prev) => [...prev, { distance, path }]);
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+        setTracking(false);
+        setWatchId(null);
     };
 
-    const resetTracker = () => {
-        setDistance(0);
-        setSpeed(0);
-        setPreviousPosition(null);
-        setPath([]);
+    const calculateDistance = (): string => {
+        let distance = 0;
+        for (let i = 1; i < positions.length; i++) {
+            const [lat1, lon1] = positions[i - 1];
+            const [lat2, lon2] = positions[i];
+            const R = 6371; // Radius of Earth in km
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            distance += R * c;
+        }
+        return distance.toFixed(2);
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>GPS Tracker</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col items-center">
-                    <div className="flex items-center space-x-2">
-                        <MapPin className="w-6 h-6 text-green-500" />
-                        <h1 className="text-xl">Distance Walked: {distance.toFixed(2)} meters</h1>
-                        <h1 className="text-xl">Speed: {speed.toFixed(2)} m/s</h1>
-                    </div>
-                    <div className="mt-4 flex space-x-2">
-                        <Button onClick={startTracking} variant="default" disabled={isTracking}>
-                            <Play className="mr-2" /> Start Tracking
-                        </Button>
-                        <Button onClick={stopTracking} variant="secondary" disabled={!isTracking}>
-                            <Soup className="mr-2" /> Stop Tracking
-                        </Button>
-                        <Button onClick={resetTracker} variant="outline">
-                            <RefreshCw className="mr-2" /> Reset
-                        </Button>
-                    </div>
-                    {path.length > 0 && (
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-expect-error
-                        <MapContainer center={[path[0].latitude, path[0].longitude]} zoom={15} style={{ height: "400px", width: "100%" }}>
-                            <TileLayer
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                            <Polyline positions={path.map(p => [p.latitude, p.longitude])} pathOptions={{ color: 'blue' }} />
-                            {path.map((p, index) => (
-                                <Marker key={index} position={[p.latitude, p.longitude]}>
-                                    <Popup>
-                                        Point {index + 1}: [{p.latitude}, {p.longitude}]
-                                    </Popup>
-                                </Marker>
-                            ))}
-                        </MapContainer>
-                    )}
-                    <div className="mt-4">
-                        <h2 className="text-lg">History</h2>
-                        <ul>
-                            {history.map((entry, index) => (
-                                <li key={index} className="mb-4">
-                                    <h3>Walked {entry.distance.toFixed(2)} meters</h3>
-                                    {/*eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
-                                    {/*@ts-expect-error*/}
-                                    <MapContainer center={[entry.path[0].latitude, entry.path[0].longitude]} zoom={15} style={{ height: "200px", width: "100%" }}>
-                                        <TileLayer
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        />
-                                        <Polyline positions={entry.path.map(p => [p.latitude, p.longitude])} pathOptions={{ color: 'blue' }} />
-                                    </MapContainer>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+        <div className="flex flex-col items-center gap-4 p-4">
+            <MapContainer        center={[50, 14] as [number, number]}
+                                 zoom={13}
+                                 className="w-full h-[400px] rounded-lg"
+            >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                {positions.length > 1 && (
+                    <Polyline
+                        positions={positions}
+                        pathOptions={{ color: 'blue' }}
+                    />
+                )}
+            </MapContainer>
+            <div className="flex gap-2">
+                <Button onClick={startTracking} disabled={tracking}>
+                    <Play className="mr-2" /> Start Tracking
+                </Button>
+                <Button onClick={stopTracking} disabled={!tracking} variant="destructive">
+                    <StopCircle className="mr-2" /> Stop Tracking
+                </Button>
+            </div>
+            {positions.length > 1 && <p>Distance walked: {calculateDistance()} km</p>}
+        </div>
     );
 };
 
-export default GPSTracker;
+export default GpsTracker;
