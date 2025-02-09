@@ -3,12 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Play, Soup, RefreshCw, Download } from "lucide-react";
+import { MapPin, Play, Soup, RefreshCw } from "lucide-react";
 import { usePosition } from "use-position";
 import { getDistance, getSpeed } from "geolib";
 import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import * as toGeoJSON from "togpx";
 
 const GPSTracker = () => {
     const [distance, setDistance] = useState(0);
@@ -78,29 +77,6 @@ const GPSTracker = () => {
         setPath([]);
     };
 
-    const exportToGPX = () => {
-        const geoJSON = {
-            type: "FeatureCollection",
-            features: [
-                {
-                    type: "Feature",
-                    geometry: {
-                        type: "LineString",
-                        coordinates: path.map(p => [p.longitude, p.latitude]),
-                    },
-                    properties: {},
-                },
-            ],
-        };
-        const gpx = toGeoJSON(geoJSON);
-        const blob = new Blob([gpx], { type: "application/gpx+xml" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "path.gpx";
-        a.click();
-    };
-
     return (
         <Card>
             <CardHeader>
@@ -122,9 +98,6 @@ const GPSTracker = () => {
                         </Button>
                         <Button onClick={resetTracker} variant="outline">
                             <RefreshCw className="mr-2" /> Reset
-                        </Button>
-                        <Button onClick={exportToGPX} variant="outline">
-                            <Download className="mr-2" /> Export to GPX
                         </Button>
                     </div>
                     {path.length > 0 && (
