@@ -57,15 +57,19 @@ const InstallButton: React.FC = () => {
             console.log("PWA installed successfully");
             // Trigger toast
             toast({
-                title: "App Installed Successfully!",
-                description: "The app has been added to your home screen.",
-                icon: <PartyPopper className="h-5 w-5 text-green-500" />,
+                title: "App Installed Successfully!", // String title
+                description: (
+                    <div className="flex items-center gap-2">
+                        <PartyPopper className="h-4 w-4 text-green-500" />
+                        <span>The app has been added to your home screen.</span>
+                    </div>
+                ), // JSX allowed here in description
                 action: (
                     <ToastAction
                         altText="Learn more about the app"
                         asChild
                     >
-                        <a href="/about">Learn More</a>
+                        <a href="/">Learn More</a>
                     </ToastAction>
                 ),
             });
@@ -85,7 +89,7 @@ const InstallButton: React.FC = () => {
                 className="rounded-full"
                 onClick={handleInstallClick}
             >
-                Install as App
+                Instalovat aplikaci
             </Button>
             {isIOS && (
                 <p className="text-[8px] text-gray-600">
