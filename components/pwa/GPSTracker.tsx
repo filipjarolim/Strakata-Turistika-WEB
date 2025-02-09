@@ -6,11 +6,6 @@ import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
 import { Play, StopCircle } from 'lucide-react';
 
-interface Position {
-    latitude: number;
-    longitude: number;
-}
-
 // Haversine formula to calculate the distance between two coordinates
 const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Earth's radius in km
@@ -28,8 +23,10 @@ const GpsTracker: React.FC = () => {
     const [tracking, setTracking] = useState<boolean>(false);
     const [positions, setPositions] = useState<[number, number][]>([]);
     const [watchId, setWatchId] = useState<number | null>(null);
+    const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
 
     const MIN_DISTANCE_KM = 0.005; // Minimum distance threshold ≈ 5 meters
+    const MIN_UPDATE_INTERVAL = 10000; // Minimum time threshold = 10 seconds
 
     useEffect(() => {
         return () => {
@@ -42,15 +39,25 @@ const GpsTracker: React.FC = () => {
         const id = navigator.geolocation.watchPosition(
             (pos) => {
                 const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                const currentTime = Date.now();
+
                 setPositions((prev) => {
                     if (prev.length > 0) {
                         const [lastLat, lastLon] = prev[prev.length - 1];
                         const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
 
-                        // If the new position is less than 5m away, ignore it
-                        if (dist < MIN_DISTANCE_KM) return prev;
+                        // Check if the position update meets the time or distance threshold
+                        if (
+                            dist < MIN_DISTANCE_KM && // Less than 5 meters
+                            (lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) // Less than 10 seconds
+                        ) {
+                            return prev; // Skip this update
+                        }
                     }
-                    return [...prev, newPos]; // Ensure newPos is treated as a tuple
+
+                    // Update last update time and add the new position
+                    setLastUpdateTime(currentTime);
+                    return [...prev, newPos];
                 });
             },
             (err) => console.error(err),
