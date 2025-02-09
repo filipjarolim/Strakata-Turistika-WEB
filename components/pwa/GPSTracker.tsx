@@ -1,6 +1,8 @@
+"use client"
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, Input } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { MapPin, Play, Soup, RefreshCw } from "lucide-react";
 import { usePosition } from "use-position";
 import { getDistance, getSpeed } from "geolib";
@@ -14,8 +16,9 @@ const GPSTracker = () => {
     const [previousPosition, setPreviousPosition] = useState<{ latitude: number; longitude: number } | null>(null);
     const [path, setPath] = useState<{ latitude: number; longitude: number }[]>([]);
     const [history, setHistory] = useState<{ distance: number; path: { latitude: number; longitude: number }[] }[]>([]);
-    const [threshold, setThreshold] = useState(1); // State for THRESHOLD
-    const [accuracyLimit, setAccuracyLimit] = useState(50); // State for ACCURACY_LIMIT
+
+    const THRESHOLD = 1; // Lower the threshold to 1 meter
+    const ACCURACY_LIMIT = 50; // Increase the accuracy limit to 50 meters
 
     const geoOptions = {
         enableHighAccuracy: true,
@@ -27,7 +30,7 @@ const GPSTracker = () => {
 
     useEffect(() => {
         if (isTracking && latitude && longitude) {
-            if (accuracy && accuracy <= accuracyLimit) {
+            if (accuracy && accuracy <= ACCURACY_LIMIT) {
                 if (previousPosition) {
                     const newDistance = getDistance(
                         { latitude: previousPosition.latitude, longitude: previousPosition.longitude },
@@ -38,7 +41,7 @@ const GPSTracker = () => {
                         { latitude, longitude, time: Date.now() }
                     );
 
-                    if (newDistance > threshold) {
+                    if (newDistance > THRESHOLD) {
                         setDistance((prev) => prev + newDistance);
                         setSpeed(newSpeed);
                         setPreviousPosition({ latitude, longitude });
@@ -52,7 +55,7 @@ const GPSTracker = () => {
                 console.warn("Poor accuracy: Skipping position update", accuracy);
             }
         }
-    }, [latitude, longitude, accuracy, isTracking, timestamp, threshold, accuracyLimit]);
+    }, [latitude, longitude, accuracy, isTracking, timestamp]);
 
     const startTracking = () => {
         setDistance(0);
@@ -97,21 +100,9 @@ const GPSTracker = () => {
                             <RefreshCw className="mr-2" /> Reset
                         </Button>
                     </div>
-                    <div className="mt-4 flex space-x-2">
-                        <Input
-                            type="number"
-                            value={threshold}
-                            onChange={(e) => setThreshold(Number(e.target.value))}
-                            placeholder="Threshold (meters)"
-                        />
-                        <Input
-                            type="number"
-                            value={accuracyLimit}
-                            onChange={(e) => setAccuracyLimit(Number(e.target.value))}
-                            placeholder="Accuracy Limit (meters)"
-                        />
-                    </div>
                     {path.length > 0 && (
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-expect-error
                         <MapContainer center={[path[0].latitude, path[0].longitude]} zoom={15} style={{ height: "400px", width: "100%" }}>
                             <TileLayer
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -132,6 +123,8 @@ const GPSTracker = () => {
                             {history.map((entry, index) => (
                                 <li key={index} className="mb-4">
                                     <h3>Walked {entry.distance.toFixed(2)} meters</h3>
+                                    {/*eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
+                                    {/*@ts-expect-error*/}
                                     <MapContainer center={[entry.path[0].latitude, entry.path[0].longitude]} zoom={15} style={{ height: "200px", width: "100%" }}>
                                         <TileLayer
                                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
