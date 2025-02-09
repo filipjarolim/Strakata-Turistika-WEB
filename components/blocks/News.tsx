@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Trash, Pencil } from "lucide-react";
+import { Shield } from "lucide-react"; // Icon from lucide-react
+import { useCurrentRole } from "@/hooks/use-current-role"; // Role hook
+import { AdminRestrictedContent } from "../structure/AdminRestrictedContent";
+import {Separator} from "@/components/ui/separator";
 
 type NewsItem = {
     id: string;
@@ -20,6 +24,7 @@ export default function News() {
     const [title, setTitle] = useState<string>("");
     const [content, setContent] = useState<string>("");
     const [editId, setEditId] = useState<string | null>(null);
+    const role = useCurrentRole(); // Get the current role
 
     useEffect(() => {
         fetchNews().then(() => console.log("News fetched"));
@@ -68,36 +73,15 @@ export default function News() {
     return (
         <div className="p-8">
             <h2 className="text-4xl font-bold mb-6">Aktuality</h2>
-            <Button onClick={() => setOpen(true)} className="mb-4 relative overflow-hidden flex items-center text-white font-medium">
-                {/* Two background parts */}
-                <span className="absolute inset-0 flex">
-        <span className="w-1/2 h-full bg-blue-500"></span>
-        <span className="w-1/2 h-full bg-green-500"></span>
-    </span>
-
-                {/* First part (left content) */}
-                <span className="relative z-10 flex-1 flex items-center justify-center">
-        Přidat aktualitu
-    </span>
-
-                {/* Second part (right content with an icon) */}
-                <span className="relative z-10 flex-1 flex items-center justify-center">
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-6 h-6"
-        >
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4.5v15m7.5-7.5h-15"
+            <AdminRestrictedContent
+                role={role || "UŽIVATEL"}
+                permittedRole="ADMIN"
+                isButton={true}
+                label="Přidat aktualitu"
+                tooltipText="ADMIN ONLY - Add news item"
+                onClick={() => setOpen(!open)}
             />
-        </svg>
-    </span>
-            </Button>
+
             <div className="flex flex-wrap items-center justify-start gap-8 w-full">
                 {news.map((item) => (
                     <Card key={item.id} className="w-[400px] h-[260px] p-6 rounded-[25px] relative">
@@ -115,7 +99,7 @@ export default function News() {
                 ))}
             </div>
 
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} modal={true} onOpenChange={setOpen}>
                 <DialogTrigger asChild></DialogTrigger>
                 <DialogContent>
                     <DialogTitle className="text-xl font-bold">{editId ? "Upravit aktualitu" : "Přidat aktualitu"}</DialogTitle>

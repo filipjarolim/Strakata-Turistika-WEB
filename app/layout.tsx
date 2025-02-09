@@ -8,6 +8,7 @@ import localFont from "next/font/local";
 
 
 
+import { Toaster } from "@/components/ui/toaster"
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -222,6 +223,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <html lang="en" suppressHydrationWarning>
             <body className={myFont.className}>
             {children}
+            <Toaster />
+
             </body>
             </html>
         </SessionProvider>

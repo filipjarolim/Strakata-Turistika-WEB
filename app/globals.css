@@ -8,7 +8,7 @@
 }
 
 [data-scroll-locked][data-scroll-locked] {
-  overflow: scroll !important;
+  overflow-y: scroll !important;
 }
 
 
