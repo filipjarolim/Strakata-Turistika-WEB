@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
 import { Play, StopCircle } from 'lucide-react';
@@ -24,11 +24,21 @@ const GpsTracker: React.FC = () => {
     const [positions, setPositions] = useState<[number, number][]>([]);
     const [watchId, setWatchId] = useState<number | null>(null);
     const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
+    const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
 
     const MIN_DISTANCE_KM = 0.005; // Minimum distance threshold ≈ 5 meters
     const MIN_UPDATE_INTERVAL = 10000; // Minimum time threshold = 10 seconds
 
     useEffect(() => {
+        // Get user’s initial position and set the map center
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setMapCenter([pos.coords.latitude, pos.coords.longitude]);
+            },
+            (err) => console.error('Error retrieving initial position:', err),
+            { enableHighAccuracy: true }
+        );
+
         return () => {
             if (watchId) navigator.geolocation.clearWatch(watchId);
         };
@@ -84,19 +94,23 @@ const GpsTracker: React.FC = () => {
 
     return (
         <div className="flex flex-col items-center gap-4 p-4">
-            <MapContainer
-                center={[50, 14] as [number, number]}
-                zoom={13}
-                className="w-full h-[400px] rounded-lg"
-            >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                {positions.length > 1 && (
-                    <Polyline
-                        positions={positions}
-                        pathOptions={{ color: 'blue' }}
-                    />
-                )}
-            </MapContainer>
+            {mapCenter ? (
+                <MapContainer
+                    center={mapCenter}
+                    zoom={13}
+                    className="w-full h-[400px] rounded-lg"
+                >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    {positions.length > 1 && (
+                        <Polyline
+                            positions={positions}
+                            pathOptions={{ color: 'blue' }}
+                        />
+                    )}
+                </MapContainer>
+            ) : (
+                <p>Loading map...</p> // Show a loading indicator while waiting for the initial position
+            )}
             <div className="flex gap-2">
                 <Button onClick={startTracking} disabled={tracking}>
                     <Play className="mr-2" /> Start Tracking
