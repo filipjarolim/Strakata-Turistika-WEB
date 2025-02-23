@@ -4,6 +4,7 @@ import Footer from "@/components/structure/Footer";
 import SupportMePopup from "@/components/structure/SupportMePopup";
 import {cn} from "@/lib/utils";
 import StatusBlock from "@/components/blocks/StatusBlock";
+import CachedPages from "@/components/pwa/CachedPages";
 
 const CommonPageTemplate = ({
                                 children,
@@ -22,6 +23,7 @@ const CommonPageTemplate = ({
     return (
         <main className={cn("min-h-screen  px-4 sm:px-6 flex flex-col items-start justify-start relative", className)}>
 
+            <CachedPages />
 
             {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} />}
 

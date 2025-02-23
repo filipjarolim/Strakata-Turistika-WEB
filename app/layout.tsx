@@ -9,7 +9,6 @@ import localFont from "next/font/local";
 
 
 import { Toaster } from "@/components/ui/toaster"
-import CachedPages from "@/components/pwa/CachedPages";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -223,7 +222,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SessionProvider session={session}>
             <html lang="en" suppressHydrationWarning>
             <body className={myFont.className}>
-            <CachedPages />
             {children}
             <Toaster />
 
