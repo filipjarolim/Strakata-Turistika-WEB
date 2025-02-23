@@ -28,11 +28,23 @@ export default function SeasonsPage() {
                 const data: number[] = await res.json();
                 setYears(data);
                 setFilteredYears(data);
+
+                // Save response in IndexedDB for offline use
+                localStorage.setItem('cachedSeasons', JSON.stringify(data));
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message);
                 } else {
                     setError('Došlo k neočekávané chybě.');
+                }
+
+                // Load cached data when offline
+                const cachedData = localStorage.getItem('cachedSeasons');
+                if (cachedData) {
+                    const parsedData = JSON.parse(cachedData);
+                    setYears(parsedData);
+                    setFilteredYears(parsedData);
+                    setError('');
                 }
             } finally {
                 setIsLoading(false);
@@ -56,30 +68,20 @@ export default function SeasonsPage() {
     return (
         <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
             <div className="p-6 space-y-6">
-                {/* Header */}
                 <h1 className="text-4xl font-bold text-black/70">Sezóny</h1>
 
-                {/* Search Input */}
                 <Input
                     placeholder="Hledat podle roku..."
                     onChange={handleSearch}
                     className="w-full max-w-md"
                 />
 
-                {/* Render Loading State / Error */}
                 {isLoading && (
                     <div className="flex justify-center items-center mt-10">
                         <motion.div
                             className="bg-gray-200 rounded-full w-10 h-10"
-                            animate={{
-                                scale: [1, 1.1, 1],
-                                opacity: [1, 0.8, 1],
-                            }}
-                            transition={{
-                                duration: 0.8,
-                                repeat: Infinity,
-                                repeatType: 'loop',
-                            }}
+                            animate={{ scale: [1, 1.1, 1], opacity: [1, 0.8, 1] }}
+                            transition={{ duration: 0.8, repeat: Infinity }}
                         />
                         <span className="ml-3 text-xl text-gray-600">Načítání...</span>
                     </div>
@@ -92,31 +94,28 @@ export default function SeasonsPage() {
                 )}
 
                 {!isLoading && !error && (
-                    <>
-                        {/* Render Seasons as Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {filteredYears.map((year) => (
-                                <motion.div
-                                    key={year}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="shadow-md hover:shadow-lg transition-transform"
-                                >
-                                    <Link href={`/vysledky/${year}`}>
-                                        <Card>
-                                            <CardHeader className="flex items-center space-x-2">
-                                                <CalendarDays className="w-5 h-5 text-primary" />
-                                                <h2 className="text-lg font-semibold">{year}</h2>
-                                            </CardHeader>
-                                            <CardContent className="text-sm text-gray-600">
-                                                Zobrazit výsledky z roku {year}
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                </motion.div>
-                            ))}
-                        </div>
-                    </>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {filteredYears.map((year) => (
+                            <motion.div
+                                key={year}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="shadow-md hover:shadow-lg transition-transform"
+                            >
+                                <Link href={`/vysledky/${year}`}>
+                                    <Card>
+                                        <CardHeader className="flex items-center space-x-2">
+                                            <CalendarDays className="w-5 h-5 text-primary" />
+                                            <h2 className="text-lg font-semibold">{year}</h2>
+                                        </CardHeader>
+                                        <CardContent className="text-sm text-gray-600">
+                                            Zobrazit výsledky z roku {year}
+                                        </CardContent>
+                                    </Card>
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </div>
                 )}
             </div>
         </CommonPageTemplate>

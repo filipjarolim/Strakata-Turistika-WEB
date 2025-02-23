@@ -40,13 +40,15 @@ serwist.addEventListeners();
 // Cache pages when they are visited
 self.addEventListener("fetch", (event) => {
     const { request } = event;
+    const url = new URL(request.url);
 
     if (request.method !== "GET" || !request.url.startsWith(self.location.origin)) return;
 
     event.respondWith(
         caches.match(request).then((response) => {
             return response || fetch(request).then((networkResponse) => {
-                if (PAGES_TO_CACHE.includes(new URL(request.url).pathname)) {
+                // Cache pages and API responses
+                if (PAGES_TO_CACHE.includes(url.pathname) || url.pathname.startsWith("/api/")) {
                     return caches.open(CACHE_NAME).then((cache) => {
                         cache.put(request, networkResponse.clone());
                         updateCachedPages();
@@ -58,6 +60,7 @@ self.addEventListener("fetch", (event) => {
         })
     );
 });
+
 
 // Handle push notifications
 self.addEventListener('push', function (event) {
