@@ -4,6 +4,7 @@ import Footer from "@/components/structure/Footer";
 import SupportMePopup from "@/components/structure/SupportMePopup";
 import {cn} from "@/lib/utils";
 import StatusBlock from "@/components/blocks/StatusBlock";
+import OfflinePagesList from "../pwa/OfflinePagesList";
 
 const CommonPageTemplate = ({
                                 children,
@@ -24,6 +25,7 @@ const CommonPageTemplate = ({
 
 
             {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} />}
+            <OfflinePagesList />
 
             {/*<StatusBlock />*/}
             {children}
