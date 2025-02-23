@@ -13,8 +13,6 @@ declare const self: ServiceWorkerGlobalScope;
 // List of pages to cache automatically
 const PAGES_TO_CACHE = ["/", "/playground", "/pravidla", "/vysledky"]; // Add your desired pages here
 
-const CACHE_NAME = "dynamic-page-cache-v1";
-
 // Initialize Serwist
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
@@ -37,7 +35,13 @@ const serwist = new Serwist({
 // Add event listeners for Serwist
 serwist.addEventListeners();
 
-// Cache pages when they are visited
+const CACHE_NAME = "dynamic-page-cache-v2";
+const MAP_TILE_CACHE = "map-tile-cache";
+const MAP_TILE_URLS = [
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+];
+
 self.addEventListener("fetch", (event) => {
     const { request } = event;
     const url = new URL(request.url);
@@ -47,19 +51,37 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
         caches.match(request).then((response) => {
             return response || fetch(request).then((networkResponse) => {
-                // Cache pages and API responses
-                if (PAGES_TO_CACHE.includes(url.pathname) || url.pathname.startsWith("/api/")) {
+                // Cache dynamically loaded pages
+                if (PAGES_TO_CACHE.includes(url.pathname)) {
                     return caches.open(CACHE_NAME).then((cache) => {
                         cache.put(request, networkResponse.clone());
                         updateCachedPages();
                         return networkResponse;
                     });
                 }
+
+                // Cache API responses (e.g., user data)
+                if (url.pathname.startsWith("/api/")) {
+                    return caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                }
+
+                // Cache map tiles
+                if (MAP_TILE_URLS.some(tileUrl => url.href.includes(tileUrl.replace("{s}", "a")))) {
+                    return caches.open(MAP_TILE_CACHE).then((cache) => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                }
+
                 return networkResponse;
             });
         })
     );
 });
+
 
 
 // Handle push notifications

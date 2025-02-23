@@ -17,9 +17,7 @@ const Page = async () => {
     return (
         <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
             Playground
-            <PushNotificationManager />
-            <InstallButton />
-            <Timer />
+
             <GPSTracker />
 
         </CommonPageTemplate>
