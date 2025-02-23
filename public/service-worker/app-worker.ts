@@ -10,24 +10,8 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Define pages to be preloaded for offline use
-const PRECACHE_PAGES = [
-    '/',
-    '/about',
-    '/dashboard',
-    '/offline',
-    "/playground"
-];
-
-// Define additional assets to be cached
-const PRECACHE_ASSETS = [
-    '/app/globals.css',
-    '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png',
-];
-
 const serwist = new Serwist({
-    precacheEntries: [...(self.__SW_MANIFEST || []), ...PRECACHE_PAGES, ...PRECACHE_ASSETS],
+    precacheEntries: self.__SW_MANIFEST ,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
@@ -45,36 +29,6 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
-
-// Listen for install event to precache important pages and assets
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open('pwa-static-v1').then((cache) => {
-            return cache.addAll([...PRECACHE_PAGES, ...PRECACHE_ASSETS]);
-        })
-    );
-});
-
-// Handle fetch events: serve from cache first, fallback to network
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            } else {
-                return fetch(event.request).catch(() => caches.match('/offline').then((offlineResponse) => {
-                    if (offlineResponse) {
-                        return offlineResponse;
-                    } else {
-                        return new Response('Offline page not found', { status: 404 });
-                    }
-                }));
-            }
-        })
-    );
-});
-
-// Handle push notifications
 self.addEventListener('push', function (event) {
     if (event.data) {
         const data = event.data.json();
@@ -93,7 +47,6 @@ self.addEventListener('push', function (event) {
     }
 });
 
-// Handle notification clicks
 self.addEventListener('notificationclick', function (event) {
     console.log('Notification click received.');
     event.notification.close();
