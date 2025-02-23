@@ -14,8 +14,22 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
+// Example of dynamically generating precache entries for all routes
+const allRoutes = [
+    '/',
+    '/about',
+    '/contact',
+    '/offline',
+    "/playground",
+    "/vysledky",
+    "/vysledky/[rok]",
+    // Add all your routes here
+];
+
+const precacheEntries: PrecacheEntry[] = allRoutes.map(route => ({ url: route }));
+
 const serwist = new Serwist({
-    precacheEntries: self.__SW_MANIFEST,
+    precacheEntries,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
