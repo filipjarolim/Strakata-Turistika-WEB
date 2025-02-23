@@ -15,16 +15,26 @@ const allRoutes = [
     '/about',
     '/contact',
     '/offline',
-    "/playground",
-    "/vysledky",
-    "/vysledky/[rok]",
+    '/playground',
+    '/vysledky',
+    '/vysledky/[rok]',
     // Add all your routes here
 ];
 
 const precacheEntries: PrecacheEntry[] = allRoutes.map(route => ({ url: route }));
 
+// Transform self.__SW_MANIFEST entries to ensure they are PrecacheEntry objects
+const manifestEntries: PrecacheEntry[] = (self.__SW_MANIFEST || []).map(item => (
+    typeof item === 'string' ? { url: item } : item
+));
+
+const mergedPrecacheEntries: PrecacheEntry[] = [
+    ...manifestEntries,
+    ...precacheEntries
+];
+
 const serwist = new Serwist({
-    precacheEntries: self.__SW_MANIFEST || precacheEntries,
+    precacheEntries: mergedPrecacheEntries,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
@@ -42,7 +52,8 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
-self.addEventListener('push', function (event) {
+
+self.addEventListener('push', function(event) {
     if (event.data) {
         const data = event.data.json();
         const options = {
@@ -60,7 +71,7 @@ self.addEventListener('push', function (event) {
     }
 });
 
-self.addEventListener('notificationclick', function (event) {
+self.addEventListener('notificationclick', function(event) {
     console.log('Notification click received.');
     event.notification.close();
     event.waitUntil(
