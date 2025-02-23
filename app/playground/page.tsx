@@ -15,7 +15,7 @@ const Page = async () => {
     const role = await currentRole()
 
     return (
-        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
+        <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role}>
             Playground
 
             <GPSTracker />
