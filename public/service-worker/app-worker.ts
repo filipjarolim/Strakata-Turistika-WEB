@@ -2,10 +2,6 @@ import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
 
-// This declares the value of `injectionPoint` to TypeScript.
-// `injectionPoint` is the string that will be replaced by the
-// actual precache manifest. By default, this string is set to
-// `"self.__SW_MANIFEST"`.
 declare global {
     interface WorkerGlobalScope extends SerwistGlobalConfig {
         __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
@@ -14,7 +10,6 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Example of dynamically generating precache entries for all routes
 const allRoutes = [
     '/',
     '/about',
@@ -29,7 +24,7 @@ const allRoutes = [
 const precacheEntries: PrecacheEntry[] = allRoutes.map(route => ({ url: route }));
 
 const serwist = new Serwist({
-    precacheEntries,
+    precacheEntries: self.__SW_MANIFEST || precacheEntries,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
@@ -37,7 +32,7 @@ const serwist = new Serwist({
     fallbacks: {
         entries: [
             {
-                url: '/offline', // the page that'll display if user goes offline
+                url: '/offline',
                 matcher({ request }) {
                     return request.destination === 'document';
                 },
@@ -55,7 +50,7 @@ self.addEventListener('push', function (event) {
             icon: data.icon || '/icons/icon-192x192.png',
             badge: '/icons/icon-192x192.png',
             vibrate: [100, 50, 100],
-            requireInteraction: true,  // Keeps the notification until user interacts
+            requireInteraction: true,
             data: {
                 dateOfArrival: Date.now(),
                 primaryKey: '2',
