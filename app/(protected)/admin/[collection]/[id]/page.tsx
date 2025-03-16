@@ -5,14 +5,16 @@ import DynamicForm from "@/components/admin/DynamicForm";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-type PageProps = {
+// Correctly defining PageProps
+interface PageProps {
     params: { collection: string; id: string };
-};
+}
 
-// Explicitly mark this function as an async component
-const EditRecordPage = async ({ params }: { params: { collection: string; id: string } }) => {
+// Ensure async function is used properly
+const EditRecordPage = async ({ params }: PageProps) => {
     const { collection, id } = params;
 
+    // Fetch the record
     const record = await getRecordById(collection, id);
 
     if (!record) {
@@ -39,3 +41,8 @@ const EditRecordPage = async ({ params }: { params: { collection: string; id: st
 };
 
 export default EditRecordPage;
+
+// Tell Next.js this is a dynamic route (prevents type errors in params)
+export async function generateStaticParams() {
+    return []; // Empty array allows Next.js to treat this as a dynamic route
+}
