@@ -10,8 +10,7 @@ type PageProps = {
 };
 
 const EditRecordPage = async ({ params }: PageProps) => {
-    // Await dynamic params before use
-    const { collection, id } = await params;
+    const { collection, id } = params;
     const record = await getRecordById(collection, id);
 
     if (!record) {
