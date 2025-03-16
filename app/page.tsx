@@ -31,12 +31,10 @@ const Home = async () => {
                     <p className="text-6xl  font-semibold mb-4 text-gray-700/60">
                         aneb poznáváme
                         {" "}
-                        <span
-                            className={"inline-block bg-red-300 text-red-950/70 rounded-full text-5xl w-fit px-4 pb-1 pt-3"}>
+                        <span className={"inline-block bg-red-300 text-red-950/70 rounded-full text-5xl w-fit px-4 pb-1 pt-3"}>
                             <span className={"flex flex-row items-center justify-start"}>
                                 <span className={"text-4xl"}>
-                                    <Image src={PinEmoji} alt="emoji" width={48} height={48}
-                                           className="rounded-full inline-block"/>
+                                    <Image src={PinEmoji} alt="emoji" width={48} height={48} className="rounded-full inline-block"/>
 
                             </span>
                             Česko

@@ -4,11 +4,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
 import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target } from 'lucide-react';
 import { useMap } from 'react-leaflet';
 
-// Create a dedicated component that re-centers the map when its trigger changes
+// A dedicated component that re-centers the map when trigger changes.
 const RecenterMapComponent: React.FC<{
   trigger: number;
   center: [number, number] | null;
@@ -23,7 +24,6 @@ const RecenterMapComponent: React.FC<{
   return null;
 };
 
-// Dynamically load react-leaflet components
 const MapContainerWrapper = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -56,8 +56,13 @@ const currentPositionIcon = L.icon({
 });
 
 // Haversine formula for distance calculation
-const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371; // Earth's radius in km
+const haversineDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const R = 6371;
   const toRad = (deg: number) => deg * (Math.PI / 180);
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
@@ -73,32 +78,38 @@ const getStoredLocation = () => {
   return saved ? JSON.parse(saved) : null;
 };
 
-const GpsTracker: React.FC = () => {
+interface GPSTrackerProps {
+  username: string;
+}
+
+const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   // Tracking states
-  const mapRef = useRef<L.Map | null>(null);
   const [tracking, setTracking] = useState<boolean>(false);
   const [paused, setPaused] = useState<boolean>(false);
   const [positions, setPositions] = useState<[number, number][]>([]);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
-  // Timing states (excluding paused durations)
+  // Timing states
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pauseDuration, setPauseDuration] = useState<number>(0);
   const [lastPauseTime, setLastPauseTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
   const [isOffline, setIsOffline] = useState<boolean>(false);
-  // Current speed (km/h)
+  // Speed state
   const [speed, setSpeed] = useState<number>(0);
-  // Fullscreen state (for legacy fullscreen handling)
+  // Fullscreen state
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  // Show results modal after tracking ends
+  // Results and finish image state
   const [showResults, setShowResults] = useState<boolean>(false);
-  // Trigger for recentering the map (increments every time recenter is requested)
+  const [mapImage, setMapImage] = useState<string | null>(null);
+  // Trigger for recentering the map
   const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
 
-  // Listen for full screen changes
+  // Reference for map container element for capturing
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleFullScreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
@@ -108,7 +119,6 @@ const GpsTracker: React.FC = () => {
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
   }, []);
 
-  // Set initial map center based on connectivity
   useEffect(() => {
     if (!navigator.onLine) {
       setIsOffline(true);
@@ -118,10 +128,7 @@ const GpsTracker: React.FC = () => {
       setIsOffline(false);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const loc: [number, number] = [
-            pos.coords.latitude,
-            pos.coords.longitude,
-          ];
+          const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
           setMapCenter(loc);
           localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
         },
@@ -134,27 +141,22 @@ const GpsTracker: React.FC = () => {
     };
   }, [watchId]);
 
-  // Update elapsed time every second (if not paused)
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (tracking && startTime && !paused) {
       timer = setInterval(() => {
-        setElapsedTime(
-          Math.floor((Date.now() - startTime - pauseDuration) / 1000)
-        );
+        setElapsedTime(Math.floor((Date.now() - startTime - pauseDuration) / 1000));
       }, 1000);
     }
     return () => timer && clearInterval(timer);
   }, [tracking, startTime, pauseDuration, paused]);
 
-  // Request notification permission when tracking starts
   useEffect(() => {
     if (tracking && Notification.permission !== 'granted') {
       Notification.requestPermission();
     }
   }, [tracking]);
 
-  // Periodic notifications (every minute)
   useEffect(() => {
     let notifyInterval: NodeJS.Timeout;
     if (tracking && !paused) {
@@ -170,29 +172,23 @@ const GpsTracker: React.FC = () => {
     return () => notifyInterval && clearInterval(notifyInterval);
   }, [tracking, elapsedTime, paused]);
 
-  // Start tracking: request full screen and begin geolocation
   const startTracking = useCallback(() => {
     setTracking(true);
     setCompleted(false);
     setShowResults(false);
+    setMapImage(null);
     setStartTime(Date.now());
     setPauseDuration(0);
     setElapsedTime(0);
 
-    // Request full screen mode (optional)
     if (document.documentElement.requestFullscreen) {
-      document.documentElement
-        .requestFullscreen()
-        .catch((err) => console.error('Full screen error:', err));
+      document.documentElement.requestFullscreen().catch(err => console.error('Full screen error:', err));
     }
 
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         if (paused) return;
-        const newPos: [number, number] = [
-          pos.coords.latitude,
-          pos.coords.longitude,
-        ];
+        const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
         let computedSpeed = pos.coords.speed;
         if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
@@ -208,11 +204,7 @@ const GpsTracker: React.FC = () => {
           if (prev.length > 0) {
             const [lastLat, lastLon] = prev[prev.length - 1];
             const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
-            if (
-              dist < MIN_DISTANCE_KM &&
-              lastUpdateTime &&
-              currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL
-            ) {
+            if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
               return prev;
             }
           }
@@ -226,27 +218,22 @@ const GpsTracker: React.FC = () => {
     setWatchId(id);
   }, [paused, positions, lastUpdateTime]);
 
-  // Stop tracking: exit full screen, clear watch, and show results modal
   const stopTracking = useCallback(() => {
     if (watchId) navigator.geolocation.clearWatch(watchId);
     setTracking(false);
     setWatchId(null);
     setCompleted(true);
     if (document.exitFullscreen) {
-      document
-        .exitFullscreen()
-        .catch((err) => console.error('Exit full screen error:', err));
+      document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
     }
     setShowResults(true);
   }, [watchId]);
 
-  // Pause tracking: record pause time
   const pauseTracking = useCallback(() => {
     setPaused(true);
     setLastPauseTime(Date.now());
   }, []);
 
-  // Resume tracking: update pause duration
   const resumeTracking = useCallback(() => {
     if (lastPauseTime) {
       setPauseDuration((prev) => prev + (Date.now() - lastPauseTime));
@@ -255,7 +242,6 @@ const GpsTracker: React.FC = () => {
     setPaused(false);
   }, [lastPauseTime]);
 
-  // Reset tracking data and hide results modal
   const resetTracking = useCallback(() => {
     setPositions([]);
     setStartTime(null);
@@ -265,18 +251,14 @@ const GpsTracker: React.FC = () => {
     setCompleted(false);
     setSpeed(0);
     setShowResults(false);
+    setMapImage(null);
   }, []);
 
-  // Recenter the map by obtaining the latest location, updating mapCenter, and triggering recentering.
   const recenterMap = useCallback(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const loc: [number, number] = [
-          pos.coords.latitude,
-          pos.coords.longitude,
-        ];
+        const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setMapCenter(loc);
-        // Increment the trigger so RecenterMapComponent re-runs its effect.
         setRecenterTrigger((prev) => prev + 1);
       },
       (err) => console.error('Error recentering map:', err),
@@ -284,7 +266,34 @@ const GpsTracker: React.FC = () => {
     );
   }, []);
 
-  // Helper: calculate total distance traveled
+  // Capture the map as a PNG image and then send it to your API.
+  const handleFinish = useCallback(async () => {
+    if (!mapContainerRef.current) return;
+    try {
+      const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
+      const imageData = canvas.toDataURL('image/png');
+      setMapImage(imageData);
+
+      // Call your API endpoint to store the track image (season 2025)
+      await fetch('/api/saveTrack', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          season: 2025,
+          image: imageData,
+          distance: calculateDistance(),
+          elapsedTime,
+          averageSpeed: calculateAverageSpeed(),
+          fullName: username, // Pass the current user's username
+        })
+      });
+    } catch (error) {
+      console.error('Error capturing map image:', error);
+    }
+  }, [elapsedTime, username]);
+
   const calculateDistance = (): string => {
     let total = 0;
     for (let i = 1; i < positions.length; i++) {
@@ -298,7 +307,6 @@ const GpsTracker: React.FC = () => {
     return total.toFixed(2);
   };
 
-  // Helper: format seconds into MM:SS
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -306,7 +314,6 @@ const GpsTracker: React.FC = () => {
     return `${pad(minutes)}:${pad(remainingSeconds)}`;
   };
 
-  // Helper: calculate average speed (km/h)
   const calculateAverageSpeed = (): string => {
     if (elapsedTime === 0) return '0.0';
     const distance = parseFloat(calculateDistance());
@@ -316,34 +323,30 @@ const GpsTracker: React.FC = () => {
 
   return (
     <div className="relative rounded-lg shadow-lg overflow-hidden" style={{ width: '100%', height: '80vh' }}>
-      {/* Map as Card Background with lower z-index */}
-      <MapContainerWrapper
-        center={mapCenter || [0, 0]}
-        zoom={ZOOM_LEVEL}
-        style={{ width: '100%', height: '100%', zIndex: 1 }}
-        whenReady={() => {
-          if (mapRef.current) {
-            mapRef.current.invalidateSize();
-          }
-        }}
-      >
-        <TileLayerWrapper attribution="&copy; OpenStreetMap contributors" url={TILE_LAYER_URL} />
-        {positions.length > 0 && (
-          <MarkerWrapper position={positions[positions.length - 1]} icon={currentPositionIcon} />
-        )}
-        {positions.length > 1 && (
-          <PolylineWrapper
-            positions={positions}
-            color="#007aff"
-            weight={6}
-            opacity={0.8}
-            lineCap="round"
-            lineJoin="round"
-          />
-        )}
-        {/* Render the RecenterMapComponent inside the MapContainer */}
-        <RecenterMapComponent trigger={recenterTrigger} center={mapCenter} zoom={ZOOM_LEVEL} />
-      </MapContainerWrapper>
+      {/* Map container with id and ref for screenshot */}
+      <div id="mapContainer" ref={mapContainerRef} style={{ width: '100%', height: '100%' }}>
+        <MapContainerWrapper
+          center={mapCenter || [0, 0]}
+          zoom={ZOOM_LEVEL}
+          style={{ width: '100%', height: '100%', zIndex: 1 }}
+        >
+          <TileLayerWrapper attribution="&copy; OpenStreetMap contributors" url={TILE_LAYER_URL} />
+          {positions.length > 0 && (
+            <MarkerWrapper position={positions[positions.length - 1]} icon={currentPositionIcon} />
+          )}
+          {positions.length > 1 && (
+            <PolylineWrapper
+              positions={positions}
+              color="#007aff"
+              weight={6}
+              opacity={0.8}
+              lineCap="round"
+              lineJoin="round"
+            />
+          )}
+          <RecenterMapComponent trigger={recenterTrigger} center={mapCenter} zoom={ZOOM_LEVEL} />
+        </MapContainerWrapper>
+      </div>
 
       {/* Header Overlay */}
       <div style={{ zIndex: 2 }} className="absolute top-0 left-0 w-full p-4">
@@ -398,16 +401,22 @@ const GpsTracker: React.FC = () => {
 
       {/* Results Modal Overlay */}
       {showResults && (
-        <div
-          style={{ zIndex: 1000 }}
-          className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center"
-        >
-          <div className="bg-white rounded-lg p-6 text-center max-w-md mx-auto">
-            <h2 className="text-2xl font-bold mb-4">Tracking Completed!</h2>
-            <p className="mb-2">Distance: {calculateDistance()} km</p>
-            <p className="mb-2">Time: {formatTime(elapsedTime)}</p>
-            <p className="mb-4">Average Speed: {calculateAverageSpeed()} km/h</p>
+        <div style={{ zIndex: 1000 }} className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 text-center max-w-md mx-auto space-y-4">
+            <h2 className="text-2xl font-bold">Tracking Completed!</h2>
+            <p>Distance: {calculateDistance()} km</p>
+            <p>Time: {formatTime(elapsedTime)}</p>
+            <p>Average Speed: {calculateAverageSpeed()} km/h</p>
+            {mapImage && (
+              <div>
+                <p className="font-bold">Your Route:</p>
+                <img src={mapImage} alt="Track" className="mt-2 rounded-lg" />
+              </div>
+            )}
             <div className="flex justify-center gap-4">
+              <Button onClick={handleFinish} className="bg-gray-800 text-white hover:bg-gray-700">
+                Finish & Save
+              </Button>
               <Button onClick={() => setShowResults(false)} className="bg-gray-800 text-white hover:bg-gray-700">
                 Close
               </Button>
