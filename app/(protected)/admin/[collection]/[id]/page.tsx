@@ -4,12 +4,13 @@ import { getRecordById } from "@/actions/admin/getRecordById";
 import DynamicForm from "@/components/admin/DynamicForm";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { NextPage } from "next";
 
 type PageProps = {
-    params: { collection: string; id: string };
+    params: Readonly<{ collection: string; id: string }>;
 };
 
-const EditRecordPage = async ({ params }: PageProps) => {
+const EditRecordPage: NextPage<PageProps> = async ({ params }) => {
     const { collection, id } = params;
     const record = await getRecordById(collection, id);
 
