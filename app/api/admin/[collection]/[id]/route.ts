@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+import { getRecordById } from "@/actions/admin/getRecordById";
+import { updateRecord } from "@/actions/admin/updateRecord";
+
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ collection: string; id: string }> }
+) {
+    const { collection, id } = await params;
+    try {
+        const record = await getRecordById(collection, id);
+        if (!record) {
+            return NextResponse.json({ error: "Record not found" }, { status: 404 });
+        }
+        return NextResponse.json(record);
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        return NextResponse.json({ error: "Unknown error" }, { status: 500 });
+    }
+}
+
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ collection: string; id: string }> }
+) {
+    const { collection, id } = await params;
+    const data = await request.json();
+    console.log("HEELOOOOOOOOOOOO")
+    console.log(data)
+    console.log(collection)
+    console.log(id)
+
+    const result = await updateRecord(collection, id, data);
+    console.log(result)
+    if (result.error) {
+        return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, record: result.updatedRecord });
+}

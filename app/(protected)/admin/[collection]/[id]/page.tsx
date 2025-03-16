@@ -1,0 +1,40 @@
+import React from "react";
+import Link from "next/link";
+import { getRecordById } from "@/actions/admin/getRecordById";
+import DynamicForm from "@/components/admin/DynamicForm";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+type PageProps = {
+    params: { collection: string; id: string };
+};
+
+const EditRecordPage = async ({ params }: PageProps) => {
+    // Await dynamic params before use
+    const { collection, id } = await params;
+    const record = await getRecordById(collection, id);
+
+    if (!record) {
+        return <div>Record not found</div>;
+    }
+
+    return (
+        <div className="p-6">
+            <Card className="max-w-4xl mx-auto">
+                <CardHeader>
+                    <h1 className="text-2xl font-bold">Edit {collection} Record</h1>
+                    <Link href={`/admin/${collection}`}>
+                        <Button variant="outline" className="mt-2">
+                            Back to List
+                        </Button>
+                    </Link>
+                </CardHeader>
+                <CardContent>
+                    <DynamicForm initialData={record} collection={collection} recordId={id} />
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+export default EditRecordPage;
