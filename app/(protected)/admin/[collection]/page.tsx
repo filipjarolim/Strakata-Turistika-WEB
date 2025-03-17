@@ -12,17 +12,31 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+// Define the types for params and searchParams
+interface Params {
+    collection: string;
+}
+
+interface SearchParams {
+    page?: string;
+}
+
 type PageProps = {
-    params: { collection: string };
-    searchParams: { page?: string };
+    params: Promise<Params>;
+    searchParams: Promise<SearchParams>;
 };
+
 type RecordType = {
     id: string;
     [key: string]: unknown; // Adjust this type based on the actual structure of your records
 };
+
 const CollectionListPage = async ({ params, searchParams }: PageProps) => {
-    const { collection } = params;
-    const page = searchParams.page ? parseInt(searchParams.page, 10) : 1;
+    // Await the params and searchParams promises
+    const { collection } = await params;
+    const { page: pageParam } = await searchParams;
+
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
     const pageSize = 25;
     const skip = (page - 1) * pageSize;
     const records = await getRecords(collection, skip, pageSize);
