@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 export async function GET(
-    req: Request,
-    { params }: { params: { collection: string } }
+    request: Request,
+    context: { params: { collection: string } }
 ) {
     try {
         const role = await currentRole();
@@ -15,7 +15,7 @@ export async function GET(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
-        const { collection } = params;
+        const { collection } = context.params;
         let records;
 
         // Get records based on collection name

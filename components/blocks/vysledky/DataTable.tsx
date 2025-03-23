@@ -43,10 +43,10 @@ export type VisitData = {
     year: number;
 };
 
-export type FilterConfig = {
+export type FilterConfig<TData = unknown> = {
     dateField?: string;  // Field name to use for date filtering, like 'visitDate' or 'createdAt'
     numberField?: string; // Field name for number range filtering
-    customFilter?: (data: unknown, filters: Record<string, unknown>) => boolean; // Custom filter function
+    customFilter?: (data: TData, filters: Record<string, unknown>) => boolean; // Custom filter function
 }
 
 // Define types for filter parameters
@@ -81,7 +81,7 @@ export type DataTableProps<TData extends object> = {
     primarySortColumn?: string;
     primarySortDesc?: boolean;
     transformToAggregatedView?: (data: TData[]) => TData[];
-    filterConfig?: FilterConfig;
+    filterConfig?: FilterConfig<TData>;
     filename?: string;
     enableDownload?: boolean;
     enableAggregatedView?: boolean;
@@ -261,7 +261,7 @@ export function DataTable<TData extends object>({
         // Apply custom filter if provided
         if (filterConfig?.customFilter && filters.customFilterParams) {
             result = result.filter(item => 
-                filterConfig.customFilter!(item, filters.customFilterParams)
+                filterConfig.customFilter!(item, filters.customFilterParams || {})
             );
         }
 

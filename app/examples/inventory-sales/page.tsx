@@ -468,7 +468,7 @@ const InventorySalesPage = () => {
                 <DataTable 
                     data={inventory} 
                     columns={inventoryColumns}
-                    primarySortColumn="stockLevel"
+                    primarySortColumn="salesLast30Days"
                     primarySortDesc={true}
                     transformToAggregatedView={transformToCategoryView as unknown as (data: InventoryItem[]) => InventoryItem[]}
                     filterConfig={{
