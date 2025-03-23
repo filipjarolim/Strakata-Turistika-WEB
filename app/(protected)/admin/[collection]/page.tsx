@@ -10,7 +10,21 @@ import { useParams, useRouter } from "next/navigation";
 
 type RecordType = {
     id: string;
-    [key: string]: any;
+    [key: string]: unknown;
+};
+
+// Define types for the table column parameters
+type ColumnParams = {
+    column: {
+        toggleSorting: (state: boolean) => void;
+        getIsSorted: () => string | false;
+    };
+};
+
+type RowParams = {
+    row: {
+        getValue: (key: string) => unknown;
+    };
 };
 
 const CollectionPage = () => {
@@ -51,7 +65,7 @@ const CollectionPage = () => {
             if (key === "id") {
                 return {
                     accessorKey: key,
-                    header: ({ column }: { column: any }) => (
+                    header: ({ column }: ColumnParams) => (
                         <div className="flex items-center space-x-1">
                             <span>ID</span>
                             <button
@@ -62,14 +76,14 @@ const CollectionPage = () => {
                             </button>
                         </div>
                     ),
-                    cell: ({ row }: { row: any }) => <span className="font-mono text-xs">{row.getValue(key)}</span>,
+                    cell: ({ row }: RowParams) => <span className="font-mono text-xs">{String(row.getValue(key))}</span>,
                 } as ColumnDef<RecordType>;
             }
 
             // For standard columns
             return {
                 accessorKey: key,
-                header: ({ column }: { column: any }) => (
+                header: ({ column }: ColumnParams) => (
                     <div className="flex items-center space-x-1">
                         <span>{key}</span>
                         <button
@@ -80,7 +94,7 @@ const CollectionPage = () => {
                         </button>
                     </div>
                 ),
-                cell: ({ row }: { row: any }) => {
+                cell: ({ row }: RowParams) => {
                     const value = row.getValue(key);
                     
                     // Handle different value types
@@ -88,7 +102,7 @@ const CollectionPage = () => {
                     if (typeof value === "object") return <span className="font-mono text-xs">{JSON.stringify(value)}</span>;
                     if (typeof value === "boolean") return value ? "Yes" : "No";
                     
-                    return String(value);
+                    return <span>{String(value)}</span>;
                 },
             } as ColumnDef<RecordType>;
         });
@@ -97,9 +111,9 @@ const CollectionPage = () => {
         const actionsColumn: ColumnDef<RecordType> = {
             id: "actions",
             header: "Actions",
-            cell: ({ row }: { row: any }) => {
+            cell: ({ row }: RowParams) => {
                 return (
-                    <Link href={`/admin/${collection}/${row.getValue("id")}`}>
+                    <Link href={`/admin/${collection}/${String(row.getValue("id"))}`}>
                         <Button variant="ghost" size="icon">
                             <Pencil className="h-4 w-4" />
                         </Button>

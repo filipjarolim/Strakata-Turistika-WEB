@@ -84,7 +84,7 @@ const AdminDashboardPage = () => {
                 <TabsContent value={activeTab} className="mt-0">
                     {noResults ? (
                         <div className="text-center p-8 border rounded-lg">
-                            <p className="text-muted-foreground">No collections found matching "{search}"</p>
+                            <p className="text-muted-foreground">No collections found matching &quot;{search}&quot;</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

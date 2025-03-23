@@ -255,15 +255,18 @@ const productColumns: ColumnDef<Product>[] = [
 // Get unique categories for the filter
 const uniqueCategories = [...new Set(sampleProducts.map(product => product.category))];
 
+// Define a type for the category summary data
+type CategorySummary = {
+    category: string; 
+    count: number;
+    totalValue: number;
+    averagePrice: number;
+    averageRating: number;
+}
+
 // Transform to category view
-const transformProductsToCategoryView = (products: Product[]): any[] => {
-    const categorySummary = new Map<string, { 
-        category: string, 
-        count: number, 
-        totalValue: number,
-        averagePrice: number,
-        averageRating: number
-    }>();
+const transformProductsToCategoryView = (products: Product[]): CategorySummary[] => {
+    const categorySummary = new Map<string, CategorySummary>();
 
     products.forEach(product => {
         const existingCategory = categorySummary.get(product.category);
@@ -347,7 +350,7 @@ const GenericTableExamplePage = () => {
                 </p>
                 <ul className="list-disc ml-6 mt-2 mb-4">
                     <li>Product dataset with custom columns</li>
-                    <li>Date filtering on the "Created Date" field</li>
+                    <li>Date filtering on the &quot;Created Date&quot; field</li>
                     <li>Price range filtering</li>
                     <li>Category filtering with checkboxes</li>
                     <li>Aggregated view by category</li>
@@ -360,7 +363,7 @@ const GenericTableExamplePage = () => {
                     columns={productColumns}
                     primarySortColumn="rating"
                     primarySortDesc={true}
-                    transformToAggregatedView={transformProductsToCategoryView}
+                    transformToAggregatedView={transformProductsToCategoryView as unknown as (data: Product[]) => Product[]}
                     filterConfig={{
                         dateField: 'createdAt',
                         numberField: 'price',
