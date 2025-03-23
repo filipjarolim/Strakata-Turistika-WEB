@@ -1,11 +1,11 @@
 import { currentRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 export async function GET(
-    request: Request,
-    context: { params: { collection: string } }
+    request: NextRequest,
+    { params }: { params: { collection: string } | Promise<{ collection: string }> }
 ) {
     try {
         const role = await currentRole();
@@ -15,7 +15,8 @@ export async function GET(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
-        const { collection } = context.params;
+        const resolvedParams = await Promise.resolve(params);
+        const { collection } = resolvedParams;
         let records;
 
         // Get records based on collection name
