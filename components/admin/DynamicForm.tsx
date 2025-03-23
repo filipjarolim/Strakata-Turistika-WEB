@@ -27,7 +27,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type } = e.target;
+        const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
+        
         let newValue: string | number | boolean | object | null = value;
         if (type === "checkbox") {
             newValue = checked;
@@ -93,7 +95,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
                             <input
                                 type="text"
                                 name={key}
-                                value={value}
+                                value={String(value)}
                                 readOnly
                                 className="border p-2 bg-gray-100 cursor-not-allowed rounded"
                             />
@@ -112,7 +114,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
                 } else if (isISODate(value)) {
                     inputType = "date";
                     // Format the date for the input element (yyyy-MM-dd).
-                    value = new Date(value).toISOString().substring(0, 10);
+                    value = typeof value === 'string' ? new Date(value).toISOString().substring(0, 10) : '';
                 } else if (typeof value === "object" && value !== null) {
                     // For JSON objects, use a textarea.
                     return (
@@ -135,7 +137,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
                             <input
                                 type={inputType}
                                 name={key}
-                                checked={value}
+                                checked={Boolean(value)}
                                 onChange={handleChange}
                                 className="h-5 w-5"
                             />
@@ -143,7 +145,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
                             <input
                                 type={inputType}
                                 name={key}
-                                value={value}
+                                value={typeof value === 'boolean' ? (value ? 'true' : 'false') : String(value ?? '')}
                                 onChange={handleChange}
                                 className="border p-2 rounded"
                             />

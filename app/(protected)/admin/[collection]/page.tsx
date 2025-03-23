@@ -1,93 +1,136 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getRecords } from "@/actions/admin/getRecords";
-import { getRecordsCount } from "@/actions/admin/getRecordsCount";
 import { Button } from "@/components/ui/button";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-
-// Define the types for params and searchParams
-interface Params {
-    collection: string;
-}
-
-interface SearchParams {
-    page?: string;
-}
-
-type PageProps = {
-    params: Promise<Params>;
-    searchParams: Promise<SearchParams>;
-};
+import { DataTable } from "@/components/blocks/vysledky/DataTable";
+import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, Pencil } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 
 type RecordType = {
     id: string;
-    [key: string]: unknown; // Adjust this type based on the actual structure of your records
+    [key: string]: any;
 };
 
-const CollectionListPage = async ({ params, searchParams }: PageProps) => {
-    // Await the params and searchParams promises
-    const { collection } = await params;
-    const { page: pageParam } = await searchParams;
+const CollectionPage = () => {
+    const params = useParams();
+    const router = useRouter();
+    const collection = params.collection as string;
+    
+    const [records, setRecords] = useState<RecordType[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        const fetchRecords = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`/api/admin/${collection}`);
+                if (!response.ok) throw new Error('Failed to fetch records');
+                const data = await response.json();
+                setRecords(data);
+            } catch (error) {
+                console.error('Error fetching records:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        if (collection) {
+            fetchRecords();
+        }
+    }, [collection]);
+    
+    // Create dynamic columns based on records
+    const columns: ColumnDef<RecordType>[] = React.useMemo(() => {
+        if (!records || records.length === 0) return [];
 
-    const page = pageParam ? parseInt(pageParam, 10) : 1;
-    const pageSize = 25;
-    const skip = (page - 1) * pageSize;
-    const records = await getRecords(collection, skip, pageSize);
-    const totalCount = await getRecordsCount(collection);
-    const totalPages = Math.ceil(totalCount / pageSize);
+        // Get keys from the first record to determine columns
+        const columnDefinitions = Object.keys(records[0]).map((key) => {
+            // Special case for ID column
+            if (key === "id") {
+                return {
+                    accessorKey: key,
+                    header: ({ column }: { column: any }) => (
+                        <div className="flex items-center space-x-1">
+                            <span>ID</span>
+                            <button
+                                className="p-0 m-0 h-auto w-auto"
+                                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                            >
+                                <ArrowUpDown className="h-4 w-4" />
+                            </button>
+                        </div>
+                    ),
+                    cell: ({ row }: { row: any }) => <span className="font-mono text-xs">{row.getValue(key)}</span>,
+                } as ColumnDef<RecordType>;
+            }
+
+            // For standard columns
+            return {
+                accessorKey: key,
+                header: ({ column }: { column: any }) => (
+                    <div className="flex items-center space-x-1">
+                        <span>{key}</span>
+                        <button
+                            className="p-0 m-0 h-auto w-auto"
+                            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        >
+                            <ArrowUpDown className="h-4 w-4" />
+                        </button>
+                    </div>
+                ),
+                cell: ({ row }: { row: any }) => {
+                    const value = row.getValue(key);
+                    
+                    // Handle different value types
+                    if (value === null) return <span className="text-gray-400">null</span>;
+                    if (typeof value === "object") return <span className="font-mono text-xs">{JSON.stringify(value)}</span>;
+                    if (typeof value === "boolean") return value ? "Yes" : "No";
+                    
+                    return String(value);
+                },
+            } as ColumnDef<RecordType>;
+        });
+
+        // Add actions column
+        const actionsColumn: ColumnDef<RecordType> = {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }: { row: any }) => {
+                return (
+                    <Link href={`/admin/${collection}/${row.getValue("id")}`}>
+                        <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </Link>
+                );
+            },
+        };
+
+        return [...columnDefinitions, actionsColumn];
+    }, [collection, records]);
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">{collection} Records</h1>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        {records[0] &&
-                            Object.keys(records[0]).map((key) => (
-                                <TableHead key={key}>{key}</TableHead>
-                            ))}
-                        <TableHead>Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {records.map((record: RecordType) => (
-                        <TableRow key={record.id}>
-                            {Object.entries(record).map(([key, value]) => (
-                                <TableCell key={key}>
-                                    {typeof value === "object" && value !== null
-                                        ? JSON.stringify(value)
-                                        : value?.toString()}
-                                </TableCell>
-                            ))}
-                            <TableCell>
-                                <Link href={`/admin/${collection}/${record.id}`}>
-                                    <Button variant="default">Edit</Button>
-                                </Link>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-            <div className="flex justify-between items-center mt-4">
-                <Button variant="outline" disabled={page <= 1} asChild>
-                    <Link href={`/admin/${collection}?page=${page - 1}`}>Previous</Link>
-                </Button>
-                <span>
-          Page {page} of {totalPages}
-        </span>
-                <Button variant="outline" disabled={page >= totalPages} asChild>
-                    <Link href={`/admin/${collection}?page=${page + 1}`}>Next</Link>
-                </Button>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">{collection} Records</h1>
+                <Link href="/admin">
+                    <Button variant="outline">Back to Admin</Button>
+                </Link>
             </div>
+            
+            <DataTable
+                data={records}
+                columns={columns}
+                enableSearch={true}
+                enableColumnVisibility={true}
+                emptyStateMessage={`No ${collection} records found`}
+                primarySortColumn="id"
+                loading={loading}
+            />
         </div>
     );
 };
 
-export default CollectionListPage;
+export default CollectionPage;

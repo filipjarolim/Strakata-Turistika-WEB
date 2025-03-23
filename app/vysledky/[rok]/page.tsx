@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { DataTable } from '@/components/blocks/vysledky/DataTable';
+import { DataTable, VisitData } from '@/components/blocks/vysledky/DataTable';
 import CommonPageTemplate from '@/components/structure/CommonPageTemplate';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
@@ -11,18 +11,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion"; // For Animations
 import { ChevronDown } from "lucide-react"; // Import arrow icon from Lucide React
 import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
-
-type VisitData = {
-    id: string;
-    visitDate?: string | null;
-    fullName: string;
-    dogName?: string | null;
-    points: number;
-    visitedPlaces: string;
-    dogNotAllowed?: string | null;
-    routeLink?: string | null;
-    year: number;
-};
+import { columns } from '@/components/blocks/vysledky/columns';
+import { transformVisitDataToCumulative } from '@/components/blocks/vysledky/DownloadDataButton';
 
 const YearDropdown: React.FC<{ year: number | null; allYears: number[] }> = ({ year, allYears }) => {
     const router = useRouter();
@@ -145,7 +135,33 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                             ))}
                     </div>
                 ) : (
-                    <DataTable data={visitData} year={year || 0} />
+                    <DataTable 
+                        data={visitData} 
+                        columns={columns}
+                        year={year || 0} 
+                        primarySortColumn="points"
+                        primarySortDesc={true}
+                        transformToAggregatedView={transformVisitDataToCumulative}
+                        filterConfig={{ 
+                            dateField: 'visitDate'
+                        }}
+                        filename={`strakataturistika_vysledky_${year}`}
+                        enableDownload={true}
+                        enableAggregatedView={true}
+                        aggregatedViewLabel="Cumulative View"
+                        detailedViewLabel="Detailed View"
+                        enableColumnVisibility={true}
+                        enableSearch={true}
+                        excludedColumnsInAggregatedView={['visitDate', 'dogNotAllowed', 'routeLink']}
+                        mainSheetName="Detailní Data"
+                        summarySheetName="Kumulativní Data"
+                        generateSummarySheet={true}
+                        summaryColumnDefinitions={[
+                            { header: 'Jméno', key: 'fullName', width: 25 },
+                            { header: 'Celkové Body', key: 'points', width: 15 },
+                            { header: 'Navštívená místa', key: 'visitedPlaces', width: 50 }
+                        ]}
+                    />
                 )}
             </TooltipProvider>
         </CommonPageTemplate>
