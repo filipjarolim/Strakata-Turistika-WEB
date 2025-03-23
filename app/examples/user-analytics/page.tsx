@@ -354,17 +354,21 @@ const userAnalyticsColumns: ColumnDef<UserAnalytics>[] = [
     },
 ];
 
+// Define a type for the region summary
+type RegionSummary = {
+    region: string;
+    userCount: number;
+    activeUsers: number;
+    premiumUsers: number;
+    avgEngagement: number;
+    totalSessions: number;
+    avgSessionDuration: number;
+    conversionRate: number;
+};
+
 // Transform to region view for aggregation
-const transformToRegionView = (users: UserAnalytics[]): any[] => {
-    const regionSummary = new Map<string, { 
-        region: string, 
-        userCount: number, 
-        activeUsers: number,
-        premiumUsers: number,
-        avgEngagement: number,
-        totalSessions: number,
-        avgSessionDuration: number
-    }>();
+const transformToRegionView = (users: UserAnalytics[]): RegionSummary[] => {
+    const regionSummary = new Map<string, RegionSummary>();
 
     users.forEach(user => {
         const existing = regionSummary.get(user.region);
@@ -384,7 +388,8 @@ const transformToRegionView = (users: UserAnalytics[]): any[] => {
                 premiumUsers: user.userType === 'premium' ? 1 : 0,
                 avgEngagement: user.engagement,
                 totalSessions: user.sessionsCount,
-                avgSessionDuration: user.avgSessionDuration
+                avgSessionDuration: user.avgSessionDuration,
+                conversionRate: user.conversions / user.sessionsCount
             });
         }
     });
@@ -471,13 +476,15 @@ const UserAnalyticsPage = () => {
                     columns={userAnalyticsColumns}
                     primarySortColumn="engagement"
                     primarySortDesc={true}
-                    transformToAggregatedView={transformToRegionView}
+                    transformToAggregatedView={transformToRegionView as unknown as (data: UserAnalytics[]) => UserAnalytics[]}
                     filterConfig={{
                         dateField: 'registrationDate',
                         numberField: 'engagement',
-                        customFilter: (item: UserAnalytics, filters: Record<string, any>) => {
+                        customFilter: (item: UserAnalytics, filters: Record<string, unknown>) => {
                             // Filter for regions
-                            if (filters.categories?.length > 0) {
+                            if (filters.categories && 
+                                Array.isArray(filters.categories) && 
+                                filters.categories.length > 0) {
                                 return filters.categories.includes(item.region);
                             }
                             return true;

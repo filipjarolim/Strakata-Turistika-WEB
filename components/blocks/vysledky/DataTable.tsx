@@ -46,7 +46,7 @@ export type VisitData = {
 export type FilterConfig = {
     dateField?: string;  // Field name to use for date filtering, like 'visitDate' or 'createdAt'
     numberField?: string; // Field name for number range filtering
-    customFilter?: (data: any, filters: Record<string, unknown>) => boolean; // Custom filter function
+    customFilter?: (data: unknown, filters: Record<string, unknown>) => boolean; // Custom filter function
 }
 
 // Define types for filter parameters
@@ -55,16 +55,20 @@ type CustomFilterParams = {
     [key: string]: unknown;
 };
 
+type DateFilter = {
+    type: 'before' | 'after' | 'between';
+    startDate?: Date;
+    endDate?: Date;
+};
+
+type NumberFilter = {
+    min?: number;
+    max?: number;
+};
+
 type FilterState = {
-    dateFilter?: {
-        type: 'before' | 'after' | 'between';
-        startDate?: Date;
-        endDate?: Date;
-    };
-    numberFilter?: {
-        min?: number;
-        max?: number;
-    };
+    dateFilter?: DateFilter;
+    numberFilter?: NumberFilter;
     customFilterParams?: CustomFilterParams;
 };
 
@@ -209,7 +213,7 @@ export function DataTable<TData extends object>({
     };
 
     // Apply all filters
-    const applyFilters = (filters: Record<string, any>) => {
+    const applyFilters = (filters: FilterState) => {
         let result = [...data];
 
         // Apply date filter if configured

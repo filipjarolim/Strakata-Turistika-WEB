@@ -361,17 +361,20 @@ const inventoryColumns: ColumnDef<InventoryItem>[] = [
     }
 ];
 
+// Define a type for the category summary
+type CategorySummary = {
+    category: string;
+    itemCount: number;
+    totalStock: number;
+    averagePrice: number;
+    totalSales: number;
+    averageMargin: number;
+    totalValue: number;
+};
+
 // Transform to category view for aggregation
-const transformToCategoryView = (items: InventoryItem[]): any[] => {
-    const categorySummary = new Map<string, { 
-        category: string, 
-        itemCount: number, 
-        totalStock: number,
-        averagePrice: number,
-        totalSales: number,
-        averageMargin: number,
-        totalValue: number
-    }>();
+const transformToCategoryView = (items: InventoryItem[]): CategorySummary[] => {
+    const categorySummary = new Map<string, CategorySummary>();
 
     items.forEach(item => {
         const existing = categorySummary.get(item.category);
@@ -465,15 +468,17 @@ const InventorySalesPage = () => {
                 <DataTable 
                     data={inventory} 
                     columns={inventoryColumns}
-                    primarySortColumn="salesLast30Days"
+                    primarySortColumn="stockLevel"
                     primarySortDesc={true}
-                    transformToAggregatedView={transformToCategoryView}
+                    transformToAggregatedView={transformToCategoryView as unknown as (data: InventoryItem[]) => InventoryItem[]}
                     filterConfig={{
                         dateField: 'lastRestocked',
                         numberField: 'stockLevel',
-                        customFilter: (item: InventoryItem, filters: Record<string, any>) => {
+                        customFilter: (item: InventoryItem, filters: Record<string, unknown>) => {
                             // Filter for categories
-                            if (filters.categories?.length > 0) {
+                            if (filters.categories && 
+                                Array.isArray(filters.categories) && 
+                                filters.categories.length > 0) {
                                 return filters.categories.includes(item.category);
                             }
                             return true;
