@@ -364,9 +364,9 @@ const GenericTableExamplePage = () => {
                     filterConfig={{
                         dateField: 'createdAt',
                         numberField: 'price',
-                        customFilter: (item: Product, filters: Record<string, any>) => {
+                        customFilter: (item: Product, filters: Record<string, unknown>) => {
                             // Filter for specific categories
-                            if (filters.categories && filters.categories.length > 0) {
+                            if (filters.categories && Array.isArray(filters.categories) && filters.categories.length > 0) {
                                 return filters.categories.includes(item.category);
                             }
                             return true;

@@ -55,7 +55,7 @@ export type DownloadDataButtonProps<TData extends object> = {
         width?: number;
     }[];
     generateSummarySheet?: boolean;
-    transformToSummary?: (data: TData[]) => any[];
+    transformToSummary?: (data: TData[]) => Record<string, unknown>[];
     summaryColumnDefinitions?: {
         header: string;
         key: string;
@@ -168,16 +168,16 @@ export function DownloadDataButton<TData extends object>({
                 ]);
             });
         } else if (columnDefinitions) {
-            data.forEach((entry: any) => {
+            data.forEach((entry: TData) => {
                 const rowData = columnDefinitions.map(col => {
-                    const value = entry[col.key];
+                    const value = entry[col.key as keyof TData];
                     return value !== undefined && value !== null ? value : 'N/A';
                 });
                 detailedSheet.addRow(rowData);
             });
         } else {
             // Generic data handling
-            data.forEach((entry: any) => {
+            data.forEach((entry: TData) => {
                 const rowData = Object.values(entry);
                 detailedSheet.addRow(rowData);
             });
@@ -255,7 +255,7 @@ export function DownloadDataButton<TData extends object>({
                 const summaryData = transformToSummary(data);
                 
                 if (summaryColumnDefinitions) {
-                    summaryData.forEach((entry: any) => {
+                    summaryData.forEach((entry: Record<string, unknown>) => {
                         const rowData = summaryColumnDefinitions.map(col => {
                             const value = entry[col.key];
                             return value !== undefined && value !== null ? value : 'N/A';
@@ -263,7 +263,7 @@ export function DownloadDataButton<TData extends object>({
                         summarySheet.addRow(rowData);
                     });
                 } else {
-                    summaryData.forEach((entry: any) => {
+                    summaryData.forEach((entry: Record<string, unknown>) => {
                         const rowData = Object.values(entry);
                         summarySheet.addRow(rowData);
                     });

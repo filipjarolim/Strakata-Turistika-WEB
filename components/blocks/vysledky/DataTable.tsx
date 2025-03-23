@@ -46,8 +46,27 @@ export type VisitData = {
 export type FilterConfig = {
     dateField?: string;  // Field name to use for date filtering, like 'visitDate' or 'createdAt'
     numberField?: string; // Field name for number range filtering
-    customFilter?: (data: any, filters: Record<string, any>) => boolean; // Custom filter function
+    customFilter?: (data: any, filters: Record<string, unknown>) => boolean; // Custom filter function
 }
+
+// Define types for filter parameters
+type CustomFilterParams = {
+    categories?: string[];
+    [key: string]: unknown;
+};
+
+type FilterState = {
+    dateFilter?: {
+        type: 'before' | 'after' | 'between';
+        startDate?: Date;
+        endDate?: Date;
+    };
+    numberFilter?: {
+        min?: number;
+        max?: number;
+    };
+    customFilterParams?: CustomFilterParams;
+};
 
 const ROWS_PER_PAGE = 10;
 
@@ -116,7 +135,7 @@ export function DataTable<TData extends object>({
     const [globalFilter, setGlobalFilter] = useState<string>('');
     const [isAggregatedView, setIsAggregatedView] = useState(false);
     const [filteredData, setFilteredData] = useState<TData[]>(data);
-    const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
+    const [activeFilters, setActiveFilters] = useState<FilterState>({});
     const [activeFilterCount, setActiveFilterCount] = useState<number>(0);
 
     // Update filtered data when the source data changes
@@ -129,7 +148,7 @@ export function DataTable<TData extends object>({
         let count = 0;
         if (activeFilters.dateFilter) count++;
         if (activeFilters.numberFilter) count++;
-        if (activeFilters.customFilterParams?.categories?.length > 0) count++;
+        if (activeFilters.customFilterParams?.categories && activeFilters.customFilterParams.categories.length > 0) count++;
         setActiveFilterCount(count);
     }, [activeFilters]);
 
@@ -198,9 +217,9 @@ export function DataTable<TData extends object>({
             const { type, startDate, endDate } = filters.dateFilter;
             const dateField = filterConfig.dateField;
 
-            result = result.filter((item: any) => {
-                if (!item[dateField]) return false;
-                const itemDate = new Date(item[dateField]);
+            result = result.filter((item: TData) => {
+                if (!item[dateField as keyof TData]) return false;
+                const itemDate = new Date(item[dateField as keyof TData] as string);
 
                 if (type === 'before') {
                     return startDate && itemDate < startDate;
@@ -220,8 +239,8 @@ export function DataTable<TData extends object>({
             const { min, max } = filters.numberFilter;
             const numberField = filterConfig.numberField;
 
-            result = result.filter((item: any) => {
-                const value = parseFloat(item[numberField]);
+            result = result.filter((item: TData) => {
+                const value = parseFloat(String(item[numberField as keyof TData]));
                 if (isNaN(value)) return false;
                 
                 if (min !== undefined && max !== undefined) {
@@ -260,7 +279,7 @@ export function DataTable<TData extends object>({
         });
     };
 
-    const handleCustomFilterChange = (filterParams: any) => {
+    const handleCustomFilterChange = (filterParams: Record<string, unknown>) => {
         if (!filterConfig?.customFilter) return;
 
         // Update active filters
@@ -372,7 +391,7 @@ export function DataTable<TData extends object>({
                             mainSheetName={mainSheetName}
                             summarySheetName={summarySheetName}
                             generateSummarySheet={generateSummarySheet}
-                            transformToSummary={transformToAggregatedView}
+                            transformToSummary={transformToAggregatedView as ((data: TData[]) => Record<string, unknown>[])}
                             summaryColumnDefinitions={summaryColumnDefinitions}
                         />
                     )}

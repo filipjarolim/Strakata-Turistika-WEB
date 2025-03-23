@@ -21,7 +21,7 @@ type FilterButtonProps = {
     // Number range filter handlers
     onNumberFilterChange?: (min?: number, max?: number) => void;
     // Custom filter handler
-    onCustomFilterChange?: (filterParams: any) => void;
+    onCustomFilterChange?: (filterParams: Record<string, unknown>) => void;
     // Clear filters
     onClearDateFilters?: () => void;
     onClearAllFilters?: () => void;
