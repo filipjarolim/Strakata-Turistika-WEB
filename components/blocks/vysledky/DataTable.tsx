@@ -122,7 +122,7 @@ export type AggregatedVisitData = {
 // Add this function to transform data for aggregated view - with better typing
 export const transformDataToAggregated = <TData extends { fullName: string; points: number; visitedPlaces?: string }>(
     data: TData[]
-): any[] => {
+): AggregatedVisitData[] => {
     if (data.length === 0) return [];
     
     const cumulativeData: Record<string, { 
@@ -170,7 +170,7 @@ export const transformDataToAggregated = <TData extends { fullName: string; poin
             // Add additional fields specific to aggregated view
             totalVisits: stats.visitCount,
             isAggregated: true,
-            year: (data[0] as any).year
+            year: data[0] && 'year' in data[0] ? (data[0] as { year?: number }).year : undefined
         } as AggregatedVisitData;
     }).sort((a, b) => b.points - a.points);
 };
@@ -251,7 +251,7 @@ export function DataTable<TData extends object>({
                     return transformToAggregatedView(filteredData);
                 }
                 // Use our own transform function as fallback
-                return transformDataToAggregated(filteredData as any);
+                return transformDataToAggregated(filteredData as { fullName: string; points: number; visitedPlaces?: string }[]);
             }
             return filteredData;
         },
@@ -270,7 +270,7 @@ export function DataTable<TData extends object>({
             const totalVisitsColumn: ColumnDef<TData> = {
                 id: 'totalVisits',
                 accessorFn: (row) => {
-                    const visits = (row as any).totalVisits;
+                    const visits = 'totalVisits' in row ? (row as { totalVisits: number }).totalVisits : 0;
                     return visits ? Number(visits) : 0;
                 },
                 header: 'Celkem návštěv',
@@ -433,8 +433,8 @@ export function DataTable<TData extends object>({
         []
     );
 
-    const table = useReactTable({
-        data: memoizedData,
+    const table = useReactTable<TData>({
+        data: memoizedData as TData[],
         columns: isAggregatedView ? aggregatedColumns : filteredColumns,
         state: {
             sorting,
