@@ -466,7 +466,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setMapCenter(loc);
         setRecenterTrigger((prev) => prev + 1);
+        
+        // Save location data for offline use
         localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+        
         setLoading(false);
       },
       (err) => {
@@ -506,78 +509,20 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
 
   const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
 
-  // Save the tracking data to the API
-  const handleFinish = useCallback(async () => {
-    if (positions.length <= 1) {
-      toast.error('Not enough tracking data to save');
-      return;
-    }
-    
-    setIsSaving(true);
-    const { distance, avgSpeed } = calculations();
-    let imageData: string | null = mapImage;
-    
-    if (!imageData) {
-      const capturedImage = await captureMapImage();
-      if (!capturedImage) {
-        setIsSaving(false);
-        return;
-      }
-      imageData = capturedImage;
-    }
-
-    try {
-      const fullName: string = username || 'Unknown User';
-      const response = await fetch('/api/saveTrack', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          season: new Date().getFullYear(),
-          image: imageData,
-          distance: distance(),
-          elapsedTime,
-          averageSpeed: avgSpeed(),
-          fullName,
-          maxSpeed: maxSpeed.toFixed(1),
-          totalAscent: totalAscent.toFixed(0),
-          totalDescent: totalDescent.toFixed(0),
-        })
-      });
-      
-      if (response.ok) {
-        toast.success('Track saved successfully!');
-        setSaveSuccess(true);
-      } else {
-        toast.error('Failed to save track data');
-        setSaveSuccess(false);
-      }
-    } catch (error) {
-      console.error('Error saving track:', error);
-      toast.error('Network error while saving track');
-      setSaveSuccess(false);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [positions.length, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations]);
-
-  const toggleMapType = useCallback(() => {
-    setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
-    toast.info(`Switched to ${mapType === 'standard' ? 'satellite' : 'standard'} map`);
-  }, [mapType]);
-
-  const downloadTrackImage = useCallback(() => {
-    if (!mapImage) return;
-    
-    const link = document.createElement('a');
-    link.href = mapImage;
-    link.download = `gps-track-${new Date().toISOString().slice(0, 10)}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Track image downloaded');
-  }, [mapImage]);
+  // Add interface for track data for offline sync
+  interface TrackData {
+    season: number;
+    image: string | null;
+    distance: string;
+    elapsedTime: number;
+    averageSpeed: string;
+    fullName: string;
+    maxSpeed: string;
+    totalAscent: string;
+    totalDescent: string;
+    timestamp: number;
+    positions: [number, number][];
+  }
 
   // Types for gradient path segments
   interface PathSegment {
@@ -604,8 +549,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     
     // Create segments with color based on elevation change
     const segments: PathSegment[] = [];
-    let minElevation = Math.min(...elevations);
-    let maxElevation = Math.max(...elevations);
+    const minElevation = Math.min(...elevations);
+    const maxElevation = Math.max(...elevations);
     let range = maxElevation - minElevation;
     
     if (range === 0) range = 1; // Avoid division by zero
@@ -634,6 +579,215 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     
     return segments;
   };
+
+  // Toggle map type between standard and satellite
+  const toggleMapType = useCallback(() => {
+    setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
+    toast.info(`Switched to ${mapType === 'standard' ? 'satellite' : 'standard'} map`);
+  }, [mapType]);
+
+  // Download track image
+  const downloadTrackImage = useCallback(() => {
+    if (!mapImage) return;
+    
+    const link = document.createElement('a');
+    link.href = mapImage;
+    link.download = `gps-track-${new Date().toISOString().slice(0, 10)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Track image downloaded');
+  }, [mapImage]);
+
+  // Save the tracking data to the API
+  const handleFinish = useCallback(async () => {
+    if (positions.length <= 1) {
+      toast.error('Not enough tracking data to save');
+      return;
+    }
+    
+    setIsSaving(true);
+    const { distance, avgSpeed } = calculations();
+    let imageData: string | null = mapImage;
+    
+    if (!imageData) {
+      const capturedImage = await captureMapImage();
+      if (!capturedImage) {
+        setIsSaving(false);
+        return;
+      }
+      imageData = capturedImage;
+    }
+
+    const trackData: TrackData = {
+      season: new Date().getFullYear(),
+      image: imageData,
+      distance: distance(),
+      elapsedTime,
+      averageSpeed: avgSpeed(),
+      fullName: username || 'Unknown User',
+      maxSpeed: maxSpeed.toFixed(1),
+      totalAscent: totalAscent.toFixed(0),
+      totalDescent: totalDescent.toFixed(0),
+      timestamp: Date.now(), // Add timestamp for syncing
+      positions: positions // Include position data for offline use
+    };
+
+    try {
+      if (isOffline) {
+        // Store data locally and register for background sync
+        await storeDataForOfflineSync(trackData);
+        
+        // Update UI to show pending sync
+        toast.success('Track saved offline. It will be uploaded when you reconnect.');
+        setSaveSuccess(true);
+      } else {
+        // Online - direct API submission
+        const response = await fetch('/api/saveTrack', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(trackData)
+        });
+        
+        if (response.ok) {
+          toast.success('Track saved successfully!');
+          setSaveSuccess(true);
+        } else {
+          toast.error('Failed to save track data');
+          setSaveSuccess(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving track:', error);
+      
+      // Attempt to save locally if online submission failed
+      if (!isOffline) {
+        await storeDataForOfflineSync(trackData);
+        toast.warning('Network error. Track saved offline for later upload.');
+        setSaveSuccess(true);
+      } else {
+        toast.error('Failed to save track data');
+        setSaveSuccess(false);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
+
+  // Function to store tracking data for offline sync
+  const storeDataForOfflineSync = async (trackData: TrackData): Promise<boolean> => {
+    // Store the data in cache storage via the service worker
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      // Save pending track data
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SAVE_FOR_OFFLINE',
+        url: '/pending-gps-data',
+        data: trackData
+      });
+      
+      // Register for background sync if supported
+      if ('sync' in navigator.serviceWorker) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.sync.register('sync-gps-data');
+        } catch (err) {
+          console.error('Background sync registration failed:', err);
+        }
+      }
+      
+      return true;
+    } else {
+      // Fallback to localStorage if service worker is not available
+      try {
+        const pendingData = JSON.parse(localStorage.getItem('pendingGpsData') || '[]');
+        pendingData.push(trackData);
+        localStorage.setItem('pendingGpsData', JSON.stringify(pendingData));
+        return true;
+      } catch (err) {
+        console.error('Error storing data locally:', err);
+        return false;
+      }
+    }
+  };
+
+  // Add offline caching support for GPS tracking data
+  useEffect(() => {
+    // Register listener for service worker messages
+    const handleServiceWorkerMessage = (event: MessageEvent): void => {
+      if (event.data && event.data.type === "SYNC_COMPLETED") {
+        if (event.data.success) {
+          toast.success("Your GPS data was synced successfully!");
+        }
+      }
+      
+      if (event.data && event.data.type === "UPDATE_CACHED_PAGES") {
+        // Update UI to reflect available offline pages
+        console.log("Available offline pages updated", event.data.pages);
+      }
+    };
+    
+    // Add event listener for service worker messages
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+    
+    // Remove event listener on cleanup
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, []);
+
+  // Function to save location data for offline use
+  const saveLocationForOffline = useCallback((locationData: [number, number]): void => {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SAVE_FOR_OFFLINE',
+        url: '/lastKnownLocation',
+        data: {
+          lat: locationData[0],
+          lng: locationData[1],
+          timestamp: Date.now()
+        }
+      });
+    }
+  }, []);
+
+  // Add to the top of the component to check for network status changes
+  useEffect(() => {
+    // Handler for online status changes
+    const handleOnlineStatusChange = () => {
+      const isOnline = navigator.onLine;
+      setIsOffline(!isOnline);
+      
+      if (isOnline) {
+        toast.success('You are back online!');
+        
+        // Try to sync pending data when back online
+        if (navigator.serviceWorker && 'sync' in navigator.serviceWorker) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.sync.register('sync-gps-data').catch(err => {
+              console.error('Sync registration failed:', err);
+            });
+          });
+        }
+      } else {
+        toast.warning('You are now offline. GPS tracking will continue to work.');
+      }
+    };
+    
+    // Set initial offline state
+    setIsOffline(!navigator.onLine);
+    
+    // Add event listeners for online/offline status changes
+    window.addEventListener('online', handleOnlineStatusChange);
+    window.addEventListener('offline', handleOnlineStatusChange);
+    
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('online', handleOnlineStatusChange);
+      window.removeEventListener('offline', handleOnlineStatusChange);
+    };
+  }, []);
 
   // Add before the return statement
   const mobileCss = `
