@@ -3,7 +3,17 @@ import { db } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    const { season, image, distance, elapsedTime, averageSpeed, fullName } = await request.json();
+    const { 
+      season, 
+      image, 
+      distance, 
+      elapsedTime, 
+      averageSpeed, 
+      fullName,
+      maxSpeed,
+      totalAscent,
+      totalDescent
+    } = await request.json();
 
     if (!season) {
       return NextResponse.json(
@@ -38,6 +48,9 @@ export async function POST(request: Request) {
           distance: parseFloat(distance),
           elapsedTime: parseInt(elapsedTime),
           averageSpeed: parseFloat(averageSpeed),
+          maxSpeed: maxSpeed ? parseFloat(maxSpeed) : undefined,
+          totalAscent: totalAscent ? parseFloat(totalAscent) : undefined, 
+          totalDescent: totalDescent ? parseFloat(totalDescent) : undefined
         },
         season: {
           connect: { id: seasonRecord.id },

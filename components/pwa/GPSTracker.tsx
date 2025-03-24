@@ -6,8 +6,14 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
-import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target } from 'lucide-react';
+import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Compass, Clock, Activity, Ruler, Share2, BatteryMedium, Wifi, Settings, AlertTriangle } from 'lucide-react';
 import { useMap } from 'react-leaflet';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
+import ShareButton from './ShareButton';
 
 // A dedicated component that re-centers the map when trigger changes.
 const RecenterMapComponent: React.FC<{
@@ -40,19 +46,39 @@ const MarkerWrapper = dynamic(
   () => import('react-leaflet').then((mod) => mod.Marker),
   { ssr: false }
 );
+const PopupWrapper = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
 
 // Constants & configurations
-const ZOOM_LEVEL = 15;
-const MIN_DISTANCE_KM = 0.01;
-const MIN_UPDATE_INTERVAL = 5000; // in ms
+const ZOOM_LEVEL = 16;
+const MIN_DISTANCE_KM = 0.002;
+const MIN_UPDATE_INTERVAL = 1000;
+const MIN_ACCURACY = 20;
+const POSITION_OPTIONS = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 5000
+};
 const TILE_LAYER_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const SATELLITE_LAYER_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
 
 // Marker Icon Configuration
 const currentPositionIcon = L.icon({
-  iconUrl: 'icons/dog_emoji.png',
-  iconSize: [50, 50],
-  iconAnchor: [25, 50],
-  className: 'custom-marker',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGQ0MzMyIgLz48Y2lyY2xlIGN4PSIxMCIgY3k9IjEyIiByPSIyIiBmaWxsPSIjMzMzMzMzIiAvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMTIiIHI9IjIiIGZpbGw9IiMzMzMzMzMiIC8+PGVsbGlwc2UgY3g9IjE2IiBjeT0iMjAiIHJ4PSI2IiByeT0iNCIgZmlsbD0iIzMzMzMzMyIgLz48cGF0aCBmaWxsPSIjMzMzMzMzIiBkPSJNIDYsOCBRIDEwLDMgMTYsNSBRIDIyLDMgMjYsOCBMIDI0LDEwIFEgMjAsNiAxNiw4IFEgMTIsNiA4LDEwIFoiIC8+PC9zdmc+',
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+  className: 'animate-pulse custom-marker',
+});
+
+const startPositionIcon = L.icon({
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBmaWxsPSIjRkYwMDAwIiBkPSJNIDQsMjggTCAyOCwyOCBMIDE2LDQgWiIgLz48cmVjdCBmaWxsPSIjRkZGRkZGIiB4PSIxNCIgeT0iMTIiIHdpZHRoPSI0IiBoZWlnaHQ9IjEwIiAvPjxyZWN0IGZpbGw9IiNGRkZGRkYiIHg9IjE0IiB5PSIyNCIgd2lkdGg9IjQiIGhlaWdodD0iMiIgLz48L3N2Zz4=',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32],
 });
 
 // Haversine formula for distance calculation
@@ -74,6 +100,7 @@ const haversineDistance = (
 };
 
 const getStoredLocation = () => {
+  if (typeof window === 'undefined') return null;
   const saved = localStorage.getItem('lastKnownLocation');
   return saved ? JSON.parse(saved) : null;
 };
@@ -90,6 +117,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   const [watchId, setWatchId] = useState<number | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [mapType, setMapType] = useState<'standard' | 'satellite'>('standard');
+  
   // Timing states
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pauseDuration, setPauseDuration] = useState<number>(0);
@@ -97,45 +127,101 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
   const [isOffline, setIsOffline] = useState<boolean>(false);
-  // Speed state
+  
+  // Speed and stats state
   const [speed, setSpeed] = useState<number>(0);
+  const [maxSpeed, setMaxSpeed] = useState<number>(0);
+  const [elevation, setElevation] = useState<number | null>(null);
+  const [totalAscent, setTotalAscent] = useState<number>(0);
+  const [totalDescent, setTotalDescent] = useState<number>(0);
+  const [lastElevation, setLastElevation] = useState<number | null>(null);
+  
   // Fullscreen state
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  
   // Results and finish image state
   const [showResults, setShowResults] = useState<boolean>(false);
   const [mapImage, setMapImage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
+  
   // Trigger for recentering the map
   const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
-
+  
   // Reference for map container element for capturing
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
+  const calculations = useCallback(() => {
+    const distance = (): string => {
+      let total = 0;
+      for (let i = 1; i < positions.length; i++) {
+        total += haversineDistance(
+          positions[i - 1][0],
+          positions[i - 1][1],
+          positions[i][0],
+          positions[i][1]
+        );
+      }
+      return total.toFixed(2);
     };
-    document.addEventListener('fullscreenchange', handleFullScreenChange);
-    return () =>
-      document.removeEventListener('fullscreenchange', handleFullScreenChange);
-  }, []);
 
+    const avgSpeed = (): string => {
+      if (elapsedTime === 0 || positions.length <= 1) return '0.0';
+      const dist = parseFloat(distance());
+      const avg = (dist * 3600) / elapsedTime;
+      return avg.toFixed(1);
+    };
+
+    return { distance, avgSpeed };
+  }, [positions, elapsedTime]);
+
+  // Update UI when location access status changes
   useEffect(() => {
-    if (!navigator.onLine) {
-      setIsOffline(true);
-      const cached = getStoredLocation();
-      if (cached) setMapCenter(cached);
-    } else {
-      setIsOffline(false);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          setMapCenter(loc);
-          localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
-        },
-        (err) => console.error('Error retrieving position:', err),
-        { enableHighAccuracy: true }
-      );
-    }
+    setLoading(true);
+    
+    const checkPermission = async () => {
+      try {
+        const permStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (permStatus.state === 'denied') {
+          toast.error('Location access denied. Please enable location services for this site.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!navigator.onLine) {
+          setIsOffline(true);
+          const cached = getStoredLocation();
+          if (cached) {
+            setMapCenter(cached);
+            toast.warning('You are offline. Using cached location data.');
+          }
+          setLoading(false);
+          return;
+        }
+        
+        setIsOffline(false);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+            setMapCenter(loc);
+            localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+            setLoading(false);
+          },
+          (err) => {
+            console.error('Error retrieving position:', err);
+            toast.error(`Location error: ${err.message}`);
+            setLoading(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } catch (error) {
+        console.error('Permission check error:', error);
+        setLoading(false);
+      }
+    };
+    
+    checkPermission();
+    
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
@@ -152,27 +238,39 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   }, [tracking, startTime, pauseDuration, paused]);
 
   useEffect(() => {
-    if (tracking && Notification.permission !== 'granted') {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (tracking && Notification.permission !== 'granted' && !isOffline) {
       Notification.requestPermission();
     }
-  }, [tracking]);
+  }, [tracking, isOffline]);
 
   useEffect(() => {
     let notifyInterval: NodeJS.Timeout;
-    if (tracking && !paused) {
+    if (tracking && !paused && Notification.permission === 'granted' && !isOffline) {
       notifyInterval = setInterval(() => {
-        if (Notification.permission === 'granted') {
-          new Notification('Tracking Active', {
-            body: `Elapsed time: ${formatTime(elapsedTime)}.`,
-            icon: 'icons/dog_emoji.png',
-          });
-        }
-      }, 60000);
+        new Notification('Tracking Active', {
+          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
+          icon: 'icons/dog_emoji.png',
+        });
+      }, 300000); // Reduced to 5 minutes to be less intrusive
     }
     return () => notifyInterval && clearInterval(notifyInterval);
-  }, [tracking, elapsedTime, paused]);
+  }, [tracking, elapsedTime, paused, isOffline]);
 
   const startTracking = useCallback(() => {
+    if (isOffline) {
+      toast.error('Cannot start tracking while offline.');
+      return;
+    }
+    
     setTracking(true);
     setCompleted(false);
     setShowResults(false);
@@ -180,58 +278,137 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     setStartTime(Date.now());
     setPauseDuration(0);
     setElapsedTime(0);
-
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(err => console.error('Full screen error:', err));
+    setMaxSpeed(0);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setLastElevation(null);
+    
+    try {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error('Full screen error:', err);
+          toast.warning('Could not enter fullscreen mode.');
+        });
+      }
+    } catch (error) {
+      console.error('Fullscreen error:', error);
     }
 
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         if (paused) return;
+        
+        // Check position accuracy
+        if (pos.coords.accuracy > MIN_ACCURACY) {
+          toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
+          return;
+        }
+
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
+        
+        // Update elevation data if available
+        if (pos.coords.altitude !== null) {
+          const currentElevation = pos.coords.altitude;
+          setElevation(currentElevation);
+          
+          // Track ascent/descent with accuracy check
+          if (lastElevation !== null && pos.coords.altitudeAccuracy && pos.coords.altitudeAccuracy < 10) {
+            const elevationDiff = currentElevation - lastElevation;
+            if (elevationDiff > 0.5) { // More sensitive elevation tracking
+              setTotalAscent(prev => prev + elevationDiff);
+            } else if (elevationDiff < -0.5) {
+              setTotalDescent(prev => prev + Math.abs(elevationDiff));
+            }
+          }
+          setLastElevation(currentElevation);
+        }
+        
+        // Enhanced speed calculation
         let computedSpeed = pos.coords.speed;
         if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
           const [lastLat, lastLon] = positions[positions.length - 1];
-          computedSpeed =
-            haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) /
-            ((currentTime - lastUpdateTime) / 3600000);
+          const timeDiff = (currentTime - lastUpdateTime) / 1000; // Convert to seconds
+          if (timeDiff > 0) {
+            computedSpeed = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) / timeDiff * 3600;
+          }
         } else if (computedSpeed !== null) {
-          computedSpeed *= 3.6;
+          computedSpeed *= 3.6; // Convert m/s to km/h
         }
-        if (computedSpeed !== null) setSpeed(computedSpeed);
+        
+        if (computedSpeed !== null && computedSpeed >= 0) {
+          // Apply smoothing to speed
+          setSpeed(prev => computedSpeed * 0.3 + prev * 0.7); // Weighted average
+          if (computedSpeed > maxSpeed) {
+            setMaxSpeed(computedSpeed);
+          }
+        }
+        
         setPositions((prev) => {
           if (prev.length > 0) {
             const [lastLat, lastLon] = prev[prev.length - 1];
             const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
+            // Only update if we've moved enough or enough time has passed
             if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
               return prev;
             }
           }
           setLastUpdateTime(currentTime);
+          setMapCenter(newPos);
           return [...prev, newPos];
         });
       },
-      (err) => console.error('Error watching position:', err),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      (err) => {
+        console.error('Error watching position:', err);
+        let errorMessage = 'Location error: ';
+        switch (err.code) {
+          case 1:
+            errorMessage += 'Permission denied. Please enable location services.';
+            stopTracking();
+            break;
+          case 2:
+            errorMessage += 'Position unavailable. Check your GPS signal.';
+            break;
+          case 3:
+            errorMessage += 'Position request timed out. Try again.';
+            break;
+          default:
+            errorMessage += err.message;
+        }
+        toast.error(errorMessage);
+      },
+      POSITION_OPTIONS
     );
     setWatchId(id);
-  }, [paused, positions, lastUpdateTime]);
+    toast.success('GPS tracking started!');
+  }, [paused, positions, lastUpdateTime, maxSpeed, isOffline, lastElevation, totalAscent, totalDescent]);
 
   const stopTracking = useCallback(() => {
     if (watchId) navigator.geolocation.clearWatch(watchId);
     setTracking(false);
     setWatchId(null);
     setCompleted(true);
-    if (document.exitFullscreen) {
-      document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
+    
+    try {
+      if (document.exitFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
+      }
+    } catch (error) {
+      console.error('Exit fullscreen error:', error);
     }
-    setShowResults(true);
-  }, [watchId]);
+    
+    if (positions.length > 1) {
+      setShowResults(true);
+      captureMapImage();
+    } else {
+      toast.warning('No track data to save. Try again with a longer route.');
+    }
+  }, [watchId, positions.length]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
     setLastPauseTime(Date.now());
+    toast.info('Tracking paused');
   }, []);
 
   const resumeTracking = useCallback(() => {
@@ -240,6 +417,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
     setLastPauseTime(null);
     setPaused(false);
+    toast.success('Tracking resumed');
   }, [lastPauseTime]);
 
   const resetTracking = useCallback(() => {
@@ -250,184 +428,792 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     setLastPauseTime(null);
     setCompleted(false);
     setSpeed(0);
+    setMaxSpeed(0);
+    setElevation(null);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setLastElevation(null);
     setShowResults(false);
     setMapImage(null);
+    setSaveSuccess(null);
+    toast.info('Tracking reset');
   }, []);
 
   const recenterMap = useCallback(() => {
+    if (isOffline) {
+      const cached = getStoredLocation();
+      if (cached) {
+        setMapCenter(cached);
+        setRecenterTrigger((prev) => prev + 1);
+        toast.info('Using cached location (offline mode)');
+      } else {
+        toast.error('No cached location available');
+      }
+      return;
+    }
+    
+    setLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setMapCenter(loc);
         setRecenterTrigger((prev) => prev + 1);
+        localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+        setLoading(false);
       },
-      (err) => console.error('Error recentering map:', err),
-      { enableHighAccuracy: true }
+      (err) => {
+        console.error('Error recentering map:', err);
+        toast.error(`Couldn't get location: ${err.message}`);
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, []);
+  }, [isOffline]);
 
-  // Capture the map as a PNG image and then send it to your API.
-  const handleFinish = useCallback(async () => {
+  // Capture the map as a PNG image
+  const captureMapImage = useCallback(async () => {
     if (!mapContainerRef.current) return;
     try {
       const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
       const imageData = canvas.toDataURL('image/png');
       setMapImage(imageData);
+      return imageData;
+    } catch (error) {
+      console.error('Error capturing map image:', error);
+      toast.error('Failed to capture route image');
+      return null;
+    }
+  }, []);
 
-      // Call your API endpoint to store the track image (season 2025)
-      await fetch('/api/saveTrack', {
+  // Declare functions first
+  function formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    const pad = (n: number) => (n < 10 ? `0${n}` : n);
+    return hours > 0 
+      ? `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`
+      : `${pad(minutes)}:${pad(remainingSeconds)}`;
+  }
+
+  const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
+
+  // Save the tracking data to the API
+  const handleFinish = useCallback(async () => {
+    if (positions.length <= 1) {
+      toast.error('Not enough tracking data to save');
+      return;
+    }
+    
+    setIsSaving(true);
+    const { distance, avgSpeed } = calculations();
+    let imageData: string | null = mapImage;
+    
+    if (!imageData) {
+      const capturedImage = await captureMapImage();
+      if (!capturedImage) {
+        setIsSaving(false);
+        return;
+      }
+      imageData = capturedImage;
+    }
+
+    try {
+      const fullName: string = username || 'Unknown User';
+      const response = await fetch('/api/saveTrack', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          season: 2025,
+          season: new Date().getFullYear(),
           image: imageData,
-          distance: calculateDistance(),
+          distance: distance(),
           elapsedTime,
-          averageSpeed: calculateAverageSpeed(),
-          fullName: username, // Pass the current user's username
+          averageSpeed: avgSpeed(),
+          fullName,
+          maxSpeed: maxSpeed.toFixed(1),
+          totalAscent: totalAscent.toFixed(0),
+          totalDescent: totalDescent.toFixed(0),
         })
       });
+      
+      if (response.ok) {
+        toast.success('Track saved successfully!');
+        setSaveSuccess(true);
+      } else {
+        toast.error('Failed to save track data');
+        setSaveSuccess(false);
+      }
     } catch (error) {
-      console.error('Error capturing map image:', error);
+      console.error('Error saving track:', error);
+      toast.error('Network error while saving track');
+      setSaveSuccess(false);
+    } finally {
+      setIsSaving(false);
     }
-  }, [elapsedTime, username]);
+  }, [positions.length, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations]);
 
-  const calculateDistance = (): string => {
-    let total = 0;
-    for (let i = 1; i < positions.length; i++) {
-      total += haversineDistance(
-        positions[i - 1][0],
-        positions[i - 1][1],
-        positions[i][0],
-        positions[i][1]
-      );
+  const toggleMapType = useCallback(() => {
+    setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
+    toast.info(`Switched to ${mapType === 'standard' ? 'satellite' : 'standard'} map`);
+  }, [mapType]);
+
+  const downloadTrackImage = useCallback(() => {
+    if (!mapImage) return;
+    
+    const link = document.createElement('a');
+    link.href = mapImage;
+    link.download = `gps-track-${new Date().toISOString().slice(0, 10)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Track image downloaded');
+  }, [mapImage]);
+
+  // Add before the return statement
+  const mobileCss = `
+    @media (max-width: 640px) {
+      .mobile-control-panel {
+        width: 100% !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        transform: none !important;
+        border-radius: 12px 12px 0 0 !important;
+        z-index: 30 !important;
+      }
+      
+      .mobile-control-content {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 8px !important;
+      }
+      
+      .mobile-bottom-safe {
+        margin-bottom: 80px !important;
+      }
+      
+      .mobile-header {
+        padding: 8px 12px !important;
+      }
+      
+      .mobile-small-text {
+        font-size: 0.75rem !important;
+      }
+      
+      .mobile-xs-text {
+        font-size: 0.7rem !important;
+      }
     }
-    return total.toFixed(2);
-  };
-
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    const pad = (n: number) => (n < 10 ? `0${n}` : n);
-    return `${pad(minutes)}:${pad(remainingSeconds)}`;
-  };
-
-  const calculateAverageSpeed = (): string => {
-    if (elapsedTime === 0) return '0.0';
-    const distance = parseFloat(calculateDistance());
-    const avg = (distance * 3600) / elapsedTime;
-    return avg.toFixed(1);
-  };
+    
+    .animate-dash {
+      animation: dash 1.5s linear infinite;
+      stroke-dasharray: 10, 10;
+      stroke-dashoffset: 0;
+    }
+    
+    @keyframes dash {
+      to {
+        stroke-dashoffset: 20;
+      }
+    }
+    
+    .custom-marker {
+      transition: all 0.3s ease-out;
+    }
+    
+    .stat-icon {
+      opacity: 0.7;
+    }
+    
+    .pulse-ring {
+      border-radius: 50%;
+      height: 45px;
+      width: 45px;
+      position: absolute;
+      animation: pulse 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.3;
+      }
+      100% {
+        transform: scale(1.4);
+        opacity: 0;
+      }
+    }
+    
+    .tracking-pulse-dot::before {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: #22c55e;
+      top: 6px;
+      left: 6px;
+    }
+    
+    .tracking-pulse-dot::after {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: rgba(34, 197, 94, 0.4);
+      animation: pulse 2s infinite;
+    }
+  `;
 
   return (
-    <div className="relative rounded-lg shadow-lg overflow-hidden" style={{ width: '100%', height: '80vh' }}>
-      {/* Map container with id and ref for screenshot */}
-      <div id="mapContainer" ref={mapContainerRef} style={{ width: '100%', height: '100%' }}>
-        <MapContainerWrapper
-          center={mapCenter || [0, 0]}
-          zoom={ZOOM_LEVEL}
-          style={{ width: '100%', height: '100%', zIndex: 1 }}
-        >
-          <TileLayerWrapper attribution="&copy; OpenStreetMap contributors" url={TILE_LAYER_URL} />
-          {positions.length > 0 && (
-            <MarkerWrapper position={positions[positions.length - 1]} icon={currentPositionIcon} />
-          )}
-          {positions.length > 1 && (
-            <PolylineWrapper
-              positions={positions}
-              color="#007aff"
-              weight={6}
-              opacity={0.8}
-              lineCap="round"
-              lineJoin="round"
-            />
-          )}
-          <RecenterMapComponent trigger={recenterTrigger} center={mapCenter} zoom={ZOOM_LEVEL} />
-        </MapContainerWrapper>
-      </div>
-
-      {/* Header Overlay */}
-      <div style={{ zIndex: 2 }} className="absolute top-0 left-0 w-full p-4">
-        <h1 className="text-2xl font-bold text-white drop-shadow-lg">GPSTracker</h1>
-      </div>
-
-      {/* Right-Side Controls Card */}
-      <div style={{ zIndex: 3 }} className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white bg-opacity-90 rounded-lg p-4 shadow-lg flex flex-col gap-3">
-        {!tracking ? (
-          <Button onClick={startTracking} className="bg-gray-800 text-white hover:bg-gray-700">
-            <Play className="mr-2" /> Start
-          </Button>
-        ) : (
-          <>
-            {paused ? (
-              <Button onClick={resumeTracking} className="bg-gray-800 text-white hover:bg-gray-700">
-                <PlayCircle className="mr-2" /> Resume
-              </Button>
-            ) : (
-              <Button onClick={pauseTracking} className="bg-gray-800 text-white hover:bg-gray-700">
-                <Pause className="mr-2" /> Pause
-              </Button>
-            )}
-            <Button onClick={stopTracking} className="bg-gray-800 text-white hover:bg-gray-700">
-              <StopCircle className="mr-2" /> Stop
-            </Button>
-          </>
-        )}
-        <Button onClick={recenterMap} className="bg-gray-800 text-white hover:bg-gray-700">
-          <Target className="mr-2" /> Recenter
-        </Button>
-        <Button onClick={resetTracking} className="bg-gray-800 text-white hover:bg-gray-700">
-          <RefreshCcw className="mr-2" /> Reset
-        </Button>
-      </div>
-
-      {/* Bottom Info Card */}
-      <div style={{ zIndex: 3 }} className="absolute bottom-0 left-0 right-0 m-4 bg-white bg-opacity-90 rounded-lg p-4 shadow-lg">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-lg font-bold text-gray-800">Distance: {calculateDistance()} km</p>
-            <p className="text-lg font-bold text-gray-800">Time: {formatTime(elapsedTime)}</p>
-            <p className="text-lg font-bold text-gray-800">Speed: {speed.toFixed(1)} km/h</p>
+    <>
+      <style jsx global>{mobileCss}</style>
+      <div 
+        className="relative rounded-lg shadow-lg overflow-hidden border border-gray-200 bg-gray-50" 
+        style={{ width: '100%', height: '85vh', maxHeight: 'calc(100vh - 100px)' }}
+        aria-label="GPS Trail Tracker"
+        role="application"
+      >
+        {/* Status Bar */}
+        <div className="absolute top-0 left-0 w-full p-1.5 flex justify-between items-center bg-gray-900 bg-opacity-90 backdrop-blur-sm z-20 mobile-header">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-gray-200" />
+            <span className="text-xs text-gray-200 mobile-xs-text">
+              {tracking ? formatTime(elapsedTime) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </span>
           </div>
-          <div>
-            <p className="text-lg font-bold text-gray-800">
-              {isOffline ? 'Offline Mode' : paused ? 'Paused' : 'Tracking Active'}
-            </p>
+          <div className="flex items-center gap-2">
+            {isOffline ? (
+              <div className="flex items-center text-red-400 gap-1">
+                <Wifi className="h-3.5 w-3.5" />
+                <span className="text-xs mobile-xs-text">Offline</span>
+              </div>
+            ) : (
+              <Wifi className="h-3.5 w-3.5 text-green-400" />
+            )}
+            <BatteryMedium className="h-3.5 w-3.5 text-gray-200" />
           </div>
         </div>
-      </div>
 
-      {/* Results Modal Overlay */}
-      {showResults && (
-        <div style={{ zIndex: 1000 }} className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 text-center max-w-md mx-auto space-y-4">
-            <h2 className="text-2xl font-bold">Tracking Completed!</h2>
-            <p>Distance: {calculateDistance()} km</p>
-            <p>Time: {formatTime(elapsedTime)}</p>
-            <p>Average Speed: {calculateAverageSpeed()} km/h</p>
-            {mapImage && (
-              <div>
-                <p className="font-bold">Your Route:</p>
-                <img src={mapImage} alt="Track" className="mt-2 rounded-lg" />
-              </div>
-            )}
-            <div className="flex justify-center gap-4">
-              <Button onClick={handleFinish} className="bg-gray-800 text-white hover:bg-gray-700">
-                Finish & Save
-              </Button>
-              <Button onClick={() => setShowResults(false)} className="bg-gray-800 text-white hover:bg-gray-700">
-                Close
-              </Button>
-              <Button onClick={resetTracking} className="bg-gray-800 text-white hover:bg-gray-700">
-                Reset
-              </Button>
+        {/* Loading Overlay */}
+        {loading && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" aria-live="polite" role="status">
+            <div className="bg-white rounded-lg p-4 flex flex-col items-center space-y-2">
+              <Loader2 className="animate-spin text-gray-800" size={36} aria-hidden="true" />
+              <p className="text-gray-800 font-medium">Loading location...</p>
             </div>
           </div>
+        )}
+      
+        {/* Map container with id and ref for screenshot */}
+        <div id="mapContainer" ref={mapContainerRef} style={{ width: '100%', height: '100%' }} aria-label="Interactive map displaying your route">
+          {!loading && mapCenter && (
+            <MapContainerWrapper
+              center={mapCenter}
+              zoom={ZOOM_LEVEL}
+              style={{ width: '100%', height: '100%', zIndex: 1 }}
+              attributionControl={false}
+              zoomControl={false}
+            >
+              {mapType === 'standard' ? (
+                <TileLayerWrapper 
+                  attribution="&copy; OpenStreetMap contributors" 
+                  url={TILE_LAYER_URL}
+                  maxZoom={19}
+                  minZoom={3}
+                  keepBuffer={8}
+                />
+              ) : (
+                <TileLayerWrapper 
+                  attribution={SATELLITE_ATTRIBUTION} 
+                  url={SATELLITE_LAYER_URL}
+                  maxZoom={19}
+                  minZoom={3}
+                  keepBuffer={8}
+                />
+              )}
+              
+              {/* Start position marker */}
+              {positions.length > 0 && (
+                <MarkerWrapper 
+                  position={positions[0]} 
+                  icon={startPositionIcon}
+                  zIndexOffset={1000}
+                >
+                  <PopupWrapper>
+                    <div className="text-center">
+                      <div className="font-bold">Start Point</div>
+                      <div className="text-sm text-gray-600">
+                        {new Date(startTime || Date.now()).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </PopupWrapper>
+                </MarkerWrapper>
+              )}
+              
+              {/* Current position marker */}
+              {positions.length > 0 && (
+                <MarkerWrapper 
+                  position={positions[positions.length - 1]} 
+                  icon={currentPositionIcon}
+                  zIndexOffset={1000}
+                >
+                  <PopupWrapper>
+                    <div className="text-center">
+                      <div className="font-bold">Current Position</div>
+                      <div>Speed: {speed.toFixed(1)} km/h</div>
+                      {elevation !== null && (
+                        <div>Altitude: {elevation.toFixed(0)}m</div>
+                      )}
+                      <div className="text-xs text-gray-600 mt-1">
+                        Accuracy: {positions.length > 0 ? `±${MIN_ACCURACY}m` : 'N/A'}
+                      </div>
+                    </div>
+                  </PopupWrapper>
+                </MarkerWrapper>
+              )}
+              
+              {/* Track line with gradient color based on elevation */}
+              {positions.length > 1 && (
+                <PolylineWrapper
+                  positions={positions}
+                  color="#007aff"
+                  weight={4}
+                  opacity={0.8}
+                  lineCap="round"
+                  lineJoin="round"
+                  dashArray={tracking && !paused ? "10,10" : ""}
+                  className={tracking && !paused ? "animate-dash" : ""}
+                />
+              )}
+              
+              <RecenterMapComponent trigger={recenterTrigger} center={mapCenter} zoom={ZOOM_LEVEL} />
+            </MapContainerWrapper>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Header Overlay */}
+        <div className="absolute top-8 left-0 w-full px-3 py-2 flex justify-between items-center bg-gray-800 bg-opacity-80 backdrop-blur-sm z-10 mobile-header">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-white">GPS Trail Tracker</h1>
+            {isOffline ? (
+              <Badge variant="destructive" className="text-xs">Offline</Badge>
+            ) : tracking ? (
+              paused ? (
+                <div className="relative w-6 h-6 flex items-center justify-center">
+                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 text-xs">Paused</Badge>
+                </div>
+              ) : (
+                <div className="relative w-6 h-6 flex items-center justify-center">
+                  <div className="absolute w-6 h-6 bg-green-500 rounded-full opacity-25 animate-ping"></div>
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <Badge variant="outline" className="bg-green-100 text-green-800 text-xs ml-7">Live</Badge>
+                </div>
+              )
+            ) : (
+              <Badge variant="outline" className="bg-gray-100 text-gray-800 text-xs">Ready</Badge>
+            )}
+          </div>
+          
+          {/* Accessible battery saver toggle */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="p-1 rounded-full" 
+            onClick={() => toast.info("Battery saver mode toggled")}
+            aria-label={`Toggle battery saver mode, currently off`}
+          >
+            <Settings className="h-5 w-5 text-white" />
+          </Button>
+        </div>
+
+        {/* Warning notification for low accuracy */}
+        {tracking && !paused && (
+          <div 
+            className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20"
+            aria-live="polite"
+          >
+            <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-sm animate-bounce">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="mobile-small-text">Move in open area for better GPS accuracy</span>
+            </div>
+          </div>
+        )}
+
+        {/* Right-Side Controls Card - Desktop */}
+        <Card className="absolute top-1/2 right-3 transform -translate-y-1/2 z-10 bg-opacity-95 shadow-lg w-[120px] hidden sm:block">
+          <CardContent className="p-3 flex flex-col gap-2">
+            {!tracking ? (
+              <Button 
+                onClick={startTracking} 
+                className="bg-green-600 text-white hover:bg-green-700"
+                disabled={isOffline || loading}
+                size="sm"
+                aria-label="Start tracking"
+              >
+                <Play className="mr-1 h-4 w-4" /> Start
+              </Button>
+            ) : (
+              <>
+                {paused ? (
+                  <Button 
+                    onClick={resumeTracking} 
+                    className="bg-green-600 text-white hover:bg-green-700" 
+                    size="sm"
+                    aria-label="Resume tracking"
+                  >
+                    <PlayCircle className="mr-1 h-4 w-4" /> Resume
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={pauseTracking} 
+                    className="bg-yellow-600 text-white hover:bg-yellow-700" 
+                    size="sm"
+                    aria-label="Pause tracking"
+                  >
+                    <Pause className="mr-1 h-4 w-4" /> Pause
+                  </Button>
+                )}
+                <Button 
+                  onClick={stopTracking} 
+                  className="bg-red-600 text-white hover:bg-red-700" 
+                  size="sm"
+                  aria-label="Stop tracking"
+                >
+                  <StopCircle className="mr-1 h-4 w-4" /> Stop
+                </Button>
+              </>
+            )}
+            
+            <Button 
+              onClick={recenterMap} 
+              className="bg-gray-800 text-white hover:bg-gray-700" 
+              size="sm"
+              aria-label="Center map on current location"
+            >
+              <Target className="mr-1 h-4 w-4" /> Center
+            </Button>
+            
+            <Button 
+              onClick={toggleMapType} 
+              className="bg-gray-800 text-white hover:bg-gray-700" 
+              size="sm"
+              aria-label={`Switch to ${mapType === 'standard' ? 'satellite' : 'standard'} map view`}
+            >
+              <Map className="mr-1 h-4 w-4" /> {mapType === 'standard' ? 'Satellite' : 'Standard'}
+            </Button>
+            
+            <Button 
+              onClick={resetTracking} 
+              className="bg-gray-800 text-white hover:bg-gray-700" 
+              size="sm" 
+              disabled={tracking && !paused}
+              aria-label="Reset tracking data"
+            >
+              <RefreshCcw className="mr-1 h-4 w-4" /> Reset
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Control Panel */}
+        <Card className="mobile-control-panel absolute top-1/2 right-3 transform -translate-y-1/2 z-30 bg-white shadow-lg w-[120px] block sm:hidden">
+          <CardContent className="p-3 flex flex-col gap-2 mobile-control-content">
+            {!tracking ? (
+              <Button 
+                onClick={startTracking} 
+                className="bg-green-600 text-white hover:bg-green-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center"
+                disabled={isOffline || loading}
+                aria-label="Start tracking"
+              >
+                <Play className="h-6 w-6" />
+              </Button>
+            ) : (
+              <>
+                {paused ? (
+                  <Button 
+                    onClick={resumeTracking} 
+                    className="bg-green-600 text-white hover:bg-green-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+                    aria-label="Resume tracking"
+                  >
+                    <PlayCircle className="h-6 w-6" />
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={pauseTracking} 
+                    className="bg-yellow-600 text-white hover:bg-yellow-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+                    aria-label="Pause tracking"
+                  >
+                    <Pause className="h-6 w-6" />
+                  </Button>
+                )}
+                <Button 
+                  onClick={stopTracking} 
+                  className="bg-red-600 text-white hover:bg-red-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+                  aria-label="Stop tracking"
+                >
+                  <StopCircle className="h-6 w-6" />
+                </Button>
+              </>
+            )}
+            
+            <Button 
+              onClick={recenterMap} 
+              className="bg-gray-800 text-white hover:bg-gray-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+              aria-label="Center map on current location"
+            >
+              <Target className="h-6 w-6" />
+            </Button>
+            
+            <Button 
+              onClick={toggleMapType} 
+              className="bg-gray-800 text-white hover:bg-gray-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+              aria-label={`Switch to ${mapType === 'standard' ? 'satellite' : 'standard'} map view`}
+            >
+              <Map className="h-6 w-6" />
+            </Button>
+            
+            {!tracking && (
+              <Button 
+                onClick={resetTracking} 
+                className="bg-gray-800 text-white hover:bg-gray-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+                disabled={tracking && !paused}
+                aria-label="Reset tracking data"
+              >
+                <RefreshCcw className="h-6 w-6" />
+              </Button>
+            )}
+            
+            {!tracking && (
+              <div className="flex items-center justify-center w-[48px] h-[48px]">
+                <ShareButton variant="mobile" />
+              </div>
+            )}
+            
+            {tracking && !paused && (
+              <Button 
+                onClick={() => toast.info("Sharing is not available yet")} 
+                className="bg-blue-600 text-white hover:bg-blue-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
+                aria-label="Share your current location"
+              >
+                <Share2 className="h-6 w-6" />
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Bottom Info Card */}
+        <Card className="absolute bottom-0 left-0 right-0 m-3 bg-white bg-opacity-95 z-10 mobile-bottom-safe">
+          <CardContent className="p-3">
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-2">
+                <TabsTrigger value="basic" aria-label="View basic tracking information">Basic</TabsTrigger>
+                <TabsTrigger value="advanced" aria-label="View detailed tracking statistics">Details</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="mt-0">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Ruler className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
+                      <p className="text-xs text-gray-500 mobile-small-text">Distance</p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800" aria-label={`Distance: ${calculateDistance()} kilometers`}>{calculateDistance()} km</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
+                      <p className="text-xs text-gray-500 mobile-small-text">Time</p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800" aria-label={`Elapsed time: ${formatTime(elapsedTime)}`}>{formatTime(elapsedTime)}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Activity className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
+                      <p className="text-xs text-gray-500 mobile-small-text">Speed</p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800" aria-label={`Current speed: ${speed.toFixed(1)} kilometers per hour`}>{speed.toFixed(1)} km/h</p>
+                  </div>
+                </div>
+                
+                {tracking && !paused && (
+                  <div className="mt-2">
+                    <Progress 
+                      value={(elapsedTime % 60) / 60 * 100} 
+                      className="h-1" 
+                      aria-label={`${elapsedTime % 60} seconds of current minute elapsed`}
+                    />
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="advanced" className="mt-0">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Compass className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
+                      <p className="text-xs text-gray-500 mobile-small-text">Avg. Speed</p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800" aria-label={`Average speed: ${calculateAverageSpeed()} kilometers per hour`}>{calculateAverageSpeed()} km/h</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Activity className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
+                      <p className="text-xs text-gray-500 mobile-small-text">Max Speed</p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800" aria-label={`Maximum speed: ${maxSpeed.toFixed(1)} kilometers per hour`}>{maxSpeed.toFixed(1)} km/h</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Compass className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
+                      <p className="text-xs text-gray-500 mobile-small-text">Elevation</p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-800" aria-label={elevation !== null ? `Current elevation: ${elevation.toFixed(0)} meters` : 'Elevation data not available'}>
+                      {elevation !== null ? `${elevation.toFixed(0)}m` : '-'}
+                    </p>
+                  </div>
+                </div>
+                
+                {totalAscent > 0 || totalDescent > 0 ? (
+                  <div className="grid grid-cols-2 gap-2 mt-1">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 mobile-small-text">Ascent</p>
+                      <p className="text-lg font-bold text-green-700" aria-label={`Total ascent: ${totalAscent.toFixed(0)} meters`}>↑ {totalAscent.toFixed(0)}m</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500 mobile-small-text">Descent</p>
+                      <p className="text-lg font-bold text-red-700" aria-label={`Total descent: ${totalDescent.toFixed(0)} meters`}>↓ {totalDescent.toFixed(0)}m</p>
+                    </div>
+                  </div>
+                ) : null}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Results Modal Overlay */}
+        {showResults && (
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="results-heading"
+          >
+            <Card className="w-full max-w-md mx-auto">
+              <CardContent className="p-5 text-center space-y-4">
+                <h2 id="results-heading" className="text-2xl font-bold flex items-center justify-center gap-2">
+                  <Award className="text-yellow-500" aria-hidden="true" /> 
+                  Track Completed!
+                </h2>
+                
+                <div className="grid grid-cols-2 gap-4 text-left">
+                  <div>
+                    <p className="text-sm text-gray-500">Distance</p>
+                    <p className="text-lg font-bold">{calculateDistance()} km</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Time</p>
+                    <p className="text-lg font-bold">{formatTime(elapsedTime)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Average Speed</p>
+                    <p className="text-lg font-bold">{calculateAverageSpeed()} km/h</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Max Speed</p>
+                    <p className="text-lg font-bold">{maxSpeed.toFixed(1)} km/h</p>
+                  </div>
+                  
+                  {totalAscent > 0 || totalDescent > 0 ? (
+                    <>
+                      <div>
+                        <p className="text-sm text-gray-500">Total Ascent</p>
+                        <p className="text-lg font-bold text-green-700">↑ {totalAscent.toFixed(0)}m</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Total Descent</p>
+                        <p className="text-lg font-bold text-red-700">↓ {totalDescent.toFixed(0)}m</p>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+                
+                {mapImage && (
+                  <div>
+                    <p className="font-bold mb-2">Your Route:</p>
+                    <img src={mapImage} alt="Map showing your completed route" className="rounded-lg border border-gray-300 w-full" />
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button 
+                    onClick={handleFinish} 
+                    className="bg-green-600 text-white hover:bg-green-700"
+                    disabled={isSaving || saveSuccess === true}
+                    aria-label={isSaving ? "Saving track data" : saveSuccess === true ? "Track saved successfully" : "Save track data"}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                        Saving...
+                      </>
+                    ) : saveSuccess === true ? (
+                      <>
+                        <Award className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Saved!
+                      </>
+                    ) : (
+                      <>
+                        <DownloadCloud className="mr-2 h-4 w-4" aria-hidden="true" />
+                        Save Track
+                      </>
+                    )}
+                  </Button>
+                  
+                  {mapImage && (
+                    <Button 
+                      onClick={downloadTrackImage} 
+                      className="bg-blue-600 text-white hover:bg-blue-700"
+                      aria-label="Download route image"
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Download Image
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    onClick={() => setShowResults(false)} 
+                    className="bg-gray-600 text-white hover:bg-gray-700"
+                    aria-label="Close results window"
+                  >
+                    Close
+                  </Button>
+                  
+                  <Button 
+                    onClick={resetTracking} 
+                    className="bg-gray-800 text-white hover:bg-gray-700"
+                    aria-label="Reset tracking data"
+                  >
+                    <RefreshCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Reset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

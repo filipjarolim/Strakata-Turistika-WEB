@@ -12,8 +12,8 @@ import {
     navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
-import Icon from "@/components/ui/Icon";
-import * as Icons from 'lucide-react';
+import { Icon } from "@/components/ui/Icon";
+import { LucideIcon, Home, Info, AtSign, Image, FileText, BarChart, List, User, PieChart, Award, Plus, RefreshCw, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 
 type BadgeType = "Nové" | "Aktualizace" | "Událost";
@@ -22,14 +22,14 @@ type NavItem = {
     title: string;
     href: string;
     description?: string;
-    icon?: keyof typeof Icons;
+    icon?: LucideIcon;
     badge?: BadgeType;
 };
 
 type NavConfigType = {
     type: "roletka" | "odkaz";
     title: string;
-    icon?: keyof typeof Icons;
+    icon?: LucideIcon;
     columns?: number;
     href?: string;
     badge?: BadgeType;
@@ -40,39 +40,39 @@ const navConfig: NavConfigType = [
     {
         type: "odkaz",
         title: "Domů",
-        icon: "Home",
+        icon: Home,
         href: "/",
     },
     {
         type: "roletka",
         title: "Informace",
-        icon: "Info",
+        icon: Info,
         columns: 1,
         items: [
             { 
                 title: "Kontakty", 
                 href: "/kontakty", 
                 description: "Kontaktní informace na organizátory a správce.", 
-                icon: "AtSign" 
+                icon: AtSign 
             },
             { 
                 title: "Fotogalerie", 
                 href: "/fotogalerie", 
                 description: "Fotografie z různých míst a akcí.", 
-                icon: "Image" 
+                icon: Image 
             },
             { 
                 title: "Pravidla", 
                 href: "/pravidla", 
                 description: "Pravidla účasti a bodování soutěže.", 
-                icon: "FileText"
+                icon: FileText
             }
         ]
     },
     {
         type: "roletka",
         title: "Výsledky",
-        icon: "BarChart",
+        icon: BarChart,
         columns: 2,
         href: "/vysledky",
         items: [
@@ -80,27 +80,27 @@ const navConfig: NavConfigType = [
                 title: "Přehled výsledků", 
                 href: "/vysledky", 
                 description: "Souhrnný přehled všech výsledků a jejich statistiky.", 
-                icon: "List" 
+                icon: List 
             },
             { 
                 title: "Moje návštěvy", 
                 href: "/vysledky/moje", 
                 description: "Přehled vašich návštěv a dosažených výsledků.", 
-                icon: "User",
+                icon: User,
                 badge: "Nové" 
             },
             { 
                 title: "Statistiky", 
                 href: "/vysledky/statistiky", 
                 description: "Podrobné statistiky návštěv a aktivit.", 
-                icon: "PieChart" 
+                icon: PieChart 
             }
         ]
     },
     {
         type: "odkaz",
         title: "Soutěžit",
-        icon: "Award",
+        icon: Award,
         href: "/playground",
         badge: "Nové"
     },
@@ -127,7 +127,7 @@ export const Navbar = () => {
                                     <div className="flex items-center gap-1.5">
                                         {navItem.icon && (
                                             <Icon 
-                                                name={navItem.icon} 
+                                                icon={navItem.icon} 
                                                 className="w-4 h-4 opacity-70 group-hover:opacity-100" 
                                             />
                                         )}
@@ -166,7 +166,7 @@ export const Navbar = () => {
                                     >
                                         {navItem.icon && (
                                             <Icon 
-                                                name={navItem.icon} 
+                                                icon={navItem.icon} 
                                                 className={cn(
                                                     "w-4 h-4",
                                                     isActive ? "opacity-100" : "opacity-70"
@@ -198,7 +198,7 @@ export const Navbar = () => {
 
 const ListItem = React.forwardRef<
     React.ElementRef<"a">,
-    React.ComponentPropsWithoutRef<"a"> & { icon?: keyof typeof Icons; badge?: BadgeType }
+    React.ComponentPropsWithoutRef<"a"> & { icon?: LucideIcon; badge?: BadgeType }
 >(({ className, title, children, icon, badge, ...props }, ref) => {
     return (
         <li>
@@ -215,7 +215,7 @@ const ListItem = React.forwardRef<
                         <div className="flex items-center gap-2">
                             {icon && (
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
-                                    <Icon name={icon} className="w-4 h-4 text-gray-700" />
+                                    <Icon icon={icon} className="w-4 h-4 text-gray-700" />
                                 </div>
                             )}
                             <div className="flex items-center gap-2">
@@ -235,9 +235,9 @@ const ListItem = React.forwardRef<
 
 const StyledBadge = ({ type, className }: { type: BadgeType; className?: string }) => {
     const badgeConfig = {
-        Nové: { color: "bg-emerald-100 text-emerald-700", icon: "Plus" },
-        Aktualizace: { color: "bg-blue-100 text-blue-700", icon: "RefreshCw" },
-        Událost: { color: "bg-amber-100 text-amber-700", icon: "Calendar" }
+        Nové: { color: "bg-emerald-100 text-emerald-700", icon: Plus },
+        Aktualizace: { color: "bg-blue-100 text-blue-700", icon: RefreshCw },
+        Událost: { color: "bg-amber-100 text-amber-700", icon: Calendar }
     };
     
     return (
@@ -249,7 +249,7 @@ const StyledBadge = ({ type, className }: { type: BadgeType; className?: string 
                 className
             )}
         >
-            <Icon name={badgeConfig[type].icon as keyof typeof Icons} className="w-2.5 h-2.5" />
+            <Icon icon={badgeConfig[type].icon} className="w-2.5 h-2.5" />
             {type}
         </Badge>
     );

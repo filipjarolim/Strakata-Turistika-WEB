@@ -1,14 +1,16 @@
-import React from 'react';
-import * as Icons from 'lucide-react';
+import { HTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
+import { LucideIcon } from "lucide-react";
 
-type IconProps = {
-    name: keyof typeof Icons;
-    className?: string;
-};
+interface IconProps extends HTMLAttributes<HTMLDivElement> {
+  icon: LucideIcon;
+  size?: number;
+}
 
-const Icon: React.FC<IconProps> = ({ name, className }) => {
-    const LucideIcon = Icons[name] as React.ElementType;
-    return <LucideIcon className={className} />;
-};
-
-export default Icon;
+export function Icon({ icon: Icon, size = 24, className, ...props }: IconProps) {
+  return (
+    <div className={cn("flex items-center justify-center", className)} {...props}>
+      <Icon size={size} />
+    </div>
+  );
+}
