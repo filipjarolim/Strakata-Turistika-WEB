@@ -173,6 +173,31 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
+    // Special handling for the playground route when refreshing
+    if (url.pathname.includes('/playground')) {
+        event.respondWith(
+            caches.match(request).then(cachedResponse => {
+                if (cachedResponse) {
+                    // Return cached response if we have one
+                    return cachedResponse;
+                }
+                
+                return fetch(request).catch(error => {
+                    // If offline and no cached response, try to return the cached playground page
+                    return caches.match('/playground').then(cachedPlayground => {
+                        // Return either the cached playground page or a fallback
+                        return cachedPlayground || 
+                            new Response('Offline - Please try again when online', {
+                                status: 503,
+                                headers: { 'Content-Type': 'text/html' }
+                            });
+                    });
+                });
+            })
+        );
+        return;
+    }
+
     // Let Serwist handle other requests
 });
 
@@ -266,6 +291,63 @@ self.addEventListener('message', (event) => {
             event.waitUntil(cacheDataForOffline(url, data));
         }
     }
+
+    // Add handlers for persistent notifications
+    if (event.data && event.data.type === 'CREATE_PERSISTENT_NOTIFICATION') {
+        event.waitUntil(
+            self.registration.showNotification(
+                event.data.data.title,
+                {
+                    body: event.data.data.body,
+                    icon: event.data.data.icon || '/icons/icon-192x192.png',
+                    badge: '/icons/icon-192x192.png',
+                    tag: event.data.data.tag,
+                    requireInteraction: true,
+                    data: {
+                        url: '/playground',
+                        trackingActive: true
+                    }
+                } as any
+            )
+        );
+    }
+
+    if (event.data && event.data.type === 'UPDATE_PERSISTENT_NOTIFICATION') {
+        event.waitUntil(
+            self.registration.getNotifications({ tag: event.data.data.tag })
+                .then(notifications => {
+                    if (notifications.length > 0) {
+                        // Close the old notification
+                        notifications.forEach(notification => notification.close());
+                        
+                        // Show a new one with updated data
+                        return self.registration.showNotification(
+                            event.data.data.title,
+                            {
+                                body: event.data.data.body,
+                                icon: event.data.data.icon || '/icons/icon-192x192.png',
+                                badge: '/icons/icon-192x192.png',
+                                tag: event.data.data.tag,
+                                requireInteraction: true,
+                                data: {
+                                    url: '/playground',
+                                    trackingActive: true
+                                }
+                            } as any
+                        );
+                    }
+                })
+        );
+    }
+    
+    if (event.data && event.data.type === 'CLOSE_PERSISTENT_NOTIFICATION') {
+        event.waitUntil(
+            self.registration.getNotifications({ tag: event.data.data.tag })
+                .then(notifications => {
+                    notifications.forEach(notification => notification.close());
+                })
+        );
+    }
 });
 
 // Function to clean up old caches
@@ -313,6 +395,26 @@ self.addEventListener('push', function (event) {
 self.addEventListener('notificationclick', function (event) {
     console.log('Notification click received.');
     event.notification.close();
+    
+    // Check if this is our tracking notification
+    if (event.notification.data && event.notification.data.trackingActive) {
+        event.waitUntil(
+            self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+                .then(clientList => {
+                    // If we have an existing window, focus it
+                    for (const client of clientList) {
+                        if (client.url.includes('/playground') && 'focus' in client) {
+                            return client.focus();
+                        }
+                    }
+                    // Otherwise, open a new window
+                    return self.clients.openWindow('/playground');
+                })
+        );
+        return;
+    }
+    
+    // Default notification behavior (for non-tracking notifications)
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
             if (clientList.length > 0) {

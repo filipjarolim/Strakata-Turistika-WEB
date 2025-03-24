@@ -7,6 +7,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { MapPin } from 'lucide-react';
 import ShareButton from "@/components/pwa/ShareButton";
 
+// Make page static with long revalidation for offline access
+export const revalidate = 2592000; // 30 days in seconds
+
 const Page = async () => {
   const user = await currentUser();
   const role = await currentRole();

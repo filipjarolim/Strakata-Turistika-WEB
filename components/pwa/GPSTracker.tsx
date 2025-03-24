@@ -75,7 +75,7 @@ const currentPositionIcon = L.icon({
 });
 
 const startPositionIcon = L.icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48cGF0aCBmaWxsPSIjNGFkZTgwIiBkPSJNMTkyIDk2YzE3LjcgMCAzMi0xNC4zIDMyLTMycy0xNC4zLTMyLTMyLTMyLTMyIDE0LjMtMzIgMzIgMTQuMyAzMiAzMiAzMnptMCA2NCAzMi0zMiA2NCA2NHY4NmMwIDE0LTktMjMtMjAtMzRsLTQ0LTQ0djI2MmMwIDE0LTkgMjYtMjAgMzRsLTUyLTUyaC0zMEwxMTIgNTAwYy0xMS4xLTcuOC0yMC01MC0yMC02NHYtODZsNjQtNjQgMzYgMzZ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xOTIgNDE0aDMydjMySDE5MnYtMzJ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMTQgMjI1YzQuMSAwIDcuOCAyLjYgOS4zIDYuNWwxNS44IDQwLjljLjUgMS4zLjggMi42LjggNGwuMiAzMy44YzAgOC44LTcuMiAxNi0xNiAxNmgtMzJjLTguOCAwLTE2LTcuMi0xNi0xNmwtLjItMzMuOGMwLTEuNC4zLTIuNy43LTRsMTUuOC00MC45YzEuNS0zLjkgNS4yLTYuNSA5LjMtNi41aDE4LjR6Ii8+PC9zdmc+',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48cGF0aCBmaWxsPSIjNGFkZTgwIiBkPSJNMTkyIDk2YzE3LjcgMCAzMi0xNC4zIDMyLTMycy0xNC4zLTMyLTMyLTMyLTMyIDE0LjMtMzIgMzIgMTQuMyAzMiAzMiAzMnptMCA2NCAzMi0zMiA2NCA2NHY4NmMwIDE0LTkgMjYtMjAgMzRsLTUyLTUyaC0zMEwxMTIgNTAwYy0xMS4xLTcuOC0yMC01MC0yMC02NHYtODZsNjQtNjQgMzYgMzZ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xOTIgNDE0aDMydjMySDE5MnYtMzJ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMTQgMjI1YzQuMSAwIDcuOCAyLjYgOS4zIDYuNWwxNS44IDQwLjljLjUgMS4zLjggMi42LjggNGwuMiAzMy44YzAgOC44LTcuMiAxNi0xNiAxNmgtMzJjLTguOCAwLTE2LTcuMi0xNi0xNmwtLjItMzMuOGMwLTEuNC4zLTIuNy43LTRsMTUuOC00MC45YzEuNS0zLjkgNS4yLTYuNSA5LjMtNi41aDE4LjR6Ii8+PC9zdmc+',
   iconSize: [32, 42],
   iconAnchor: [16, 42],
   popupAnchor: [0, -42],
@@ -101,7 +101,50 @@ const haversineDistance = (
 
 const getStoredLocation = () => {
   if (typeof window === 'undefined') return null;
+  
+  // First try localStorage
   const saved = localStorage.getItem('lastKnownLocation');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error parsing stored location:', e);
+    }
+  }
+  
+  // Then try to check IndexedDB synchronously (return the localStorage result for now)
+  // The actual IndexedDB check will happen asynchronously and update the state if found
+  try {
+    const openRequest = indexedDB.open('gpsTrackerDB', 1);
+    
+    openRequest.onsuccess = function() {
+      const db = openRequest.result;
+      
+      try {
+        const transaction = db.transaction('locations', 'readonly');
+        const store = transaction.objectStore('locations');
+        const request = store.get('lastKnown');
+        
+        request.onsuccess = function() {
+          if (request.result) {
+            const { lat, lng } = request.result;
+            // Instead of returning, we need to update the state
+            // This happens asynchronously after the function has returned
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('indexeddb-location-found', { 
+                detail: { location: [lat, lng] }
+              }));
+            }
+          }
+        };
+      } catch (e) {
+        console.error('Error reading from IndexedDB:', e);
+      }
+    };
+  } catch (e) {
+    console.error('Error opening IndexedDB:', e);
+  }
+  
   return saved ? JSON.parse(saved) : null;
 };
 
@@ -193,10 +236,19 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         
         if (!navigator.onLine) {
           setIsOffline(true);
+          // Enhanced offline location retrieval with better error handling and defaults
           const cached = getStoredLocation();
           if (cached) {
             setMapCenter(cached);
             toast.warning('You are offline. Using cached location data.');
+            // Cache to service worker for consistency
+            saveLocationForOffline(cached);
+          } else {
+            // Fallback to a default location (or you can customize this for your area)
+            toast.error('No cached location available. Using default location.');
+            // Set a default position (customize these coordinates for your area)
+            const defaultLocation: [number, number] = [50.0755, 14.4378]; // Prague coordinates
+            setMapCenter(defaultLocation);
           }
           setLoading(false);
           return;
@@ -207,12 +259,22 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
           (pos) => {
             const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
             setMapCenter(loc);
+            // Save location data for offline use both in localStorage and via service worker
             localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+            saveLocationForOffline(loc);
             setLoading(false);
           },
           (err) => {
             console.error('Error retrieving position:', err);
             toast.error(`Location error: ${err.message}`);
+            
+            // Try to use cached location as fallback
+            const cached = getStoredLocation();
+            if (cached) {
+              setMapCenter(cached);
+              toast.warning('Using cached location due to GPS error.');
+            }
+            
             setLoading(false);
           },
           { enableHighAccuracy: true, timeout: 10000 }
@@ -220,6 +282,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       } catch (error) {
         console.error('Permission check error:', error);
         setLoading(false);
+        
+        // Try to use cached location as ultimate fallback
+        const cached = getStoredLocation();
+        if (cached) {
+          setMapCenter(cached);
+          toast.warning('Using cached location due to error.');
+        }
       }
     };
     
@@ -269,10 +338,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   }, [tracking, elapsedTime, paused, isOffline]);
 
   const startTracking = useCallback(() => {
-    if (isOffline) {
+    // Remove the offline check to allow tracking even when offline
+    /* if (isOffline) {
       toast.error('Cannot start tracking while offline.');
       return;
-    }
+    } */
     
     setTracking(true);
     setCompleted(false);
@@ -739,6 +809,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
 
   // Function to save location data for offline use
   const saveLocationForOffline = useCallback((locationData: [number, number]): void => {
+    // Save to service worker cache if available
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: 'SAVE_FOR_OFFLINE',
@@ -749,6 +820,33 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
           timestamp: Date.now()
         }
       });
+    }
+    
+    // Also save to IndexedDB for more reliable offline storage
+    try {
+      const openRequest = indexedDB.open('gpsTrackerDB', 1);
+      
+      openRequest.onupgradeneeded = function() {
+        const db = openRequest.result;
+        if (!db.objectStoreNames.contains('locations')) {
+          db.createObjectStore('locations', { keyPath: 'id' });
+        }
+      };
+      
+      openRequest.onsuccess = function() {
+        const db = openRequest.result;
+        const transaction = db.transaction('locations', 'readwrite');
+        const store = transaction.objectStore('locations');
+        
+        store.put({
+          id: 'lastKnown',
+          lat: locationData[0],
+          lng: locationData[1],
+          timestamp: Date.now()
+        });
+      };
+    } catch (err) {
+      console.error('Error storing location in IndexedDB:', err);
     }
   }, []);
 
@@ -919,6 +1017,92 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       font-size: 11px !important;
     }
   `;
+
+  // Add to the notification section
+  useEffect(() => {
+    let notifyInterval: NodeJS.Timeout;
+    if (tracking && !paused && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      // Create a persistent notification on start
+      createPersistentNotification();
+      
+      // Update the notification every minute
+      notifyInterval = setInterval(() => {
+        updatePersistentNotification();
+      }, 60000); // Update every minute
+    }
+    return () => {
+      if (notifyInterval) clearInterval(notifyInterval);
+      if (!tracking && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        closePersistentNotification();
+      }
+    };
+  }, [tracking, elapsedTime, paused, calculateDistance]);
+
+  // Add function to create persistent notification
+  const createPersistentNotification = useCallback(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CREATE_PERSISTENT_NOTIFICATION',
+        data: {
+          title: 'GPS Tracking Active',
+          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
+          tag: 'gps-tracking-status', // Use a tag to update the same notification
+          requireInteraction: true, // Make it persistent
+          silent: false,
+          icon: '/icons/icon-192x192.png',
+        }
+      });
+    }
+  }, [calculateDistance, elapsedTime]);
+
+  // Add function to update persistent notification
+  const updatePersistentNotification = useCallback(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'UPDATE_PERSISTENT_NOTIFICATION',
+        data: {
+          title: 'GPS Tracking Active',
+          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
+          tag: 'gps-tracking-status',
+        }
+      });
+    }
+  }, [calculateDistance, elapsedTime]);
+
+  // Add function to close persistent notification
+  const closePersistentNotification = useCallback(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CLOSE_PERSISTENT_NOTIFICATION',
+        data: {
+          tag: 'gps-tracking-status',
+        }
+      });
+    }
+  }, []);
+
+  // Add to the top of the component to listen for IndexedDB location events
+  useEffect(() => {
+    // Define the event handler for IndexedDB location found
+    const handleIndexedDBLocation = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail && customEvent.detail.location) {
+        if (!mapCenter) {
+          setMapCenter(customEvent.detail.location);
+          saveLocationForOffline(customEvent.detail.location);
+          toast.info('Retrieved location from offline storage');
+        }
+      }
+    };
+    
+    // Add the event listener
+    window.addEventListener('indexeddb-location-found', handleIndexedDBLocation);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('indexeddb-location-found', handleIndexedDBLocation);
+    };
+  }, [mapCenter, saveLocationForOffline]);
 
   return (
     <>
