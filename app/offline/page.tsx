@@ -24,7 +24,7 @@ export default function OfflinePage() {
                 <Wifi className="h-8 w-8" />
               </div>
             </div>
-            <h2 className="text-xl font-bold text-center">You're Offline</h2>
+            <h2 className="text-xl font-bold text-center">You&apos;re Offline</h2>
             <p className="text-gray-300 text-center mt-2">
               No internet connection available
             </p>
@@ -33,7 +33,7 @@ export default function OfflinePage() {
           <div className="p-6">
             <div className="space-y-4">
               <p className="text-gray-600">
-                Don't worry! You can still access some features while offline:
+                Don&apos;t worry! You can still access some features while offline:
               </p>
               
               <ul className="space-y-3">
@@ -42,7 +42,7 @@ export default function OfflinePage() {
                   <div>
                     <span className="font-medium text-gray-900">GPS Tracking</span>
                     <p className="text-sm text-gray-500">
-                      You can still track your routes offline. Data will sync when you're back online.
+                      You can still track your routes offline. Data will sync when you&apos;re back online.
                     </p>
                   </div>
                 </li>
@@ -90,7 +90,7 @@ export default function OfflinePage() {
         </div>
         
         <div className="mt-8 text-center text-xs text-gray-500">
-          <p>Your data is stored locally and will sync when you're back online.</p>
+          <p>Your data is stored locally and will sync when you&apos;re back online.</p>
         </div>
       </main>
     </div>
