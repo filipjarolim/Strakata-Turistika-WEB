@@ -30,8 +30,11 @@ const collections = [
     "VisitData",
 ];
 
+type CollectionGroup = 'users' | 'authentication' | 'content';
+type TabValue = 'all' | CollectionGroup;
+
 // Group collections by category
-const collectionGroups = {
+const collectionGroups: Record<CollectionGroup, string[]> = {
     users: ["User", "Account"],
     authentication: ["VerificationToken", "PasswordResetToken", "TwoFactorToken", "TwoFactorConfirmation"],
     content: ["News", "Season", "VisitData"],
@@ -39,7 +42,7 @@ const collectionGroups = {
 
 const AdminDashboardPage = () => {
     const [search, setSearch] = useState("");
-    const [activeTab, setActiveTab] = useState("all");
+    const [activeTab, setActiveTab] = useState<TabValue>("all");
     
     const filteredCollections = collections.filter((col) =>
         col.toLowerCase().includes(search.toLowerCase())
@@ -48,12 +51,17 @@ const AdminDashboardPage = () => {
     // Collections to display based on active tab
     const displayCollections = activeTab === "all" 
         ? filteredCollections 
-        : filteredCollections.filter(col => collectionGroups[activeTab]?.includes(col));
+        : filteredCollections.filter(col => {
+            if (activeTab in collectionGroups) {
+                return collectionGroups[activeTab as CollectionGroup].includes(col);
+            }
+            return false;
+        });
     
     const noResults = displayCollections.length === 0;
 
     // Get icon for collection
-    const getCollectionIcon = (collection) => {
+    const getCollectionIcon = (collection: string) => {
         if (collectionGroups.users.includes(collection)) return <Users className="h-6 w-6 text-blue-500" />;
         if (collectionGroups.authentication.includes(collection)) return <Settings className="h-6 w-6 text-amber-500" />;
         if (collectionGroups.content.includes(collection)) return <FileText className="h-6 w-6 text-green-500" />;
@@ -73,7 +81,7 @@ const AdminDashboardPage = () => {
                 />
             </div>
 
-            <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="all" value={activeTab} onValueChange={(value: string) => setActiveTab(value as TabValue)} className="w-full">
                 <TabsList className="mb-4">
                     <TabsTrigger value="all">All Collections</TabsTrigger>
                     <TabsTrigger value="users">Users</TabsTrigger>
