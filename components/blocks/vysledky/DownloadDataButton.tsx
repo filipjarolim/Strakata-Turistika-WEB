@@ -1,298 +1,306 @@
-import React from 'react';
-import { Button } from '@/components/ui/button'; // Assume this is the shadcn button
-import { Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Loader2, FileDown } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { VisitData } from './DataTable'; // Data type for visits
+import { Column } from '@tanstack/react-table';
 
 // Helper function to transform data for cumulative sheet - specific for VisitData
-export const transformVisitDataToCumulative = (data: VisitData[]): VisitData[] => {
-    const cumulativeDataMap = new Map<string, VisitData>();
-
-    data.forEach((entry) => {
-        const existingRecord = cumulativeDataMap.get(entry.fullName);
-
-        if (existingRecord) {
-            existingRecord.points += entry.points;
-            existingRecord.visitedPlaces += `, ${entry.visitedPlaces}`;
-        } else {
-            cumulativeDataMap.set(entry.fullName, { ...entry });
+const transformVisitDataToCumulative = (data: VisitData[]) => {
+    const cumulativeData: Record<string, { points: number; visits: number }> = {};
+    
+    data.forEach(visit => {
+        const fullName = visit.fullName;
+        if (!cumulativeData[fullName]) {
+            cumulativeData[fullName] = { points: 0, visits: 0 };
         }
+        cumulativeData[fullName].points += visit.points;
+        cumulativeData[fullName].visits += 1;
     });
-
-    return Array.from(cumulativeDataMap.values());
+    
+    // Transform to array sorted by points (desc)
+    return Object.entries(cumulativeData).map(([fullName, stats]) => ({
+        fullName,
+        totalPoints: stats.points,
+        totalVisits: stats.visits
+    })).sort((a, b) => b.totalPoints - a.totalPoints);
 };
 
-// Helper for consistent cell styling
-const applyCellStyle = (
-    cell: ExcelJS.Cell,
-    options: { fontSize?: number; bold?: boolean; alignment?: Partial<ExcelJS.Alignment>; color?: string; background?: string }
-) => {
-    if (options.fontSize || options.bold) {
-        cell.font = { size: options.fontSize || 11, bold: options.bold || false, color: { argb: options.color || 'FF000000' } };
-    }
-    if (options.alignment) {
-        cell.alignment = options.alignment;
-    }
-    if (options.background) {
-        cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: options.background },
-        };
-    }
+// Helper to get a readable column title
+const getColumnTitle = (columnId: string): string => {
+    const columnMappings: Record<string, string> = {
+        visitDate: 'Datum návštěvy',
+        fullName: 'Jméno',
+        dogName: 'Jméno psa',
+        points: 'Body',
+        visitedPlaces: 'Navštívená místa',
+        dogNotAllowed: 'Psi povoleni',
+        routeLink: 'Odkaz na trasu',
+        year: 'Rok',
+        totalPoints: 'Celkové body',
+        totalVisits: 'Celkový počet návštěv'
+    };
+    
+    return columnMappings[columnId] || columnId;
 };
 
-export type DownloadDataButtonProps<TData extends object> = {
+export interface DownloadDataButtonProps<TData> {
     data: TData[];
-    year: number;
+    columns: Column<TData, unknown>[];
     filename?: string;
     mainSheetName?: string;
     summarySheetName?: string;
-    columnDefinitions?: {
-        header: string;
-        key: string;
-        width?: number;
-    }[];
     generateSummarySheet?: boolean;
-    transformToSummary?: (data: TData[]) => Record<string, unknown>[];
     summaryColumnDefinitions?: {
         header: string;
         key: string;
         width?: number;
     }[];
-};
+}
 
-// Excel download button component
-export function DownloadDataButton<TData extends object>({ 
-    data, 
-    year, 
-    filename = `data-export-${year}`,
-    mainSheetName = 'Detailed Data',
-    summarySheetName = 'Summary Data',
-    columnDefinitions,
+export const DownloadDataButton = <TData extends object>({
+    data,
+    columns,
+    filename = "export",
+    mainSheetName = "Data",
+    summarySheetName = "Summary",
     generateSummarySheet = false,
-    transformToSummary,
-    summaryColumnDefinitions
-}: DownloadDataButtonProps<TData>) {
-    // Default handling for VisitData for backward compatibility
-    const isVisitData = data.length > 0 && 'visitDate' in data[0] && 'fullName' in data[0] && 'points' in data[0];
+    summaryColumnDefinitions = [],
+}: DownloadDataButtonProps<TData>) => {
+    const [isExporting, setIsExporting] = useState(false);
     
     const handleDownload = async () => {
+        try {
+            setIsExporting(true);
+            const workbook = await buildExportData(data);
+            
+            // Convert to binary and save
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `${filename}.xlsx`);
+        } catch (error) {
+            console.error('Export failed:', error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+    
+    // Helper to apply consistent cell styling
+    const applyCellStyle = (cell: ExcelJS.Cell, style: {
+        fontSize?: number;
+        bold?: boolean;
+        alignment?: Partial<ExcelJS.Alignment>;
+        background?: string;
+    }) => {
+        if (style.fontSize) cell.font = { ...(cell.font || {}), size: style.fontSize };
+        if (style.bold) cell.font = { ...(cell.font || {}), bold: style.bold };
+        if (style.alignment) cell.alignment = style.alignment;
+        if (style.background) {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: style.background }
+            };
+        }
+    };
+    
+    const buildExportData = async (exportData: TData[]) => {
+        // Create a new workbook with default properties
         const workbook = new ExcelJS.Workbook();
-
-        // Set workbook metadata
-        workbook.creator = 'Strakataturistika';
+        workbook.creator = 'Strakáčova Turistika';
         workbook.created = new Date();
-
-        /* ----------- Create Detailed Data Sheet ----------- */
+        
+        /* ----------- Create Main Data Sheet ----------- */
         const detailedSheet = workbook.addWorksheet(mainSheetName, {
-            properties: { tabColor: { argb: 'FF4CAF50' } }, // Green Tab
+            properties: { tabColor: { argb: 'FF4CAF50' } } // Green Tab
         });
-
-        // Title and description in the header
+        
+        // Add header row with merged cells for the title
         detailedSheet.mergeCells('A1:H1');
         const mainHeader = detailedSheet.getCell('A1');
-        mainHeader.value = `${mainSheetName} - ${year}`;
+        mainHeader.value = `${mainSheetName} - ${new Date().getFullYear()}`;
         applyCellStyle(mainHeader, { fontSize: 16, bold: true, alignment: { horizontal: 'center' }, background: 'FF4CAF50' });
-
-        detailedSheet.mergeCells('A2:H2');
-        const subHeader = detailedSheet.getCell('A2');
-        subHeader.value = 'This sheet contains detailed information.';
-        applyCellStyle(subHeader, { fontSize: 12, alignment: { horizontal: 'center' }, background: 'FF81C784' }); // Light green
-
-        // Define and use column definitions based on data type
+        
+        // Add a space between title and data
+        detailedSheet.addRow([]);
+        
+        // Determine if we're working with VisitData for backward compatibility
+        const isVisitData = data.length > 0 && 'visitDate' in data[0] && 'fullName' in data[0] && 'points' in data[0];
+        
+        // Set up header row based on the data type
         let headers: string[] = [];
         let dataColumns: { width: number }[] = [];
         
-        if (isVisitData && !columnDefinitions) {
+        if (isVisitData && columns.length === 0) {
             // Default for VisitData for backward compatibility
             headers = [
-                'ID',
-                'Datum návštěvy',
-                'Jméno',
-                'Jméno psa',
-                'Body',
-                'Navštívená místa',
-                'Pes nepovolen',
-                'Odkaz na trasu',
+                'Datum návštěvy',  // Visit Date
+                'Jméno',           // Full Name
+                'Jméno psa',       // Dog Name
+                'Body',            // Points
+                'Navštívená místa', // Visited Places
+                'Psi povoleni',    // Dogs Allowed
+                'Odkaz na trasu'   // Route Link
             ];
             
+            // Configure column widths
             dataColumns = [
-                { width: 10 }, // ID
-                { width: 20 }, // Datum návštěvy (Visit Date)
-                { width: 25 }, // Jméno (Name)
-                { width: 25 }, // Jméno psa (Dog Name)
+                { width: 15 }, // Datum návštěvy (Visit Date)
+                { width: 25 }, // Jméno (Full Name)
+                { width: 20 }, // Jméno psa (Dog Name)
                 { width: 10 }, // Body (Points)
-                { width: 50 }, // Navštívená místa (Visited Places)
-                { width: 20 }, // Pes nepovolen (Dog Not Allowed)
+                { width: 30 }, // Navštívená místa (Visited Places)
+                { width: 15 }, // Psi povoleni (Dogs Allowed)
                 { width: 35 }, // Odkaz na trasu (Route Link)
             ];
-        } else if (columnDefinitions) {
-            headers = columnDefinitions.map(col => col.header);
-            dataColumns = columnDefinitions.map(col => ({ width: col.width || 20 }));
+        } else if (columns.length > 0) {
+            // Use the provided columns
+            headers = columns.map(col => getColumnTitle(col.id as string));
+            dataColumns = columns.map(col => ({ width: 20 }));
         } else {
             // Generate headers from data properties
-            if (data.length > 0) {
-                const firstItem = data[0];
-                headers = Object.keys(firstItem as object);
-                dataColumns = headers.map(() => ({ width: 20 }));
-            }
+            const sampleItem = data[0] || {};
+            headers = Object.keys(sampleItem);
+            dataColumns = headers.map(() => ({ width: 20 }));
         }
-
-        detailedSheet.addRow(headers).eachCell((cell) => {
-            applyCellStyle(cell, {
-                bold: true,
-                alignment: { horizontal: 'center' },
-                background: 'FF4CAF50', // Green
-                color: 'FFFFFFFF', // White text
-            });
+        
+        // Add the headers row
+        const headerRow = detailedSheet.addRow(headers);
+        headerRow.eachCell((cell) => {
+            applyCellStyle(cell, { bold: true, alignment: { horizontal: 'center' }, background: 'FFE8F5E9' });
         });
-
+        
         // Set column widths
-        detailedSheet.columns = dataColumns;
-
+        dataColumns.forEach((col, index) => {
+            const excelColName = String.fromCharCode(65 + index); // A, B, C, etc.
+            detailedSheet.getColumn(excelColName).width = col.width;
+        });
+        
         // Add data under the headers
-        if (isVisitData && !columnDefinitions) {
+        if (isVisitData && columns.length === 0) {
             // Default for VisitData for backward compatibility
             (data as unknown as VisitData[]).forEach((entry) => {
                 detailedSheet.addRow([
-                    entry.id,
-                    entry.visitDate || 'N/A',
+                    entry.visitDate ? new Date(entry.visitDate).toLocaleDateString('cs-CZ') : 'N/A',
                     entry.fullName,
                     entry.dogName || 'N/A',
                     entry.points,
                     entry.visitedPlaces,
-                    entry.dogNotAllowed || 'Ne',
-                    entry.routeLink || 'N/A',
+                    entry.dogNotAllowed ? 'Ne' : 'Ano',
+                    entry.routeLink || 'N/A'
                 ]);
             });
-        } else if (columnDefinitions) {
+        } else if (columns.length > 0) {
+            // Use the provided columns for data extraction
             data.forEach((entry: TData) => {
-                const rowData = columnDefinitions.map(col => {
-                    const value = entry[col.key as keyof TData];
+                const rowData = columns.map(col => {
+                    const value = entry[col.id as keyof TData];
                     return value !== undefined && value !== null ? value : 'N/A';
                 });
                 detailedSheet.addRow(rowData);
             });
         } else {
-            // Generic data handling
+            // Generic handling - just extract all properties
             data.forEach((entry: TData) => {
                 const rowData = Object.values(entry);
                 detailedSheet.addRow(rowData);
             });
         }
-
-        // Apply alternating row background colors for better readability
-        detailedSheet.eachRow((row, rowNumber) => {
-            if (rowNumber > 3) {
-                row.eachCell((cell) => {
-                    applyCellStyle(cell, {
-                        background: rowNumber % 2 === 0 ? 'FFDCEDC8' : 'FFFFFFFF', // Light green for even rows
-                        alignment: { vertical: 'middle' },
-                    });
-                });
-            }
-        });
-
+        
         /* ----------- Create Summary/Cumulative Data Sheet if needed ----------- */
-        if (generateSummarySheet && (transformToSummary || isVisitData)) {
+        if (generateSummarySheet && (isVisitData || summaryColumnDefinitions.length > 0)) {
             const summarySheet = workbook.addWorksheet(summarySheetName, {
                 properties: { tabColor: { argb: 'FF689F38' } }, // Darker Green Tab
             });
-
-            // Title and description in the header
+            
+            // Add header row with merged cells
             summarySheet.mergeCells('A1:C1');
             const cMainHeader = summarySheet.getCell('A1');
-            cMainHeader.value = `${summarySheetName} - ${year}`;
+            cMainHeader.value = `${summarySheetName} - ${new Date().getFullYear()}`;
             applyCellStyle(cMainHeader, { fontSize: 16, bold: true, alignment: { horizontal: 'center' }, background: 'FF81C784' });
-
-            summarySheet.mergeCells('A2:C2');
-            const cSubHeader = summarySheet.getCell('A2');
-            cSubHeader.value = 'This sheet contains summarized information.';
-            applyCellStyle(cSubHeader, { fontSize: 12, alignment: { horizontal: 'center' }, background: 'FFDCEDC8' });
-
-            // Define column headers for summary sheet
-            let summaryHeaders: string[] = [];
-            let summaryColumns: { width: number }[] = [];
             
-            if (isVisitData && !summaryColumnDefinitions) {
+            // Add spacing row
+            summarySheet.addRow([]);
+            
+            // Set up cumulative headers and column widths
+            let cHeaders: string[] = [];
+            let cDataColumns: { width: number }[] = [];
+            
+            if (isVisitData && !summaryColumnDefinitions.length) {
                 // Default for VisitData
-                summaryHeaders = ['Jméno', 'Celkové Body', 'Navštívená místa'];
-                summaryColumns = [
+                cHeaders = ['Jméno', 'Celkové Body', 'Počet Návštěv'];
+                cDataColumns = [
                     { width: 25 }, // Jméno (Name)
                     { width: 15 }, // Celkové Body (Total Points)
-                    { width: 50 }, // Navštívená místa (Visited Places)
+                    { width: 15 }, // Počet Návštěv (Visit Count)
                 ];
-            } else if (summaryColumnDefinitions) {
-                summaryHeaders = summaryColumnDefinitions.map(col => col.header);
-                summaryColumns = summaryColumnDefinitions.map(col => ({ width: col.width || 20 }));
+            } else if (summaryColumnDefinitions.length) {
+                // Use provided summary column definitions
+                cHeaders = summaryColumnDefinitions.map(col => col.header);
+                cDataColumns = summaryColumnDefinitions.map(col => ({ width: col.width || 20 }));
             }
-
-            summarySheet.addRow(summaryHeaders).eachCell((cell) => {
-                applyCellStyle(cell, {
-                    bold: true,
-                    alignment: { horizontal: 'center' },
-                    background: 'FF689F38', // Dark green
-                    color: 'FFFFFFFF', // White text
-                });
+            
+            // Add the cumulative headers row
+            const cHeaderRow = summarySheet.addRow(cHeaders);
+            cHeaderRow.eachCell((cell) => {
+                applyCellStyle(cell, { bold: true, alignment: { horizontal: 'center' }, background: 'FFE8F5E9' });
             });
-
-            // Set column widths
-            summarySheet.columns = summaryColumns;
-
+            
+            // Set column widths for cumulative sheet
+            cDataColumns.forEach((col, index) => {
+                const excelColName = String.fromCharCode(65 + index); // A, B, C, etc.
+                summarySheet.getColumn(excelColName).width = col.width;
+            });
+            
             // Add cumulative data under the headers
-            if (isVisitData && !transformToSummary && !summaryColumnDefinitions) {
+            if (isVisitData && !summaryColumnDefinitions.length) {
                 // Default for VisitData
                 transformVisitDataToCumulative(data as unknown as VisitData[]).forEach((entry) => {
                     summarySheet.addRow([
                         entry.fullName,
-                        entry.points,
-                        entry.visitedPlaces,
+                        entry.totalPoints,
+                        entry.totalVisits
                     ]);
                 });
-            } else if (transformToSummary) {
-                const summaryData = transformToSummary(data);
+            } else if (summaryColumnDefinitions.length) {
+                const summaryData = data.map(entry => {
+                    const summaryEntry: Record<string, unknown> = {};
+                    summaryColumnDefinitions.forEach(col => {
+                        const value = entry[col.key as keyof TData];
+                        summaryEntry[col.key] = value !== undefined && value !== null ? value : 'N/A';
+                    });
+                    return summaryEntry;
+                });
                 
-                if (summaryColumnDefinitions) {
-                    summaryData.forEach((entry: Record<string, unknown>) => {
-                        const rowData = summaryColumnDefinitions.map(col => {
-                            const value = entry[col.key];
-                            return value !== undefined && value !== null ? value : 'N/A';
-                        });
-                        summarySheet.addRow(rowData);
+                summaryData.forEach((entry: Record<string, unknown>) => {
+                    const rowData = summaryColumnDefinitions.map(col => {
+                        const value = entry[col.key];
+                        return value !== undefined && value !== null ? value : 'N/A';
                     });
-                } else {
-                    summaryData.forEach((entry: Record<string, unknown>) => {
-                        const rowData = Object.values(entry);
-                        summarySheet.addRow(rowData);
-                    });
-                }
+                    summarySheet.addRow(rowData);
+                });
             }
-
-            // Apply alternating row background colors
-            summarySheet.eachRow((row, rowNumber) => {
-                if (rowNumber > 3) {
-                    row.eachCell((cell) => {
-                        applyCellStyle(cell, {
-                            background: rowNumber % 2 === 0 ? 'FFF1F8E9' : 'FFFFFFFF', // Light green for even rows
-                            alignment: { vertical: 'middle' },
-                        });
-                    });
-                }
-            });
         }
-
-        /* ----------- Download the Excel File ----------- */
-        const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), `${filename}.xlsx`);
+        
+        return workbook;
     };
-
+    
     return (
         <Button
+            variant="outline"
+            size="sm"
+            disabled={isExporting}
             onClick={handleDownload}
-            className="text-white bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 active:scale-95 px-4 py-2 rounded-lg shadow-md flex items-center gap-2 transition-all duration-150">
-            <Download className="h-5 w-5" /> <span className="font-semibold">Stáhnout Data</span>
+            className="flex items-center gap-2"
+        >
+            {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+                <FileDown className="h-4 w-4" />
+            )}
+            <span>Stáhnout</span>
         </Button>
     );
-}
+};

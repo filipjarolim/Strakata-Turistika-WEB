@@ -7,9 +7,11 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { motion } from 'framer-motion';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SeasonsPage() {
     const [years, setYears] = useState<number[]>([]);
@@ -26,11 +28,14 @@ export default function SeasonsPage() {
                 const res = await fetch('/api/seasons');
                 if (!res.ok) throw new Error('Nepodařilo se načíst sezóny.');
                 const data: number[] = await res.json();
-                setYears(data);
-                setFilteredYears(data);
+                
+                // Sort years in descending order (newest first)
+                const sortedYears = [...data].sort((a, b) => b - a);
+                setYears(sortedYears);
+                setFilteredYears(sortedYears);
 
                 // Save response in IndexedDB for offline use
-                localStorage.setItem('cachedSeasons', JSON.stringify(data));
+                localStorage.setItem('cachedSeasons', JSON.stringify(sortedYears));
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message);
@@ -65,57 +70,99 @@ export default function SeasonsPage() {
         }
     }
 
+    // Animation variants for staggered card appearance
+    const container = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+    
+    const item = {
+        hidden: { y: 20, opacity: 0 },
+        show: { y: 0, opacity: 1 }
+    };
+
     return (
         <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
-            <div className="p-6 space-y-6">
-                <h1 className="text-4xl font-bold text-black/70">Sezóny</h1>
-
-                <Input
-                    placeholder="Hledat podle roku..."
-                    onChange={handleSearch}
-                    className="w-full max-w-md"
-                />
-
-                {isLoading && (
-                    <div className="flex justify-center items-center mt-10">
-                        <motion.div
-                            className="bg-gray-200 rounded-full w-10 h-10"
-                            animate={{ scale: [1, 1.1, 1], opacity: [1, 0.8, 1] }}
-                            transition={{ duration: 0.8, repeat: Infinity }}
-                        />
-                        <span className="ml-3 text-xl text-gray-600">Načítání...</span>
+            <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-bold text-primary">Výsledky dle sezón</h1>
+                        <p className="text-muted-foreground mt-1">Vyberte rok pro zobrazení výsledků</p>
                     </div>
-                )}
+                    
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                            placeholder="Hledat podle roku..."
+                            onChange={handleSearch}
+                            className="pl-10 w-full"
+                        />
+                    </div>
+                </div>
 
                 {error && (
-                    <Alert variant="destructive" className="max-w-md mx-auto">
-                        <span>{error}</span>
+                    <Alert variant="destructive" className="my-4">
+                        <AlertTitle>Chyba</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 )}
 
-                {!isLoading && !error && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {filteredYears.map((year) => (
-                            <motion.div
-                                key={year}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="shadow-md hover:shadow-lg transition-transform"
-                            >
-                                <Link href={`/vysledky/${year}`}>
-                                    <Card>
-                                        <CardHeader className="flex items-center space-x-2">
-                                            <CalendarDays className="w-5 h-5 text-primary" />
-                                            <h2 className="text-lg font-semibold">{year}</h2>
-                                        </CardHeader>
-                                        <CardContent className="text-sm text-gray-600">
-                                            Zobrazit výsledky z roku {year}
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                            </motion.div>
+                {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+                        {Array.from({ length: 8 }).map((_, index) => (
+                            <div key={index} className="h-36">
+                                <Skeleton className="w-full h-full rounded-lg" />
+                            </div>
                         ))}
                     </div>
+                ) : (
+                    <motion.div 
+                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6"
+                        variants={container}
+                        initial="hidden"
+                        animate="show"
+                    >
+                        {filteredYears.length > 0 ? (
+                            filteredYears.map((year, index) => (
+                                <motion.div
+                                    key={year}
+                                    variants={item}
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="transition-all duration-300"
+                                >
+                                    <Link href={`/vysledky/${year}`} className="h-full">
+                                        <Card className="h-full border border-border hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <CalendarDays className="w-5 h-5 text-primary" />
+                                                    <h2 className="text-xl font-bold">{year}</h2>
+                                                </div>
+                                                {year === new Date().getFullYear() && (
+                                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Aktuální</Badge>
+                                                )}
+                                            </CardHeader>
+                                            <CardContent>
+                                                <p className="text-muted-foreground">
+                                                    Výsledky turistické sezóny {year}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </Link>
+                                </motion.div>
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center py-10">
+                                <h3 className="text-lg font-medium">Žádné výsledky</h3>
+                                <p className="text-muted-foreground mt-1">Pro zadaný rok nebyly nalezeny žádné výsledky</p>
+                            </div>
+                        )}
+                    </motion.div>
                 )}
             </div>
         </CommonPageTemplate>

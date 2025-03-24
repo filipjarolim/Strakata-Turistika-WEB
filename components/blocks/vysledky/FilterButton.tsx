@@ -130,134 +130,137 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
     }
 
     return (
-        <Popover modal={false} open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
-                    <span>Filter</span>
-                    <ChevronDown className="h-4 w-4" />
+                    <span>Filtrovat</span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-fit">
-                <Tabs defaultValue="date" value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="w-full mb-4">
-                        {showDateTab && <TabsTrigger value="date">{dateFieldLabel}</TabsTrigger>}
-                        {showNumberTab && <TabsTrigger value="number">{numberFieldLabel}</TabsTrigger>}
-                        {showCustomTab && <TabsTrigger value="custom">{customFilterOptions?.label}</TabsTrigger>}
+            <PopoverContent className="w-[300px] p-0 bg-white" align="end">
+                <div className="p-4 border-b">
+                    <h3 className="font-medium mb-1">Filtry</h3>
+                    <p className="text-sm text-muted-foreground">Vyberte způsob filtrování dat</p>
+                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="w-full grid grid-cols-3 p-1 m-1">
+                        <TabsTrigger value="date" className="text-xs">Datum</TabsTrigger>
+                        <TabsTrigger value="number" className="text-xs">Body</TabsTrigger>
+                        {customFilterOptions && (
+                            <TabsTrigger value="custom" className="text-xs">
+                                {customFilterOptions.label || "Kategorie"}
+                            </TabsTrigger>
+                        )}
                     </TabsList>
-
-                    {/* Date Filter Tab */}
-                    {showDateTab && (
-                        <TabsContent value="date" className="space-y-4 w-fit">
-                            {/* Filter type selection */}
-                            <div>
-                                <Select
-                                    value={filterType}
-                                    onValueChange={(value) => setFilterType(value as "before" | "after" | "between")}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select filter type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="before">Before date</SelectItem>
-                                        <SelectItem value="after">After date</SelectItem>
-                                        <SelectItem value="between">Between dates</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Calendar for date selection */}
-                            <div>
-                                <p className="text-sm text-muted-foreground">
-                                    {filterType === "between" ? "Date range" : "Select date"}
-                                </p>
-                                {filterType === "between" ? (
+                    
+                    <TabsContent value="date" className="p-4 space-y-4">
+                        <div className="space-y-2">
+                            <h4 className="text-sm font-medium">{dateFieldLabel}</h4>
+                            <Select
+                                value={filterType}
+                                onValueChange={(value: "before" | "after" | "between") => 
+                                    setFilterType(value)
+                                }
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Vyberte typ filtru" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="before">Před datem</SelectItem>
+                                    <SelectItem value="after">Po datu</SelectItem>
+                                    <SelectItem value="between">Mezi daty</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            
+                            {filterType === "between" ? (
+                                <div className="rounded-md border p-2">
                                     <Calendar
                                         mode="range"
                                         selected={dateRange}
                                         onSelect={setDateRange}
-                                        defaultMonth={startYear}
-                                        numberOfMonths={2} // Show 2 months for range
-                                        locale={cs} // Localization
+                                        initialFocus
+                                        locale={cs}
+                                        fromYear={year - 10}
+                                        toYear={year + 1}
+                                        defaultMonth={new Date(year, 0)}
                                     />
-                                ) : (
+                                </div>
+                            ) : (
+                                <div className="rounded-md border p-2">
                                     <Calendar
                                         mode="single"
                                         selected={selectedSingleDate}
                                         onSelect={setSelectedSingleDate}
-                                        defaultMonth={startYear}
-                                        numberOfMonths={1} // Single month for before/after
-                                        locale={cs} // Localization
-                                    />
-                                )}
-                            </div>
-                        </TabsContent>
-                    )}
-
-                    {/* Number Filter Tab */}
-                    {showNumberTab && (
-                        <TabsContent value="number" className="space-y-4 w-64">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-sm text-muted-foreground">Min</label>
-                                    <Input
-                                        type="number"
-                                        value={minValue}
-                                        onChange={(e) => setMinValue(e.target.value)}
-                                        placeholder="Min value"
+                                        initialFocus
+                                        locale={cs}
+                                        fromYear={year - 10}
+                                        toYear={year + 1}
+                                        defaultMonth={new Date(year, 0)}
                                     />
                                 </div>
-                                <div>
-                                    <label className="text-sm text-muted-foreground">Max</label>
-                                    <Input
-                                        type="number"
-                                        value={maxValue}
-                                        onChange={(e) => setMaxValue(e.target.value)}
-                                        placeholder="Max value"
-                                    />
-                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="number" className="p-4 space-y-4">
+                        <div className="space-y-2">
+                            <h4 className="text-sm font-medium">{numberFieldLabel}</h4>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="number"
+                                    placeholder="Minimum"
+                                    value={minValue}
+                                    onChange={(e) => setMinValue(e.target.value)}
+                                    className="w-1/2"
+                                />
+                                <span className="text-muted-foreground">–</span>
+                                <Input
+                                    type="number"
+                                    placeholder="Maximum"
+                                    value={maxValue}
+                                    onChange={(e) => setMaxValue(e.target.value)}
+                                    className="w-1/2"
+                                />
                             </div>
-                        </TabsContent>
-                    )}
-
-                    {/* Custom Filter Tab */}
-                    {showCustomTab && customFilterOptions && (
-                        <TabsContent value="custom" className="space-y-4 w-64">
+                        </div>
+                    </TabsContent>
+                    
+                    {customFilterOptions && (
+                        <TabsContent value="custom" className="p-4 space-y-4">
                             <div className="space-y-2">
-                                {customFilterOptions.options.map((option) => (
-                                    <div key={option.value} className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            id={option.value}
-                                            className="mr-2"
-                                            checked={selectedCustomValues.includes(option.value)}
-                                            onChange={() => handleToggleCustomValue(option.value)}
-                                        />
-                                        <label htmlFor={option.value}>{option.label}</label>
-                                    </div>
-                                ))}
+                                <h4 className="text-sm font-medium">{customFilterOptions.label}</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {customFilterOptions.options.map((option) => (
+                                        <Button 
+                                            key={option.value}
+                                            variant={selectedCustomValues.includes(option.value) ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => handleToggleCustomValue(option.value)}
+                                            className="rounded-full"
+                                        >
+                                            {option.label}
+                                        </Button>
+                                    ))}
+                                </div>
                             </div>
                         </TabsContent>
                     )}
-
-                    {/* Footer with Apply and Clear buttons */}
-                    <div className="flex gap-2 mt-4">
-                        <Button
-                            onClick={handleApplyFilter}
-                            disabled={
-                                (activeTab === "date" && filterType === "between" && (!dateRange?.from || !dateRange?.to)) ||
-                                (activeTab === "date" && (filterType === "before" || filterType === "after") && !selectedSingleDate) ||
-                                (activeTab === "number" && !minValue && !maxValue) ||
-                                (activeTab === "custom" && selectedCustomValues.length === 0)
-                            }
-                        >
-                            Apply Filter
-                        </Button>
-                        <Button variant="secondary" onClick={handleClearFilter}>
-                            Clear Filters
-                        </Button>
-                    </div>
                 </Tabs>
+                
+                <div className="border-t p-3 flex justify-between items-center">
+                    <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={handleClearFilter}
+                    >
+                        Vymazat
+                    </Button>
+                    <Button 
+                        onClick={handleApplyFilter}
+                    >
+                        Použít filtr
+                    </Button>
+                </div>
             </PopoverContent>
         </Popover>
     );

@@ -101,9 +101,8 @@ const navConfig: NavConfigType = [
         type: "odkaz",
         title: "Soutěžit",
         icon: Award,
-        href: "/playground",
-        badge: "Nové"
-    },
+        href: "/playground"
+        },
 ];
 
 export const Navbar = () => {
@@ -175,16 +174,6 @@ export const Navbar = () => {
                                         )}
                                         <span>{navItem.title}</span>
                                         {navItem.badge && <StyledBadge type={navItem.badge} className="ml-1" />}
-                                        
-                                        {isActive && (
-                                            <motion.div
-                                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-black/80 rounded-full"
-                                                layoutId="activeNavItem"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ duration: 0.2 }}
-                                            />
-                                        )}
                                     </NavigationMenuLink>
                                 </Link>
                             </NavigationMenuItem>

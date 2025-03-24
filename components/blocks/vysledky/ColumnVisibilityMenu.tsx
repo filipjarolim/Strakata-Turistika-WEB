@@ -5,62 +5,76 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ColumnsIcon } from 'lucide-react';
 import { Column, Table } from '@tanstack/react-table';
 
-interface ColumnVisibilityMenuProps<TData> {
-    table: Table<TData>; // Ensure proper typing of the table
+export interface ColumnVisibilityMenuProps<TData> {
+    table: Table<TData>;
+    isAggregatedView?: boolean;
 }
 
-
-export const ColumnVisibilityMenu = <TData,>({ table }: ColumnVisibilityMenuProps<TData>) => {
+export function ColumnVisibilityMenu<TData>({ 
+    table,
+    isAggregatedView = false
+}: ColumnVisibilityMenuProps<TData>) {
     return (
-        <DropdownMenu modal={false}>
+        <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="ml-auto">
-                    Sloupce <ChevronDown />
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto flex items-center gap-2"
+                >
+                    <ColumnsIcon className="h-4 w-4" />
+                    <span>Sloupce</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                {/* Map over the columns and display their headers */}
+                <DropdownMenuLabel>Zobrazení sloupců</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 {table
                     .getAllColumns()
-                    .filter((column) => column.getCanHide?.())
+                    .filter(
+                        (column) => 
+                            typeof column.accessorFn !== 'undefined' && 
+                            column.getCanHide()
+                    )
                     .map((column) => {
-                        const columnName = extractPlainTextHeader(column, table); // Pass the typed table
                         return (
                             <DropdownMenuCheckboxItem
-                                key={column.id as string}
+                                key={column.id}
                                 className="capitalize"
-                                checked={column.getIsVisible?.()}
-                                onCheckedChange={(value) => column.toggleVisibility?.(value)}
+                                checked={column.getIsVisible()}
+                                onCheckedChange={(value) =>
+                                    column.toggleVisibility(!!value)
+                                }
                             >
-                                {columnName}
+                                {column.id === 'fullName' 
+                                    ? 'Jméno' 
+                                    : column.id === 'visitDate'
+                                    ? 'Datum návštěvy'
+                                    : column.id === 'dogName'
+                                    ? 'Jméno psa'
+                                    : column.id === 'points'
+                                    ? 'Body'
+                                    : column.id === 'visitedPlaces'
+                                    ? 'Navštívená místa'
+                                    : column.id === 'dogNotAllowed'
+                                    ? 'Psi povoleni'
+                                    : column.id === 'routeLink'
+                                    ? 'Odkaz na trasu'
+                                    : column.id}
                             </DropdownMenuCheckboxItem>
                         );
                     })}
-
-
-                {/* Add a divider for better distinction */}
-                <DropdownMenuItem asChild>
-                    <hr className="my-2 border-t border-gray-200" />
-                </DropdownMenuItem>
-
-                {/* Show All Columns Button */}
-                <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() =>
-                        table.getAllColumns().forEach((column) => column.toggleVisibility?.(true))
-                    }
-                >
-                    Zobrazit vše
-                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     );
-};
+}
 
 /**
  * Utility function:
@@ -98,8 +112,6 @@ const extractPlainTextHeader = <TData,>(
 };
 
 /**
- * Helper function to extract plain text from React elements recursively.
- /**
  * Helper function to extract plain text from React elements recursively.
  */
 const extractTextFromReactElement = (element: ReactNode): string => {
