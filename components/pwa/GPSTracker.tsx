@@ -55,7 +55,7 @@ const PopupWrapper = dynamic(
 const ZOOM_LEVEL = 16;
 const MIN_DISTANCE_KM = 0.002;
 const MIN_UPDATE_INTERVAL = 1000;
-const MIN_ACCURACY = 20;
+const MIN_ACCURACY = 35;
 const POSITION_OPTIONS = {
   enableHighAccuracy: true,
   maximumAge: 0,
@@ -67,18 +67,18 @@ const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, 
 
 // Marker Icon Configuration
 const currentPositionIcon = L.icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI0ZGQ0MzMyIgLz48Y2lyY2xlIGN4PSIxMCIgY3k9IjEyIiByPSIyIiBmaWxsPSIjMzMzMzMzIiAvPjxjaXJjbGUgY3g9IjIyIiBjeT0iMTIiIHI9IjIiIGZpbGw9IiMzMzMzMzMiIC8+PGVsbGlwc2UgY3g9IjE2IiBjeT0iMjAiIHJ4PSI2IiByeT0iNCIgZmlsbD0iIzMzMzMzMyIgLz48cGF0aCBmaWxsPSIjMzMzMzMzIiBkPSJNIDYsOCBRIDEwLDMgMTYsNSBRIDIyLDMgMjYsOCBMIDI0LDEwIFEgMjAsNiAxNiw4IFEgMTIsNiA4LDEwIFoiIC8+PC9zdmc+',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjEyMCIgZmlsbD0icmdiYSgwLCAxMjIsIDI1NSwgMC44KSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSI4Ii8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSI2MCIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjMwIiBmaWxsPSIjMDA3YWZmIi8+PC9zdmc+',
   iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -20],
   className: 'animate-pulse custom-marker',
 });
 
 const startPositionIcon = L.icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBmaWxsPSIjRkYwMDAwIiBkPSJNIDQsMjggTCAyOCwyOCBMIDE2LDQgWiIgLz48cmVjdCBmaWxsPSIjRkZGRkZGIiB4PSIxNCIgeT0iMTIiIHdpZHRoPSI0IiBoZWlnaHQ9IjEwIiAvPjxyZWN0IGZpbGw9IiNGRkZGRkYiIHg9IjE0IiB5PSIyNCIgd2lkdGg9IjQiIGhlaWdodD0iMiIgLz48L3N2Zz4=',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32],
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48cGF0aCBmaWxsPSIjNGFkZTgwIiBkPSJNMTkyIDk2YzE3LjcgMCAzMi0xNC4zIDMyLTMycy0xNC4zLTMyLTMyLTMyLTMyIDE0LjMtMzIgMzIgMTQuMyAzMiAzMiAzMnptMCA2NCAzMi0zMiA2NCA2NHY4NmMwIDE0LTktMjMtMjAtMzRsLTQ0LTQ0djI2MmMwIDE0LTkgMjYtMjAgMzRsLTUyLTUyaC0zMEwxMTIgNTAwYy0xMS4xLTcuOC0yMC01MC0yMC02NHYtODZsNjQtNjQgMzYgMzZ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xOTIgNDE0aDMydjMySDE5MnYtMzJ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMTQgMjI1YzQuMSAwIDcuOCAyLjYgOS4zIDYuNWwxNS44IDQwLjljLjUgMS4zLjggMi42LjggNGwuMiAzMy44YzAgOC44LTcuMiAxNi0xNiAxNmgtMzJjLTguOCAwLTE2LTcuMi0xNi0xNmwtLjItMzMuOGMwLTEuNC4zLTIuNy43LTRsMTUuOC00MC45YzEuNS0zLjkgNS4yLTYuNSA5LjMtNi41aDE4LjR6Ii8+PC9zdmc+',
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -42],
 });
 
 // Haversine formula for distance calculation
@@ -150,6 +150,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   
   // Reference for map container element for capturing
   const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Add elevations state
+  const [elevations, setElevations] = useState<number[]>([]);
 
   const calculations = useCallback(() => {
     const distance = (): string => {
@@ -282,6 +285,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     setTotalAscent(0);
     setTotalDescent(0);
     setLastElevation(null);
+    setElevations([]);
     
     try {
       if (document.documentElement.requestFullscreen) {
@@ -298,8 +302,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       (pos) => {
         if (paused) return;
         
-        // Check position accuracy
-        if (pos.coords.accuracy > MIN_ACCURACY) {
+        // Check position accuracy - only warn for very low accuracy
+        if (pos.coords.accuracy > MIN_ACCURACY * 2) {
           toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
           return;
         }
@@ -311,6 +315,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         if (pos.coords.altitude !== null) {
           const currentElevation = pos.coords.altitude;
           setElevation(currentElevation);
+          setElevations(prev => [...prev, currentElevation]);
           
           // Track ascent/descent with accuracy check
           if (lastElevation !== null && pos.coords.altitudeAccuracy && pos.coords.altitudeAccuracy < 10) {
@@ -322,6 +327,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
             }
           }
           setLastElevation(currentElevation);
+        } else {
+          // If no altitude data available, use a placeholder for consistent array sizes
+          setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
         }
         
         // Enhanced speed calculation
@@ -571,6 +579,62 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     toast.success('Track image downloaded');
   }, [mapImage]);
 
+  // Types for gradient path segments
+  interface PathSegment {
+    positions: [number, number][];
+    color: string;
+    weight: number;
+    opacity: number;
+  }
+
+  // Add function to create gradient path
+  const createGradientPath = (
+    positions: [number, number][],
+    elevations: number[]
+  ): PathSegment | PathSegment[] => {
+    // Default to blue line if no elevation data
+    if (!elevations || elevations.length < positions.length) {
+      return {
+        positions,
+        color: '#007aff',
+        weight: 5,
+        opacity: 0.8
+      };
+    }
+    
+    // Create segments with color based on elevation change
+    const segments: PathSegment[] = [];
+    let minElevation = Math.min(...elevations);
+    let maxElevation = Math.max(...elevations);
+    let range = maxElevation - minElevation;
+    
+    if (range === 0) range = 1; // Avoid division by zero
+    
+    for (let i = 1; i < positions.length; i++) {
+      const elev = elevations[i];
+      const normalizedElevation = (elev - minElevation) / range;
+      
+      // Create color gradient: green for low, yellow for mid, red for high elevations
+      let color;
+      if (normalizedElevation < 0.33) {
+        color = '#4caf50'; // Green for lower elevations
+      } else if (normalizedElevation < 0.66) {
+        color = '#ff9800'; // Orange for middle elevations
+      } else {
+        color = '#f44336'; // Red for higher elevations
+      }
+      
+      segments.push({
+        positions: [positions[i-1], positions[i]],
+        color,
+        weight: 5,
+        opacity: 0.8
+      });
+    }
+    
+    return segments;
+  };
+
   // Add before the return statement
   const mobileCss = `
     @media (max-width: 640px) {
@@ -623,7 +687,26 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
     
     .custom-marker {
+      filter: drop-shadow(0px 3px 6px rgba(0, 0, 0, 0.3));
       transition: all 0.3s ease-out;
+    }
+    
+    .leaflet-container {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .leaflet-popup-content {
+      margin: 10px 14px;
+      line-height: 1.5;
+    }
+    
+    .leaflet-popup-tip {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
     }
     
     .stat-icon {
@@ -673,6 +756,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       border-radius: 50%;
       background-color: rgba(34, 197, 94, 0.4);
       animation: pulse 2s infinite;
+    }
+    
+    .map-attribution {
+      background-color: rgba(255, 255, 255, 0.7) !important;
+      border-radius: 4px !important;
+      padding: 2px 5px !important;
+      font-size: 11px !important;
     }
   `;
 
@@ -733,6 +823,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
                   maxZoom={19}
                   minZoom={3}
                   keepBuffer={8}
+                  className="map-tiles"
                 />
               ) : (
                 <TileLayerWrapper 
@@ -741,6 +832,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
                   maxZoom={19}
                   minZoom={3}
                   keepBuffer={8}
+                  className="map-tiles"
                 />
               )}
               
@@ -753,7 +845,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
                 >
                   <PopupWrapper>
                     <div className="text-center">
-                      <div className="font-bold">Start Point</div>
+                      <div className="font-bold text-green-600">Start Point</div>
                       <div className="text-sm text-gray-600">
                         {new Date(startTime || Date.now()).toLocaleTimeString()}
                       </div>
@@ -771,25 +863,80 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
                 >
                   <PopupWrapper>
                     <div className="text-center">
-                      <div className="font-bold">Current Position</div>
-                      <div>Speed: {speed.toFixed(1)} km/h</div>
-                      {elevation !== null && (
-                        <div>Altitude: {elevation.toFixed(0)}m</div>
-                      )}
-                      <div className="text-xs text-gray-600 mt-1">
-                        Accuracy: {positions.length > 0 ? `±${MIN_ACCURACY}m` : 'N/A'}
+                      <div className="font-bold text-blue-600">Current Position</div>
+                      <div className="flex justify-between text-sm">
+                        <span>Speed:</span> 
+                        <span className="font-medium">{speed.toFixed(1)} km/h</span>
                       </div>
+                      {elevation !== null && (
+                        <div className="flex justify-between text-sm">
+                          <span>Altitude:</span>
+                          <span className="font-medium">{elevation.toFixed(0)}m</span>
+                        </div>
+                      )}
                     </div>
                   </PopupWrapper>
                 </MarkerWrapper>
               )}
               
               {/* Track line with gradient color based on elevation */}
-              {positions.length > 1 && (
+              {positions.length > 1 && elevations.length > 0 && (
+                // Use multiple polylines for elevation-based gradient 
+                <>
+                  {/* First add a slightly wider background line for a nice effect */}
+                  <PolylineWrapper
+                    positions={positions}
+                    color="#ffffff"
+                    weight={7}
+                    opacity={0.4}
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                  
+                  {/* Then add the colored segments based on elevation */}
+                  {(() => {
+                    const gradientPath = createGradientPath(positions, elevations);
+                    
+                    if (Array.isArray(gradientPath)) {
+                      // Render individual segments with their own colors
+                      return gradientPath.map((segment, index) => (
+                        <PolylineWrapper
+                          key={index}
+                          positions={segment.positions}
+                          color={segment.color}
+                          weight={segment.weight}
+                          opacity={segment.opacity}
+                          lineCap="round"
+                          lineJoin="round"
+                          dashArray={tracking && !paused ? "10,10" : ""}
+                          className={tracking && !paused ? "animate-dash" : ""}
+                        />
+                      ));
+                    } else {
+                      // Render a single polyline
+                      return (
+                        <PolylineWrapper
+                          positions={gradientPath.positions}
+                          color={gradientPath.color}
+                          weight={gradientPath.weight}
+                          opacity={gradientPath.opacity}
+                          lineCap="round"
+                          lineJoin="round"
+                          dashArray={tracking && !paused ? "10,10" : ""}
+                          className={tracking && !paused ? "animate-dash" : ""}
+                        />
+                      );
+                    }
+                  })()}
+                </>
+              )}
+              
+              {/* Fallback for when there's no elevation data */}
+              {positions.length > 1 && elevations.length === 0 && (
                 <PolylineWrapper
                   positions={positions}
                   color="#007aff"
-                  weight={4}
+                  weight={5}
                   opacity={0.8}
                   lineCap="round"
                   lineJoin="round"
@@ -837,19 +984,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
             <Settings className="h-5 w-5 text-white" />
           </Button>
         </div>
-
-        {/* Warning notification for low accuracy */}
-        {tracking && !paused && (
-          <div 
-            className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20"
-            aria-live="polite"
-          >
-            <div className="bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-sm animate-bounce">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="mobile-small-text">Move in open area for better GPS accuracy</span>
-            </div>
-          </div>
-        )}
 
         {/* Right-Side Controls Card - Desktop */}
         <Card className="absolute top-1/2 right-3 transform -translate-y-1/2 z-10 bg-opacity-95 shadow-lg w-[120px] hidden sm:block">
