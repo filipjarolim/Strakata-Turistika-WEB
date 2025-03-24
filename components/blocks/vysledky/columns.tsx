@@ -15,7 +15,7 @@ const renderSortableHeaderWithText = <TData,>(column: Column<TData, unknown>, la
                 <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 text-muted-foreground/70 cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs shadow-xl rounded-lg border border-border/50">
+                <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground shadow-xl rounded-lg border border-border/50">
                     {tooltip}
                 </TooltipContent>
             </Tooltip>
@@ -43,7 +43,7 @@ const renderIconOnlyHeader = (icon: React.ReactNode, tooltip: string) => (
                 {icon}
             </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs shadow-xl rounded-lg border border-border/50">
+        <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground shadow-xl rounded-lg border border-border/50">
             {tooltip}
         </TooltipContent>
     </Tooltip>
@@ -136,7 +136,7 @@ export const columns: ColumnDef<VisitData>[] = [
                     <TooltipTrigger asChild>
                         <Info className="h-3.5 w-3.5 text-muted-foreground/70 cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs shadow-xl rounded-lg border border-border/50">
+                    <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground shadow-xl rounded-lg border border-border/50">
                         Seznam míst, která byla navštívena. Kliknutím na místo vyhledáte více informací nebo klikněte na + pro zobrazení všech.
                     </TooltipContent>
                 </Tooltip>
@@ -170,7 +170,7 @@ export const columns: ColumnDef<VisitData>[] = [
                             )}
                         </div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs shadow-xl rounded-lg border border-border/50">
+                    <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground shadow-xl rounded-lg border border-border/50">
                         {dogNotAllowed ? 'Psi nejsou na tomto místě povoleni' : 'Psi jsou na tomto místě povoleni'}
                     </TooltipContent>
                 </Tooltip>
@@ -202,7 +202,7 @@ export const columns: ColumnDef<VisitData>[] = [
                                     <LinkIcon className="h-4 w-4 text-primary" />
                                 </a>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs shadow-xl rounded-lg border border-border/50">
+                            <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground shadow-xl rounded-lg border border-border/50">
                                 Otevřít odkaz na trasu v novém okně
                             </TooltipContent>
                         </Tooltip>

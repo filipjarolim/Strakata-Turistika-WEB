@@ -6,7 +6,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogClose,
     DialogFooter,
 } from '@/components/ui/dialog';
 import { MapPin, ExternalLink, Plus, Search, X } from 'lucide-react';
@@ -21,10 +20,12 @@ type VisitedPlacesCellProps = {
 
 export const VisitedPlacesCell: React.FC<VisitedPlacesCellProps> = ({ visitedPlaces }) => {
     // Parse the visited places into an array
-    const placesArray = visitedPlaces
-        ?.split(',')
-        .map((place) => place.trim())
-        .filter((place) => place !== '') || []; // Exclude empty strings
+    const placesArray = useMemo(() => {
+        return visitedPlaces
+            ?.split(',')
+            .map((place) => place.trim())
+            .filter((place) => place !== '') || []; // Exclude empty strings
+    }, [visitedPlaces]);
 
     // State for dialog and search
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,11 +46,10 @@ export const VisitedPlacesCell: React.FC<VisitedPlacesCellProps> = ({ visitedPla
     }, [placesArray, searchQuery]);
 
     // Opening external search in a new tab
-    const handlePlaceClick = (place: string, e: React.MouseEvent) => {
+    const handlePlaceClick = (place: string, e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
         const searchQuery = encodeURIComponent(place);
         window.open(`https://www.google.com/search?q=${searchQuery}`, '_blank');
-        // Don't close dialog to allow exploring multiple places
     }
 
     if (totalPlaces === 0) {
@@ -71,7 +71,7 @@ export const VisitedPlacesCell: React.FC<VisitedPlacesCellProps> = ({ visitedPla
                                 {place}
                             </Badge>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs">
+                        <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground">
                             {place}
                         </TooltipContent>
                     </Tooltip>
@@ -92,14 +92,14 @@ export const VisitedPlacesCell: React.FC<VisitedPlacesCellProps> = ({ visitedPla
                     </DialogTrigger>
                     
                     <DialogContent className="sm:max-w-md max-h-[80vh] overflow-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-xl mb-2">
+                        <DialogHeader className="space-y-2">
+                            <DialogTitle className="flex items-center gap-2 text-xl">
                                 <MapPin className="h-5 w-5 text-primary" />
                                 <span>Navštívená místa ({totalPlaces})</span>
                             </DialogTitle>
                             
                             {/* Search input for places */}
-                            <div className="relative mt-2">
+                            <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                                 <Input
                                     placeholder="Hledat místo..."
@@ -121,7 +121,7 @@ export const VisitedPlacesCell: React.FC<VisitedPlacesCellProps> = ({ visitedPla
                         <div className="mt-4 h-[50vh] sm:h-[40vh] overflow-y-auto pr-1 pb-2">
                             {filteredPlaces.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
-                                    Nenalezena žádná místa pro "{searchQuery}"
+                                    Nenalezena žádná místa pro &quot;{searchQuery}&quot;
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
