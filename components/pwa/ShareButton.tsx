@@ -28,8 +28,8 @@ const ShareButton = ({ variant = 'desktop' }: ShareButtonProps) => {
           url: window.location.href,
         });
       } else if (hasClipboard) {
-        // @ts-ignore - TypeScript doesn't recognize clipboard API
-        await navigator.clipboard.writeText(window.location.href);
+        // Use optional chaining for type safety
+        await navigator.clipboard?.writeText(window.location.href);
         toast.success('Link copied to clipboard!');
       } else {
         toast.error('Sharing not supported on this browser');
