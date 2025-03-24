@@ -81,7 +81,7 @@ export type DataTableProps<TData extends object> = {
     year?: number;
     primarySortColumn?: string;
     primarySortDesc?: boolean;
-    transformToAggregatedView?: (data: TData[]) => TData[];
+    transformToAggregatedView?: (data: TData[]) => TData[] | AggregatedVisitData[];
     filterConfig?: FilterConfig<TData>;
     filename?: string;
     enableDownload?: boolean;
@@ -116,7 +116,7 @@ export type AggregatedVisitData = {
     isAggregated: boolean;
     // Include other fields that might be needed
     year?: number;
-    id?: string;
+    id: string;
 };
 
 // Add this function to transform data for aggregated view - with better typing
@@ -163,7 +163,7 @@ export const transformDataToAggregated = <TData extends { fullName: string; poin
     return Object.values(cumulativeData).map(stats => {
         // Create a new object with required fields to match expected type
         return {
-            id: stats.fullName, // Use name as ID
+            id: stats.fullName, // Use name as ID (now guaranteed to be non-null)
             fullName: stats.fullName,
             points: stats.points,
             visitedPlaces: Array.from(stats.visitedPlaces).join(', '),
