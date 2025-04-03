@@ -94,9 +94,10 @@ export function ServiceWorkerRegistration() {
         '/prihlaseni'
       ];
       
-      if (navigator.serviceWorker.controller) {
+      const controller = navigator.serviceWorker.controller;
+      if (controller) {
         pagesToCache.forEach(url => {
-          navigator.serviceWorker.controller.postMessage({
+          controller.postMessage({
             type: 'CACHE_PAGE',
             url
           });
