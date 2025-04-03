@@ -1,64 +1,32 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { DataTable, VisitData, transformDataToAggregated } from '@/components/blocks/vysledky/DataTable';
 import CommonPageTemplate from '@/components/structure/CommonPageTemplate';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { 
-    DropdownMenu, 
-    DropdownMenuTrigger, 
-    DropdownMenuContent, 
-    DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
-import { useRouter } from "next/navigation";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, CalendarRange, Loader2 } from "lucide-react";
+import { CalendarRange, User, ChevronLeft, Filter, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { columns } from '@/components/blocks/vysledky/columns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 import { fetchWithCache, prefetchApiData } from '@/lib/api-utils';
 
 const YearSelector: React.FC<{ 
     year: number | null; 
     allYears: number[];
     loading: boolean;
-}> = ({ year, allYears, loading }) => {
-    const router = useRouter();
+    onYearChange: (year: number) => void;
+}> = ({ year, allYears, loading, onYearChange }) => {
     const sortedYears = [...allYears].sort((a, b) => b - a);
     
-    const currentIndex = year ? sortedYears.findIndex(y => y === year) : -1;
-    const hasPrevious = currentIndex > 0;
-    const hasNext = currentIndex < sortedYears.length - 1 && currentIndex !== -1;
-    
-    const handleYearChange = (direction: 'next' | 'prev') => {
-        if (!year) return;
-        
-        let newYear: number;
-        if (direction === 'next' && hasNext) {
-            newYear = sortedYears[currentIndex + 1];
-            router.push(`/vysledky/${newYear}`);
-        } else if (direction === 'prev' && hasPrevious) {
-            newYear = sortedYears[currentIndex - 1];
-            router.push(`/vysledky/${newYear}`);
-        }
-    };
-
     return (
         <div className="flex items-center gap-2">
-            <Button
-                variant="outline"
-                size="icon"
-                disabled={!hasPrevious || loading}
-                onClick={() => handleYearChange('prev')}
-                className="h-10 w-10"
-            >
-                <ChevronLeft className="h-5 w-5" />
-            </Button>
-            
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button 
@@ -79,17 +47,24 @@ const YearSelector: React.FC<{
                                     className="flex items-center gap-2"
                                 >
                                     <CalendarRange className="h-4 w-4 text-muted-foreground" />
-                                    <span>{year}</span>
+                                    <span>{year || 'Vše'}</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="center" className="max-h-[300px] overflow-y-auto">
+                    <DropdownMenuItem
+                        key="all"
+                        onClick={() => onYearChange(0)} // 0 represents all years
+                        className={`cursor-pointer ${!year ? 'bg-primary/10 font-medium' : ''}`}
+                    >
+                        Vše
+                    </DropdownMenuItem>
                     {sortedYears.map((yr) => (
                         <DropdownMenuItem
                             key={yr}
-                            onClick={() => router.push(`/vysledky/${yr}`)}
+                            onClick={() => onYearChange(yr)}
                             className={`cursor-pointer ${yr === year ? 'bg-primary/10 font-medium' : ''}`}
                         >
                             {yr}
@@ -97,134 +72,109 @@ const YearSelector: React.FC<{
                     ))}
                 </DropdownMenuContent>
             </DropdownMenu>
-            
-            <Button
-                variant="outline"
-                size="icon"
-                disabled={!hasNext || loading}
-                onClick={() => handleYearChange('next')}
-                className="h-10 w-10"
-            >
-                <ChevronRight className="h-5 w-5" />
-            </Button>
         </div>
     );
 };
 
-const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
+export default function MojeVysledkyPage() {
     const [visitData, setVisitData] = useState<VisitData[]>([]);
     const [allYears, setAllYears] = useState<number[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedYear, setSelectedYear] = useState<number | null>(null);
     const user = useCurrentUser();
     const role = useCurrentRole();
-    const [year, setYear] = useState<number | null>(null);
+    const router = useRouter();
     
-    // New state for pagination
-    const [pagination, setPagination] = useState({
-        totalItems: 0,
-        totalPages: 1,
-        currentPage: 1,
-        pageSize: 100,
-    });
+    // Create a ref for the data fetching to avoid duplicate requests
+    const dataFetchedRef = useRef(false);
     
-    // Add state for lazy loading
-    const [loadingMore, setLoadingMore] = useState(false);
-    
-    // Add state for infinite scroll detection
+    // Add state for lazy loading - user can scroll to see more results
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [displayCount, setDisplayCount] = useState(20);
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
+    const [shouldRender, setShouldRender] = useState(true);
 
-    // Add prefetch effect
+    // Calculate filtered data based on selected year
+    const filteredData = useMemo(() => {
+        if (!visitData) return [];
+        if (selectedYear === null) return visitData;
+        return visitData.filter(item => {
+            const visitYear = item.visitDate 
+                ? new Date(item.visitDate).getFullYear() 
+                : null;
+            return visitYear === selectedYear;
+        });
+    }, [visitData, selectedYear]);
+
+    // Slice the data based on current display count
+    const displayData = useMemo(() => {
+        return filteredData.slice(0, displayCount);
+    }, [filteredData, displayCount]);
+
+    // Add prefetching on first load
     useEffect(() => {
         // Prefetch seasons data
         prefetchApiData(['/api/seasons']);
     }, []);
-
+    
+    // Redirect to login if not authenticated
     useEffect(() => {
-        const fetchData = async () => {
+        if (user === null) {
+            router.push('/prihlaseni?callbackUrl=/vysledky/moje');
+            setShouldRender(false);
+        } else {
+            setShouldRender(true);
+        }
+    }, [user, router]);
+
+    // User data fetching
+    useEffect(() => {
+        // Only run if we should render and data not yet fetched
+        if (!shouldRender || !user || dataFetchedRef.current) return;
+        
+        const fetchUserData = async () => {
             setLoading(true);
             setError(null);
+            dataFetchedRef.current = true;
             
             try {
-                // Fetch all available years using cached API
+                // Fetch all available years using the cached API
                 const years = await fetchWithCache<number[]>('/api/seasons');
                 setAllYears(years);
 
-                // Fetch data for the specified year
-                const { rok } = await params;
-                const yearNum = parseInt(rok);
-                setYear(yearNum);
+                // Get all the user's results at once using the cached API
+                const data = await fetchWithCache<VisitData[]>('/api/user/results');
                 
-                // Use cached API for fetching year data
-                const responseData = await fetchWithCache<{
-                    data: VisitData[],
-                    pagination: {
-                        totalItems: number,
-                        totalPages: number,
-                        currentPage: number,
-                        pageSize: number
-                    }
-                }>(`/api/results/${rok}?page=1&pageSize=100`);
-                
-                setVisitData(responseData.data || []);
-                setPagination(responseData.pagination || {
-                    totalItems: 0,
-                    totalPages: 1,
-                    currentPage: 1,
-                    pageSize: 100,
+                // Sort by date descending for better display
+                const sortedData = [...data].sort((a, b) => {
+                    if (!a.visitDate || !b.visitDate) return 0;
+                    return new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime();
                 });
+                
+                setVisitData(sortedData);
             } catch (error) {
                 console.error(error);
                 setError(error instanceof Error ? error.message : 'Došlo k chybě při načítání dat.');
             } finally {
                 setLoading(false);
+                setIsInitialLoad(false);
             }
         };
 
-        fetchData();
-    }, [params]);
-    
-    // Update loadMoreData to use cached fetch and wrap in useCallback
-    const loadMoreData = useCallback(async () => {
-        if (loadingMore || pagination.currentPage >= pagination.totalPages) return;
-        
-        setLoadingMore(true);
-        
-        try {
-            const nextPage = pagination.currentPage + 1;
-            const { rok } = await params;
-            
-            const responseData = await fetchWithCache<{
-                data: VisitData[],
-                pagination: {
-                    totalItems: number,
-                    totalPages: number,
-                    currentPage: number,
-                    pageSize: number
-                }
-            }>(`/api/results/${rok}?page=${nextPage}&pageSize=${pagination.pageSize}`);
-            
-            // Append the new data to existing data
-            setVisitData(prevData => [...prevData, ...(responseData.data || [])]);
-            
-            // Update pagination information
-            setPagination(responseData.pagination);
-        } catch (error) {
-            console.error('Error loading more data:', error);
-        } finally {
-            setLoadingMore(false);
-        }
-    }, [loadingMore, pagination.currentPage, pagination.totalPages, pagination.pageSize, params]);
+        fetchUserData();
+    }, [user, shouldRender]);
     
     // Set up intersection observer for infinite scrolling
     useEffect(() => {
-        if (!loadMoreRef.current) return;
+        if (!loadMoreRef.current || loading || !shouldRender) return;
         
         observerRef.current = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting) {
-                    loadMoreData();
+                if (entries[0].isIntersecting && displayCount < filteredData.length) {
+                    // Load more items when scrolling to the bottom
+                    setDisplayCount(prev => Math.min(prev + 20, filteredData.length));
                 }
             },
             { threshold: 0.1 }
@@ -237,7 +187,18 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                 observerRef.current.disconnect();
             }
         };
-    }, [loadMoreRef, loadingMore, pagination, loadMoreData]);
+    }, [loadMoreRef, displayCount, filteredData.length, loading, shouldRender]);
+
+    const handleYearChange = (year: number) => {
+        setSelectedYear(year === 0 ? null : year);
+        // Reset display count when changing years
+        setDisplayCount(20);
+    };
+    
+    // Don't render if not authenticated
+    if (!shouldRender) {
+        return null;
+    }
 
     return (
         <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
@@ -249,18 +210,27 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                                 href="/vysledky" 
                                 className="text-sm text-muted-foreground hover:text-primary mb-2 inline-block"
                             >
-                                ← Zpět na přehled sezón
+                                <ChevronLeft className="h-4 w-4 inline-block" /> Zpět na přehled sezón
                             </Link>
-                            <h1 className="text-3xl md:text-4xl font-bold text-primary">
-                                Výsledky sezóny
+                            <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-3">
+                                <User className="h-7 w-7" />
+                                Moje výsledky
                             </h1>
+                            {user?.name && (
+                                <p className="text-muted-foreground mt-1">
+                                    Přehled výsledků pro: <span className="font-medium">{user.name}</span>
+                                </p>
+                            )}
                         </div>
                         
-                        <YearSelector 
-                            year={year} 
-                            allYears={allYears}
-                            loading={loading}
-                        />
+                        <div className="flex items-center gap-2">
+                            <YearSelector 
+                                year={selectedYear} 
+                                allYears={allYears}
+                                loading={loading}
+                                onYearChange={handleYearChange}
+                            />
+                        </div>
                     </div>
                     
                     {error && (
@@ -275,45 +245,45 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                 <TooltipProvider>
                     <div className="bg-card rounded-lg border shadow-sm p-4">
                         <DataTable 
-                            data={visitData} 
+                            data={displayData} 
                             columns={columns}
-                            year={year || new Date().getFullYear()} 
-                            primarySortColumn="points"
+                            year={selectedYear || new Date().getFullYear()} 
+                            primarySortColumn="visitDate"
                             primarySortDesc={true}
                             transformToAggregatedView={transformDataToAggregated}
                             filterConfig={{ 
                                 dateField: 'visitDate',
                                 numberField: 'points'
                             }}
-                            filename={`strakataturistika_vysledky_${year}`}
+                            filename={`moje_vysledky${selectedYear ? '_' + selectedYear : ''}`}
                             enableDownload={true}
-                            enableAggregatedView={true}
+                            enableAggregatedView={!selectedYear}
                             aggregatedViewLabel="Souhrnný přehled"
                             detailedViewLabel="Detailní pohled"
                             enableColumnVisibility={true}
                             enableSearch={true}
-                            excludedColumnsInAggregatedView={['visitDate', 'dogNotAllowed', 'routeLink']}
+                            excludedColumnsInAggregatedView={['visitDate', 'dogNotAllowed', 'routeLink', 'fullName']}
                             mainSheetName="Detailní Data"
                             summarySheetName="Souhrnná Data"
                             generateSummarySheet={true}
                             loading={loading}
-                            emptyStateMessage="Pro tento rok nejsou k dispozici žádné výsledky"
+                            emptyStateMessage={
+                                selectedYear 
+                                    ? `Pro rok ${selectedYear} nemáte žádné výsledky` 
+                                    : "Zatím nemáte žádné výsledky"
+                            }
                         />
                         
-                        {/* Add a load more trigger element that will be observed */}
-                        {!loading && pagination.currentPage < pagination.totalPages && (
+                        {/* Add a load more indicator */}
+                        {!loading && displayCount < filteredData.length && (
                             <div 
                                 ref={loadMoreRef} 
                                 className="w-full mt-4 py-4 flex justify-center"
                             >
-                                {loadingMore ? (
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <p className="text-muted-foreground text-sm">Načítání dalších výsledků...</p>
-                                    </div>
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">Rolujte pro načtení dalších výsledků</p>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <p className="text-muted-foreground text-sm">Načítání dalších výsledků...</p>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -321,6 +291,4 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
             </div>
         </CommonPageTemplate>
     );
-};
-
-export default Page;
+} 

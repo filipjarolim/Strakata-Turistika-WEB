@@ -20,13 +20,13 @@ const CommonPageTemplate = ({
 }) => {
 
     return (
-        <main className={cn("min-h-screen  px-4 sm:px-6 flex flex-col items-start justify-start relative", className)}>
-
-
+        <main className={cn("min-h-screen px-4 sm:px-6 flex flex-col", className)}>
             {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} />}
 
             {/*<StatusBlock />*/}
-            {children}
+            <div className="flex-grow w-full">
+                {children}
+            </div>
 
             {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
 

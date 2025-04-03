@@ -62,6 +62,9 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fadeIn 0.8s ease-out forwards;
+  --animate-slide-up: slideUp 0.5s ease-out forwards;
+  --animate-slide-down: slideDown 0.5s ease-out forwards;
 
   @keyframes accordion-down {
     from {
@@ -77,6 +80,34 @@
     }
     to {
       height: 0;
+    }
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes slideDown {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(100%);
+      opacity: 0;
     }
   }
 }
@@ -102,6 +133,38 @@
 @layer utilities {
   body {
     font-family: Arial, Helvetica, sans-serif;
+  }
+  
+  .animate-fadeIn {
+    animation: var(--animate-fade-in);
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+  
+  .animate-slideDown {
+    animation: slideDown 0.5s ease-out forwards;
+  }
+  
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .animation-delay-600 {
+    animation-delay: 600ms;
+  }
+  
+  .animation-delay-900 {
+    animation-delay: 900ms;
+  }
+  
+  .animation-delay-1200 {
+    animation-delay: 1200ms;
+  }
+  
+  .animation-delay-1500 {
+    animation-delay: 1500ms;
   }
 }
 
@@ -215,5 +278,30 @@ body {
 
 .hamburger.open span:nth-child(2) {
   transform: translateY(-5px) rotate(-45deg);
+}
+
+/* Create a smooth scroll with offset for anchor links */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-bottom: 200px; /* Adjust based on your footer height */
+}
+
+/* Footer gradient animation */
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.footer-gradient {
+  background: linear-gradient(90deg, #fbbf24, #f87171, #fbbf24);
+  background-size: 200% 200%;
+  animation: gradientFlow 15s ease infinite;
 }
 

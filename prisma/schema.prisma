@@ -29,6 +29,7 @@ model User {
   accounts              Account[]
   isTwoFactorEnabled    Boolean                @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
+  visitData             VisitData[]            @relation("UserVisitData")
 }
 
 model Account {
@@ -110,7 +111,13 @@ model VisitData {
   routeLink     String?
   year          Int       @map("seasonYear") // This remains for simplified queries
   extraPoints   Json
+  createdAt     DateTime  @default(now())
 
+  // Relation to Season
   seasonId String?
   season   Season? @relation("SeasonVisitData", fields: [seasonId], references: [id], onDelete: Cascade)
+  
+  // Relation to User
+  userId   String?
+  user     User?   @relation("UserVisitData", fields: [userId], references: [id], onDelete: SetNull)
 }

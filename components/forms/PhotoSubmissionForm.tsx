@@ -146,7 +146,7 @@ export const PhotoSubmissionForm = () => {
               </FormControl>
               <FormDescription>
                 K fotce je potřeba doplnit: Jméno majitele + psa (oficiální i volací), 
-                datum, název místa. Pokud je místo "vícebodové", napište všechny možnosti.
+                datum, název místa. Pokud je místo &quot;vícebodové&quot;, napište všechny možnosti.
               </FormDescription>
               <FormMessage />
             </FormItem>

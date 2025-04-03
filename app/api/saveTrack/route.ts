@@ -1,8 +1,20 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { currentUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    // Get the current authenticated user
+    const user = await currentUser();
+    
+    // If no user is authenticated, return an error
+    if (!user) {
+      return NextResponse.json(
+        { message: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
+    }
+
     const { 
       season, 
       image, 
@@ -34,27 +46,35 @@ export async function POST(request: Request) {
       });
     }
 
+    // Use the authenticated user's name or fallback to the provided fullName
+    const displayName = user.name || fullName || "Anonymous User";
+
     // Create a new VisitData record.
     // Set visitDate to the current date and use the provided fullName.
+    // Store the userId in the extraPoints JSON object as a temporary solution
     const track = await db.visitData.create({
       data: {
         visitDate: new Date(),
-        fullName: fullName,        // Now set to the logged user's username.
+        fullName: displayName,
         visitedPlaces: "ahoj",     // Placeholder value.
         points: 0,
         routeLink: image,          // Captured image data.
         year: season,
         extraPoints: {
+          // Store the track data
           distance: parseFloat(distance),
           elapsedTime: parseInt(elapsedTime),
           averageSpeed: parseFloat(averageSpeed),
           maxSpeed: maxSpeed ? parseFloat(maxSpeed) : undefined,
           totalAscent: totalAscent ? parseFloat(totalAscent) : undefined, 
-          totalDescent: totalDescent ? parseFloat(totalDescent) : undefined
+          totalDescent: totalDescent ? parseFloat(totalDescent) : undefined,
+          // Store the user ID as a temporary solution
+          userId: user.id
         },
+        // Connect to the season
         season: {
           connect: { id: seasonRecord.id },
-        },
+        }
       },
     });
 

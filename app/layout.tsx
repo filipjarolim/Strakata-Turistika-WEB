@@ -5,8 +5,8 @@ import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
-
-
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import OfflineIndicator from "@/components/ui/OfflineIndicator";
 
 import { Toaster } from "@/components/ui/toaster"
 
@@ -214,19 +214,19 @@ export const viewport: Viewport = {
 
 const myFont = localFont({ src: "../assets/fonts/SF-Pro.ttf" });
 
-
 export default async function RootLayout({ children }: { children: ReactNode }) {
     const session = await auth();
 
     return (
-        <SessionProvider session={session}>
-            <html lang="en" suppressHydrationWarning>
+        <html lang="cs" suppressHydrationWarning>
             <body className={myFont.className}>
-            {children}
-            <Toaster />
-
+                <SessionProvider session={session}>
+                    <ServiceWorkerRegistration />
+                    {children}
+                    <OfflineIndicator />
+                    <Toaster />
+                </SessionProvider>
             </body>
-            </html>
-        </SessionProvider>
+        </html>
     );
 }

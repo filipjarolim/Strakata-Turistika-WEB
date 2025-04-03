@@ -11,7 +11,7 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
     /** @type {import("next").NextConfig} */
     const nextConfig = {
         images: {
-            domains: ["cdn.discordapp.com", "lh3.googleusercontent.com"],
+            domains: ["cdn.discordapp.com", "lh3.googleusercontent.com", "images.unsplash.com"],
         }
     };
 
