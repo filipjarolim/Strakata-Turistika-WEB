@@ -4,15 +4,16 @@
  * and intelligent caching strategies
  */
 
-import { defaultCache } from '@serwist/next/worker';
-import type { 
-  PrecacheEntry, 
-  SerwistGlobalConfig, 
-  RouteHandler, 
-  Strategy,
-  RuntimeCaching
+import { 
+  Serwist,
+  type RouteHandlerObject,
+  type PrecacheEntry, 
+  type SerwistGlobalConfig, 
+  type RouteHandler, 
+  type Strategy,
+  type RuntimeCaching
 } from 'serwist';
-import { Serwist } from 'serwist';
+import { defaultCache } from '@serwist/next/worker';
 
 declare global {
     interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -144,14 +145,25 @@ const syncQueue: Array<{url: string, method: string, body: any, timestamp: numbe
 // SERWIST CONFIGURATION
 // =============================================================================
 
+interface HandlerContext {
+    request: Request;
+    event?: FetchEvent;
+}
+
 // Configure caching strategies for different types of resources
 const runtimeCachingOptions = [
     ...defaultCache,
     {
         urlPattern: /^https:\/\/(?:tile\.openstreetmap\.org|server\.arcgisonline\.com|tile\.opentopomap\.org)/i,
-    handler: 'CacheFirst' as RouteHandler,
+        handler: {
+            handle: async ({ request }: HandlerContext): Promise<Response> => {
+                const cache = await caches.open(CACHE_NAMES.MAP_TILES);
+                const response = await cache.match(request);
+                return response || fetch(request);
+            }
+        },
         options: {
-      cacheName: CACHE_NAMES.MAP_TILES,
+            cacheName: CACHE_NAMES.MAP_TILES,
             expiration: {
                 maxEntries: 500,
                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
@@ -163,9 +175,22 @@ const runtimeCachingOptions = [
     },
     {
         urlPattern: /\/api\//,
-    handler: 'NetworkFirst' as RouteHandler,
+        handler: {
+            handle: async ({ request }: HandlerContext): Promise<Response> => {
+                try {
+                    return await fetch(request);
+                } catch (error) {
+                    const cache = await caches.open(CACHE_NAMES.API);
+                    const response = await cache.match(request);
+                    if (!response) {
+                        throw new Error('No cached response available');
+                    }
+                    return response;
+                }
+            }
+        },
         options: {
-      cacheName: CACHE_NAMES.API,
+            cacheName: CACHE_NAMES.API,
             expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 24 * 60 * 60, // 1 day
@@ -175,13 +200,26 @@ const runtimeCachingOptions = [
     },
     {
         urlPattern: ({ request }: { request: Request }) => 
-      request.destination === 'style' || 
-      request.destination === 'script' || 
-      request.destination === 'font' ||
-      request.destination === 'image',
-    handler: 'StaleWhileRevalidate' as RouteHandler,
+            request.destination === 'style' || 
+            request.destination === 'script' || 
+            request.destination === 'font' ||
+            request.destination === 'image',
+        handler: {
+            handle: async ({ request }: HandlerContext): Promise<Response> => {
+                const cache = await caches.open(CACHE_NAMES.STATIC);
+                const response = await cache.match(request);
+                
+                const fetchAndCache = async () => {
+                    const networkResponse = await fetch(request);
+                    await cache.put(request, networkResponse.clone());
+                    return networkResponse;
+                };
+                
+                return response || fetchAndCache();
+            }
+        },
         options: {
-      cacheName: CACHE_NAMES.STATIC,
+            cacheName: CACHE_NAMES.STATIC,
             expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
@@ -770,7 +808,7 @@ async function closePersistentNotification(tag: string): Promise<void> {
 async function notifyClientsAboutCachedResources(): Promise<void> {
   try {
     // Get all cached API endpoints
-    const apiEndpoints = [];
+    const apiEndpoints: string[] = [];
     
     for (const cacheName of [CACHE_NAMES.API, CACHE_NAMES.RESULTS, CACHE_NAMES.USER]) {
       const cache = await caches.open(cacheName);
