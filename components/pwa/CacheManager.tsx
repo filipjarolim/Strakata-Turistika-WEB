@@ -151,7 +151,7 @@ export function CacheManager() {
 
       <p className="text-sm text-muted-foreground">
         Cache pages and assets for offline use. The Playground will be fully functional offline,
-        including GPS tracking. Data will sync when you're back online.
+        including GPS tracking. Data will sync when you&apos;re back online.
       </p>
     </div>
   );
