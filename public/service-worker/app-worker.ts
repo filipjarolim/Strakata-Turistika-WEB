@@ -423,15 +423,15 @@ async function handleSeasonsRequest(request: Request): Promise<Response> {
   
   // Check if we have a valid cached response
   const cachedResponse = await getValidCachedResponse(request, cacheName, maxAge);
-  if (cachedResponse) {
+                if (cachedResponse) {
     // Background refresh if it's been a while
     const refreshThreshold = refreshTimestamps.get(request.url) || 0;
     if (Date.now() - refreshThreshold > CACHE_TTL.BACKGROUND_REFRESH) {
       backgroundRefresh(request, cacheName);
     }
-    return cachedResponse;
-  }
-  
+                    return cachedResponse;
+                }
+                
   try {
     // Fetch fresh data from network
     const networkResponse = await fetchWithTimeout(request, NETWORK_TIMEOUT);
@@ -1251,16 +1251,16 @@ async function handleManualCaching(pages: string[], assets: string[]): Promise<v
   
   // Helper function to update progress
   const updateProgress = () => {
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
+            self.clients.matchAll().then(clients => {
+                clients.forEach(client => {
         client.postMessage({
           type: 'CACHE_PROGRESS',
           cached,
           total,
           pages: progress
+                });
+            });
         });
-      });
-    });
   };
 
   // Cache pages first
@@ -1288,5 +1288,5 @@ async function handleManualCaching(pages: string[], assets: string[]): Promise<v
         type: 'CACHE_COMPLETE'
       });
     });
-  });
+    });
 }
