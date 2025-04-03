@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowPathIcon, WifiIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { RotateCw, Wifi, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -89,7 +89,7 @@ export default function OfflinePage() {
           </div>
         </div>
         
-        <ExclamationTriangleIcon className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+        <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
         
         <h1 className="text-2xl font-bold mb-2">Jste offline</h1>
         
@@ -105,12 +105,12 @@ export default function OfflinePage() {
         >
           {isCheckingConnection ? (
             <>
-              <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+              <RotateCw className="h-5 w-5 mr-2 animate-spin" />
               Kontroluji připojení...
             </>
           ) : (
             <>
-              <WifiIcon className="h-5 w-5 mr-2" />
+              <Wifi className="h-5 w-5 mr-2" />
               Zkusit znovu
             </>
           )}

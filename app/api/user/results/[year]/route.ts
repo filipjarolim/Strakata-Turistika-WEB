@@ -16,6 +16,19 @@ interface ExtraPoints {
     [key: string]: unknown;
 }
 
+interface VisitData {
+    id: string;
+    visitDate: Date;
+    fullName: string;
+    dogName: string;
+    points: number;
+    visitedPlaces: string[];
+    dogNotAllowed: boolean;
+    routeLink: string | null;
+    year: number;
+    extraPoints: ExtraPoints;
+}
+
 export async function GET(request: Request, { params }: { params: tParams }) {
     try {
         // Get the current authenticated user
@@ -76,11 +89,11 @@ export async function GET(request: Request, { params }: { params: tParams }) {
                 extraPoints: true
             },
             orderBy: { visitDate: 'desc' }
-        });
+        }) as VisitData[];
 
         // Create a more efficient filter - first check if we can filter by name
         // as it's faster than parsing JSON
-        let userYearVisitData = [];
+        let userYearVisitData: VisitData[] = [];
         
         if (user.name) {
             // First pass - filter by name (faster)

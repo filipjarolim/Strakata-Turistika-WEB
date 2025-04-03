@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { WifiOffIcon } from '@heroicons/react/24/solid';
+import { WifiOff, Check } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 /**
@@ -89,14 +89,12 @@ export default function OfflineIndicator() {
     >
       {isOffline ? (
         <>
-          <WifiOffIcon className="h-4 w-4" />
+          <WifiOff className="h-4 w-4" />
           <span className="text-sm font-medium">Jste offline</span>
         </>
       ) : (
         <>
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+          <Check className="h-4 w-4" />
           <span className="text-sm font-medium">Připojení obnoveno</span>
         </>
       )}
