@@ -176,11 +176,13 @@ export async function isUrlCached(url: string): Promise<boolean> {
     if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
       return false;
     }
+
+    const controller = navigator.serviceWorker.controller;
     
-    // Create a message channel to get a response from the service worker
-    const messageChannel = new MessageChannel();
-    
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
+      // Create a message channel to communicate with the service worker
+      const messageChannel = new MessageChannel();
+      
       // Set up the message handler
       messageChannel.port1.onmessage = (event) => {
         if (event.data && typeof event.data.isCached === 'boolean') {
@@ -191,7 +193,7 @@ export async function isUrlCached(url: string): Promise<boolean> {
       };
       
       // Ask the service worker if the URL is cached
-      navigator.serviceWorker.controller.postMessage(
+      controller.postMessage(
         { type: 'IS_URL_CACHED', url },
         [messageChannel.port2]
       );
