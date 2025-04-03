@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
+
+type JsonValue = Prisma.JsonValue;
 
 // Cache expiration time (5 minutes)
 const CACHE_TTL = 5 * 60 * 1000;
@@ -13,6 +15,19 @@ interface ExtraPoints {
     reason?: string;
     amount?: number;
     [key: string]: unknown;
+}
+
+interface VisitData {
+    id: string;
+    visitDate: Date | null;
+    fullName: string;
+    dogName: string | null;
+    points: number;
+    visitedPlaces: string;
+    dogNotAllowed: boolean | null;
+    routeLink: string | null;
+    year: number;
+    extraPoints: JsonValue;
 }
 
 export async function GET() {
@@ -51,11 +66,10 @@ export async function GET() {
                 year: true,
                 extraPoints: true
             }
-        });
+        }) as VisitData[];
 
         // Create a more efficient filter - first check if we can filter by name
-        // as it's faster than parsing JSON
-        let userVisitData = [];
+        let userVisitData: VisitData[] = [];
         
         if (user.name) {
             // First pass - filter by name (faster)
