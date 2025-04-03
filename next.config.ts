@@ -22,6 +22,33 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
             swSrc: "public/service-worker/app-worker.ts",
             swDest: "public/sw.js",
             reloadOnOnline: true,
+            swUrl: "/sw.js",
+            injectionPoint: 'self.__SW_MANIFEST',
+            disable: process.env.NODE_ENV === 'development',
+            additionalPrecacheEntries: [
+                { url: '/', revision: Date.now().toString() },
+                { url: '/playground', revision: Date.now().toString() },
+                { url: '/pravidla', revision: Date.now().toString() },
+                { url: '/vysledky', revision: Date.now().toString() },
+                { url: '/offline', revision: Date.now().toString() },
+                { url: '/login', revision: Date.now().toString() },
+                { url: '/profile', revision: Date.now().toString() },
+                { url: '/prihlaseni', revision: Date.now().toString() },
+                { url: '/icons/icon-192x192.png', revision: Date.now().toString() },
+                { url: '/icons/icon-512x512.png', revision: Date.now().toString() },
+                { url: '/icons/dog_emoji.png', revision: Date.now().toString() },
+                { url: '/manifest.json', revision: Date.now().toString() },
+                { url: '/favicon.ico', revision: Date.now().toString() }
+            ],
+            fallbacks: {
+                entries: [
+                    {
+                        url: '/offline',
+                        revision: Date.now().toString(),
+                        matcher: 'document'
+                    }
+                ]
+            }
         })(nextConfig);
     }
 

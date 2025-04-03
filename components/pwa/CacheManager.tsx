@@ -65,7 +65,7 @@ export function CacheManager() {
         
         // First, check if the service worker file exists
         try {
-          const swResponse = await fetch('/sw.js');
+          const swResponse = await fetch('/sw-basic.js');
           if (!swResponse.ok) {
             console.error('Service worker file not found or not accessible');
             setServiceWorkerState(ServiceWorkerState.FAILED);
@@ -87,7 +87,7 @@ export function CacheManager() {
           }
         } else {
           // Try to register service worker
-          await navigator.serviceWorker.register('/sw.js', {
+          await navigator.serviceWorker.register('/sw-basic.js', {
             scope: '/'
           });
           setServiceWorkerState(ServiceWorkerState.REGISTERED);
@@ -212,7 +212,7 @@ export function CacheManager() {
           <div className="text-sm text-red-500 mt-2 p-2 bg-red-50 rounded-md">
             Service worker registration failed. This can happen if:
             <ul className="list-disc pl-5 mt-1">
-              <li>The service worker script doesn&apos;t exist at /sw.js</li>
+              <li>The service worker script doesn&apos;t exist at /sw-basic.js</li>
               <li>There are errors in the service worker code</li>
               <li>You need to build the application with `npm run build`</li>
             </ul>
