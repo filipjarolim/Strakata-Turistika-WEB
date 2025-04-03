@@ -212,7 +212,7 @@ export function CacheManager() {
           <div className="text-sm text-red-500 mt-2 p-2 bg-red-50 rounded-md">
             Service worker registration failed. This can happen if:
             <ul className="list-disc pl-5 mt-1">
-              <li>The service worker script doesn't exist at /sw.js</li>
+              <li>The service worker script doesn&apos;t exist at /sw.js</li>
               <li>There are errors in the service worker code</li>
               <li>You need to build the application with `npm run build`</li>
             </ul>
