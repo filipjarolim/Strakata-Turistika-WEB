@@ -63,6 +63,20 @@ export function CacheManager() {
 
         setServiceWorkerState(ServiceWorkerState.REGISTERING);
         
+        // First, check if the service worker file exists
+        try {
+          const swResponse = await fetch('/sw.js');
+          if (!swResponse.ok) {
+            console.error('Service worker file not found or not accessible');
+            setServiceWorkerState(ServiceWorkerState.FAILED);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to check service worker file:', error);
+          setServiceWorkerState(ServiceWorkerState.FAILED);
+          return;
+        }
+        
         const registrations = await navigator.serviceWorker.getRegistrations();
         if (registrations.length > 0) {
           // Service worker is registered
@@ -73,7 +87,9 @@ export function CacheManager() {
           }
         } else {
           // Try to register service worker
-          await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+          });
           setServiceWorkerState(ServiceWorkerState.REGISTERED);
         }
       } catch (error) {
@@ -191,6 +207,17 @@ export function CacheManager() {
             {serviceWorkerState === ServiceWorkerState.FAILED && "Failed"}
           </span>
         </div>
+        
+        {serviceWorkerState === ServiceWorkerState.FAILED && (
+          <div className="text-sm text-red-500 mt-2 p-2 bg-red-50 rounded-md">
+            Service worker registration failed. This can happen if:
+            <ul className="list-disc pl-5 mt-1">
+              <li>The service worker script doesn't exist at /sw.js</li>
+              <li>There are errors in the service worker code</li>
+              <li>You need to build the application with `npm run build`</li>
+            </ul>
+          </div>
+        )}
         
         {serviceWorkerState === ServiceWorkerState.REGISTERED && (
           <Button 
