@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { BookmarkIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import { Bookmark } from 'lucide-react';
 import { isUrlCached } from '@/lib/offline-utils';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 
@@ -121,9 +120,9 @@ export default function OfflineSaveButton({
       aria-label={isSaved ? 'Stránka je již uložená pro offline použití' : 'Uložit pro offline použití'}
     >
       {isSaved ? (
-        <BookmarkSolidIcon className="h-5 w-5" />
+        <Bookmark className="h-5 w-5 fill-current" />
       ) : (
-        <BookmarkIcon className={`h-5 w-5 ${isSaving ? 'animate-pulse' : ''}`} />
+        <Bookmark className={`h-5 w-5 ${isSaving ? 'animate-pulse' : ''}`} />
       )}
       
       {!iconOnly && (
