@@ -24,7 +24,7 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
             reloadOnOnline: true,
             swUrl: "/sw.js",
             injectionPoint: 'self.__SW_MANIFEST',
-            disable: process.env.NODE_ENV === 'development',
+            disable: true,
             additionalPrecacheEntries: [
                 { url: '/', revision: Date.now().toString() },
                 { url: '/playground', revision: Date.now().toString() },

@@ -4,7 +4,7 @@
 
 import { Serwist } from 'serwist';
 import { defaultCache } from '@serwist/next/worker';
-import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
+import type { PrecacheEntry, SerwistGlobalConfig, RuntimeCaching, RouteHandler } from 'serwist';
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -32,8 +32,8 @@ const serwist = new Serwist({
   runtimeCaching: [
     ...defaultCache,
     {
-      urlPattern: /^https:\/\/(?:tile\.openstreetmap\.org|server\.arcgisonline\.com|tile\.opentopomap\.org)/i,
-      handler: 'CacheFirst',
+      urlPattern: new RegExp('^https://(tile\\.openstreetmap\\.org|server\\.arcgisonline\\.com|tile\\.opentopomap\\.org)'),
+      handler: ('CacheFirst' as unknown) as RouteHandler,
       options: {
         cacheName: CACHE_NAMES.MAP_TILES,
         expiration: {
@@ -46,8 +46,8 @@ const serwist = new Serwist({
       },
     },
     {
-      urlPattern: /\/api\//,
-      handler: 'NetworkFirst',
+      urlPattern: new RegExp('/api/'),
+      handler: ('NetworkFirst' as unknown) as RouteHandler,
       options: {
         cacheName: CACHE_NAMES.API,
         expiration: {
@@ -58,10 +58,9 @@ const serwist = new Serwist({
       },
     },
     {
-      urlPattern: ({ request }) => {
-        return ['style', 'script', 'font', 'image'].includes(request.destination);
-      },
-      handler: 'StaleWhileRevalidate',
+      urlPattern: ({ request }: { request: Request }) => 
+        ['style', 'script', 'font', 'image'].includes(request.destination),
+      handler: ('StaleWhileRevalidate' as unknown) as RouteHandler,
       options: {
         cacheName: CACHE_NAMES.STATIC,
         expiration: {
@@ -70,12 +69,11 @@ const serwist = new Serwist({
         },
       },
     },
-  ],
+  ] as RuntimeCaching[],
   fallbacks: {
     entries: [{
       url: '/offline',
-      revision: '1',
-      matcher: ({request}) => request.destination === 'document'
+      matcher: ({request}: {request: Request}) => request.destination === 'document'
     }]
   }
 });
@@ -104,7 +102,8 @@ async function cacheUrl(url: string, cacheName = CACHE_NAMES.DYNAMIC): Promise<b
 async function handleManualCaching(pages: string[], assets: string[]): Promise<void> {
   let cached = 0;
   const total = pages.length + assets.length;
-  const progress = pages.map(url => ({ url, status: 'pending' as const }));
+  const progress: Array<{ url: string; status: 'pending' | 'cached' | 'error' }> = 
+    pages.map(url => ({ url, status: 'pending' }));
   
   // Helper function to update progress
   const updateProgress = () => {
