@@ -1184,6 +1184,11 @@ self.addEventListener('message', (event) => {
       ]));
     }
   }
+
+  // Handle manual caching request
+  if (event.data && event.data.type === 'START_CACHING') {
+    event.waitUntil(handleManualCaching(event.data.pages, event.data.assets));
+  }
 });
 
 // =============================================================================
@@ -1210,3 +1215,78 @@ setInterval(() => {
     console.error('Failed to clean up caches:', error);
   });
 }, 24 * 60 * 60 * 1000);
+
+// Add this after the CACHE_NAMES definition
+interface CacheProgress {
+  url: string;
+  status: 'pending' | 'cached' | 'error';
+}
+
+/**
+ * Cache a specific URL and update progress
+ */
+async function cacheUrl(url: string, cacheName: string = CACHE_NAMES.DYNAMIC): Promise<boolean> {
+  try {
+    const cache = await caches.open(cacheName);
+    const response = await fetch(new Request(url, { cache: 'reload' }));
+    
+    if (response.status === 200) {
+      await cache.put(url, response);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error(`Failed to cache ${url}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Handle manual caching request from the client
+ */
+async function handleManualCaching(pages: string[], assets: string[]): Promise<void> {
+  let cached = 0;
+  const total = pages.length + assets.length;
+  const progress: CacheProgress[] = pages.map(url => ({ url, status: 'pending' }));
+  
+  // Helper function to update progress
+  const updateProgress = () => {
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'CACHE_PROGRESS',
+          cached,
+          total,
+          pages: progress
+        });
+      });
+    });
+  };
+
+  // Cache pages first
+  for (const url of pages) {
+    const success = await cacheUrl(url);
+    const pageProgress = progress.find(p => p.url === url);
+    if (pageProgress) {
+      pageProgress.status = success ? 'cached' : 'error';
+    }
+    if (success) cached++;
+    updateProgress();
+  }
+
+  // Then cache assets
+  for (const asset of assets) {
+    const success = await cacheUrl(asset);
+    if (success) cached++;
+    updateProgress();
+  }
+
+  // Notify completion
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'CACHE_COMPLETE'
+      });
+    });
+  });
+}
