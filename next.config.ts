@@ -39,16 +39,7 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
                 { url: '/icons/dog_emoji.png', revision: Date.now().toString() },
                 { url: '/manifest.json', revision: Date.now().toString() },
                 { url: '/favicon.ico', revision: Date.now().toString() }
-            ],
-            fallbacks: {
-                entries: [
-                    {
-                        url: '/offline',
-                        revision: Date.now().toString(),
-                        matcher: 'document'
-                    }
-                ]
-            }
+            ]
         })(nextConfig);
     }
 
