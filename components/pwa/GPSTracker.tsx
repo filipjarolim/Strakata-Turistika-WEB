@@ -793,24 +793,17 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   const storeDataForOfflineSync = async (trackData: TrackData): Promise<boolean> => {
     // Store the data in cache storage via the service worker
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      // Save pending track data
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SAVE_FOR_OFFLINE',
-        url: '/pending-gps-data',
-        data: trackData
-      });
-      
-      // Register for background sync if supported
-      if ('sync' in navigator.serviceWorker) {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.sync.register('sync-gps-data');
-        } catch (err) {
-          console.error('Background sync registration failed:', err);
-        }
+      try {
+        // Use postMessage instead of sync API for better compatibility
+        navigator.serviceWorker.controller.postMessage({
+          type: 'STORE_FOR_SYNC',
+          data: trackData
+        });
+        return true;
+      } catch (err) {
+        console.error('Background sync registration failed:', err);
+        return false;
       }
-      
-      return true;
     } else {
       // Fallback to localStorage if service worker is not available
       try {
@@ -861,11 +854,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         toast.success('You are back online!');
         
         // Try to sync pending data when back online
-        if (navigator.serviceWorker && 'sync' in navigator.serviceWorker) {
-          navigator.serviceWorker.ready.then(registration => {
-            registration.sync.register('sync-gps-data').catch(err => {
-              console.error('Sync registration failed:', err);
-            });
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SYNC_GPS_DATA'
           });
         }
       } else {

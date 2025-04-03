@@ -5,7 +5,7 @@ import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
-import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
 import OfflineIndicator from "@/components/ui/OfflineIndicator";
 
 import { Toaster } from "@/components/ui/toaster"
@@ -221,10 +221,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <html lang="cs" suppressHydrationWarning>
             <body className={myFont.className}>
                 <SessionProvider session={session}>
-                    <ServiceWorkerRegistration />
-                    {children}
-                    <OfflineIndicator />
-                    <Toaster />
+                    <ServiceWorkerProvider>
+                        {children}
+                        <OfflineIndicator />
+                        <Toaster />
+                    </ServiceWorkerProvider>
                 </SessionProvider>
             </body>
         </html>
