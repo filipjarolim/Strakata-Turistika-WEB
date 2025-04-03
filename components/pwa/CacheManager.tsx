@@ -4,13 +4,21 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Check, Wifi, WifiOff } from 'lucide-react';
+import { Download, Check, Wifi, WifiOff, RefreshCw, LoaderCircle } from 'lucide-react';
 
 interface CacheStatus {
   total: number;
   cached: number;
   inProgress: boolean;
   pages: { url: string; status: 'pending' | 'cached' | 'error' }[];
+}
+
+enum ServiceWorkerState {
+  PENDING = 'pending',
+  REGISTERING = 'registering',
+  REGISTERED = 'registered',
+  ACTIVE = 'active',
+  FAILED = 'failed'
 }
 
 const PAGES_TO_CACHE = [
@@ -36,12 +44,46 @@ const CRITICAL_ASSETS = [
 export function CacheManager() {
   const { toast } = useToast();
   const [isOnline, setIsOnline] = useState(true);
+  const [serviceWorkerState, setServiceWorkerState] = useState<ServiceWorkerState>(ServiceWorkerState.PENDING);
   const [cacheStatus, setCacheStatus] = useState<CacheStatus>({
     total: PAGES_TO_CACHE.length + CRITICAL_ASSETS.length,
     cached: 0,
     inProgress: false,
     pages: PAGES_TO_CACHE.map(page => ({ url: page.url, status: 'pending' as const }))
   });
+
+  // Check service worker status on mount
+  useEffect(() => {
+    const checkServiceWorker = async () => {
+      try {
+        if (!('serviceWorker' in navigator)) {
+          setServiceWorkerState(ServiceWorkerState.FAILED);
+          return;
+        }
+
+        setServiceWorkerState(ServiceWorkerState.REGISTERING);
+        
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        if (registrations.length > 0) {
+          // Service worker is registered
+          if (navigator.serviceWorker.controller) {
+            setServiceWorkerState(ServiceWorkerState.ACTIVE);
+          } else {
+            setServiceWorkerState(ServiceWorkerState.REGISTERED);
+          }
+        } else {
+          // Try to register service worker
+          await navigator.serviceWorker.register('/sw.js');
+          setServiceWorkerState(ServiceWorkerState.REGISTERED);
+        }
+      } catch (error) {
+        console.error('Service worker registration failed:', error);
+        setServiceWorkerState(ServiceWorkerState.FAILED);
+      }
+    };
+
+    checkServiceWorker();
+  }, []);
 
   useEffect(() => {
     // Monitor online/offline status
@@ -51,6 +93,15 @@ export function CacheManager() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     setIsOnline(navigator.onLine);
+
+    // Listen for service worker controlling the page
+    const handleControllerChange = () => {
+      if (navigator.serviceWorker.controller) {
+        setServiceWorkerState(ServiceWorkerState.ACTIVE);
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('controllerchange', handleControllerChange);
 
     // Listen for cache progress updates from service worker
     const handleMessage = (event: MessageEvent) => {
@@ -78,14 +129,15 @@ export function CacheManager() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       navigator.serviceWorker?.removeEventListener('message', handleMessage);
+      navigator.serviceWorker?.removeEventListener('controllerchange', handleControllerChange);
     };
   }, [toast]);
 
   const startCaching = async () => {
-    if (!navigator.serviceWorker?.controller) {
+    if (serviceWorkerState !== ServiceWorkerState.ACTIVE) {
       toast({
         title: "Service Worker not ready",
-        description: "Please wait a moment and try again.",
+        description: "Please reload the page to activate the service worker.",
         variant: "destructive"
       });
       return;
@@ -94,11 +146,16 @@ export function CacheManager() {
     setCacheStatus(prev => ({ ...prev, inProgress: true }));
     
     // Request the service worker to start caching
-    navigator.serviceWorker.controller.postMessage({
+    navigator.serviceWorker.controller?.postMessage({
       type: 'START_CACHING',
       pages: PAGES_TO_CACHE.map(p => p.url),
       assets: CRITICAL_ASSETS
     });
+  };
+
+  const activateServiceWorker = () => {
+    // Add a cache-busting query parameter to ensure the page reloads fresh
+    window.location.href = window.location.href.split('?')[0] + '?sw=' + Date.now();
   };
 
   const progress = (cacheStatus.cached / cacheStatus.total) * 100;
@@ -121,6 +178,32 @@ export function CacheManager() {
 
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
+          <span>Service Worker Status</span>
+          <span className={
+            serviceWorkerState === ServiceWorkerState.ACTIVE ? "text-green-500" : 
+            serviceWorkerState === ServiceWorkerState.FAILED ? "text-red-500" : 
+            "text-yellow-500"
+          }>
+            {serviceWorkerState === ServiceWorkerState.PENDING && "Checking..."}
+            {serviceWorkerState === ServiceWorkerState.REGISTERING && "Registering..."}
+            {serviceWorkerState === ServiceWorkerState.REGISTERED && "Registered (Needs Activation)"}
+            {serviceWorkerState === ServiceWorkerState.ACTIVE && "Active"}
+            {serviceWorkerState === ServiceWorkerState.FAILED && "Failed"}
+          </span>
+        </div>
+        
+        {serviceWorkerState === ServiceWorkerState.REGISTERED && (
+          <Button 
+            onClick={activateServiceWorker} 
+            variant="outline" 
+            className="w-full mb-4"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reload to Activate Service Worker
+          </Button>
+        )}
+
+        <div className="flex justify-between text-sm">
           <span>Cache Progress</span>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -142,11 +225,20 @@ export function CacheManager() {
 
       <Button
         onClick={startCaching}
-        disabled={cacheStatus.inProgress || !isOnline}
+        disabled={cacheStatus.inProgress || !isOnline || serviceWorkerState !== ServiceWorkerState.ACTIVE}
         className="w-full"
       >
-        <Download className="mr-2 h-4 w-4" />
-        {cacheStatus.inProgress ? 'Caching...' : 'Cache for Offline Use'}
+        {cacheStatus.inProgress ? (
+          <>
+            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            Caching...
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" />
+            Cache for Offline Use
+          </>
+        )}
       </Button>
 
       <p className="text-sm text-muted-foreground">
