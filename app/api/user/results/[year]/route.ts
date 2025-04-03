@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
+
+type JsonValue = Prisma.JsonValue;
 
 type tParams = Promise<{ year: string }>;
 
@@ -18,15 +21,15 @@ interface ExtraPoints {
 
 interface VisitData {
     id: string;
-    visitDate: Date;
+    visitDate: Date | null;
     fullName: string;
-    dogName: string;
+    dogName: string | null;
     points: number;
-    visitedPlaces: string[];
-    dogNotAllowed: boolean;
+    visitedPlaces: string;
+    dogNotAllowed: boolean | null;
     routeLink: string | null;
     year: number;
-    extraPoints: ExtraPoints;
+    extraPoints: JsonValue;
 }
 
 export async function GET(request: Request, { params }: { params: tParams }) {
