@@ -103,7 +103,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.3",
     "postcss": "^8",
-    "serwist": "^9.0.11",
+    "serwist": "^9.0.12",
     "tailwindcss": "^4.0.0",
     "typescript": "^5"
   },
