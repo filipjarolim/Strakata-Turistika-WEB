@@ -18,11 +18,12 @@ module.exports = async (phase: string): Promise<import("next").NextConfig> => {
     if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
         const { default: withSerwist } = await import("@serwist/next");
 
-        return withSerwist({
-            swSrc: "public/service-worker/app-worker.ts",
-            swDest: "public/sw.js",
-            reloadOnOnline: true,
-        })(nextConfig);
+        const serwist = withSerwist({
+            swSrc: "public/service-worker/app-worker.js",
+            swDest: "public/sw.js"
+        });
+
+        return serwist(nextConfig);
     }
 
     return nextConfig;

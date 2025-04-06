@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -14,6 +14,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import ShareButton from './ShareButton';
+
+// Define the extended interfaces for Background Sync
+interface SyncManager {
+  register(tag: string): Promise<void>;
+}
+
+interface ExtendedServiceWorkerRegistration extends ServiceWorkerRegistration {
+  sync?: SyncManager;
+}
 
 // A dedicated component that re-centers the map when trigger changes.
 const RecenterMapComponent: React.FC<{
@@ -746,64 +755,81 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
   }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
-  // Function to store tracking data for offline sync
-  const storeDataForOfflineSync = async (trackData: TrackData): Promise<boolean> => {
-    // Store the data in cache storage via the service worker
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      // Save pending track data
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SAVE_FOR_OFFLINE',
-        url: '/pending-gps-data',
-        data: trackData
+  // Store data for offline sync
+  const storeDataForOfflineSync = async (data: any) => {
+    try {
+      // Get existing data from storage
+      const storedDataStr = localStorage.getItem('offlineGpsData') || '[]';
+      const storedData = JSON.parse(storedDataStr);
+      
+      // Add new data
+      storedData.push({
+        ...data,
+        timestamp: Date.now()
       });
       
-      // Register for background sync if supported
-      if ('sync' in navigator.serviceWorker) {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.sync.register('sync-gps-data');
-        } catch (err) {
-          console.error('Background sync registration failed:', err);
-        }
+      // Save back to storage
+      localStorage.setItem('offlineGpsData', JSON.stringify(storedData));
+      
+      // If we're online, try to sync immediately
+      if (navigator.onLine) {
+        await syncOfflineData();
       }
       
-      return true;
-    } else {
-      // Fallback to localStorage if service worker is not available
-      try {
-        const pendingData = JSON.parse(localStorage.getItem('pendingGpsData') || '[]');
-        pendingData.push(trackData);
-        localStorage.setItem('pendingGpsData', JSON.stringify(pendingData));
-        return true;
-      } catch (err) {
-        console.error('Error storing data locally:', err);
-        return false;
-      }
+      console.log('Data stored for offline sync');
+    } catch (error) {
+      console.error('Failed to store data for offline sync:', error);
     }
   };
 
-  // Add offline caching support for GPS tracking data
-  useEffect(() => {
-    // Register listener for service worker messages
-    const handleServiceWorkerMessage = (event: MessageEvent): void => {
-      if (event.data && event.data.type === "SYNC_COMPLETED") {
-        if (event.data.success) {
-          toast.success("Your GPS data was synced successfully!");
+  // Sync offline data
+  const syncOfflineData = async () => {
+    try {
+      // Get data from storage
+      const storedData = localStorage.getItem('offlineGpsData');
+      
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        
+        if (parsedData && parsedData.length > 0) {
+          // Attempt to send data to the server
+          const response = await fetch('/api/sync-gps-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(parsedData),
+          });
+          
+          if (response.ok) {
+            // Clear the stored data if successfully synced
+            localStorage.removeItem('offlineGpsData');
+            console.log('Offline data synced successfully');
+          }
         }
       }
-      
-      if (event.data && event.data.type === "UPDATE_CACHED_PAGES") {
-        // Update UI to reflect available offline pages
-        console.log("Available offline pages updated", event.data.pages);
-      }
+    } catch (error) {
+      console.error('Failed to sync offline data:', error);
+    }
+  };
+
+  // Add online/offline event listeners
+  useEffect(() => {
+    // Listen for online status changes
+    const handleOnline = () => {
+      console.log('Device is online, attempting to sync data');
+      syncOfflineData();
     };
     
-    // Add event listener for service worker messages
-    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+    window.addEventListener('online', handleOnline);
     
-    // Remove event listener on cleanup
+    // If we're already online, try syncing on component mount
+    if (navigator.onLine) {
+      syncOfflineData();
+    }
+    
     return () => {
-      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
@@ -850,44 +876,66 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
   }, []);
 
-  // Add to the top of the component to check for network status changes
-  useEffect(() => {
-    // Handler for online status changes
-    const handleOnlineStatusChange = () => {
-      const isOnline = navigator.onLine;
-      setIsOffline(!isOnline);
-      
-      if (isOnline) {
-        toast.success('You are back online!');
-        
-        // Try to sync pending data when back online
-        if (navigator.serviceWorker && 'sync' in navigator.serviceWorker) {
-          navigator.serviceWorker.ready.then(registration => {
-            registration.sync.register('sync-gps-data').catch(err => {
-              console.error('Sync registration failed:', err);
-            });
-          });
+  // Function to handle form submission - called from the submit button
+  const handleSubmit = useCallback(async () => {
+    if (positions.length === 0) {
+      toast.error('No GPS data to submit!');
+      return;
+    }
+
+    setSubmitting(true);
+    await captureMapImage(); // Make sure we have a map image
+
+    try {
+      // Prepare data to send
+      const routeId = `route_${Date.now()}`;
+      const data = {
+        routeId,
+        positions,
+        username,
+        mapImage,
+        elapsedTime,
+        maxSpeed: calculations.maxSpeed,
+        totalAscent: calculations.totalAscent,
+        totalDescent: calculations.totalDescent,
+        avgSpeed: calculations.avgSpeed,
+        distance: calculateDistance(),
+        timestamp: new Date().toISOString()
+      };
+
+      // Check if we're online
+      if (navigator.onLine) {
+        // If online, send directly to the API
+        const response = await fetch('/api/routes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+          toast.success('Route saved successfully!');
+          clearAllData();
+          setSubmitting(false);
+        } else {
+          throw new Error('Failed to save route');
         }
       } else {
-        toast.warning('You are now offline. GPS tracking will continue to work.');
+        // If offline, store for later sync
+        await storeDataForOfflineSync(data);
+        toast.success('Route saved for later sync!');
+        clearAllData();
+        setSubmitting(false);
       }
-    };
-    
-    // Set initial offline state
-    setIsOffline(!navigator.onLine);
-    
-    // Add event listeners for online/offline status changes
-    window.addEventListener('online', handleOnlineStatusChange);
-    window.addEventListener('offline', handleOnlineStatusChange);
-    
-    // Clean up event listeners
-    return () => {
-      window.removeEventListener('online', handleOnlineStatusChange);
-      window.removeEventListener('offline', handleOnlineStatusChange);
-    };
-  }, []);
+    } catch (error) {
+      console.error('Error submitting GPS data:', error);
+      toast.error('Failed to submit GPS data');
+      setSubmitting(false);
+    }
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
-  // Add before the return statement
+  // Add the mobileCss definition back
   const mobileCss = `
     @media (max-width: 640px) {
       .mobile-control-panel {
@@ -937,172 +985,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         stroke-dashoffset: 20;
       }
     }
-    
-    .custom-marker {
-      filter: drop-shadow(0px 3px 6px rgba(0, 0, 0, 0.3));
-      transition: all 0.3s ease-out;
-    }
-    
-    .leaflet-container {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    
-    .leaflet-popup-content-wrapper {
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    
-    .leaflet-popup-content {
-      margin: 10px 14px;
-      line-height: 1.5;
-    }
-    
-    .leaflet-popup-tip {
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-    }
-    
-    .stat-icon {
-      opacity: 0.7;
-    }
-    
-    .pulse-ring {
-      border-radius: 50%;
-      height: 45px;
-      width: 45px;
-      position: absolute;
-      animation: pulse 1.5s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
-    }
-    
-    @keyframes pulse {
-      0% {
-        transform: scale(0.5);
-        opacity: 0;
-      }
-      50% {
-        opacity: 0.3;
-      }
-      100% {
-        transform: scale(1.4);
-        opacity: 0;
-      }
-    }
-    
-    .tracking-pulse-dot::before {
-      content: '';
-      display: block;
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background-color: #22c55e;
-      top: 6px;
-      left: 6px;
-    }
-    
-    .tracking-pulse-dot::after {
-      content: '';
-      display: block;
-      position: absolute;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-color: rgba(34, 197, 94, 0.4);
-      animation: pulse 2s infinite;
-    }
-    
-    .map-attribution {
-      background-color: rgba(255, 255, 255, 0.7) !important;
-      border-radius: 4px !important;
-      padding: 2px 5px !important;
-      font-size: 11px !important;
-    }
   `;
-
-  // Add to the notification section
-  useEffect(() => {
-    let notifyInterval: NodeJS.Timeout;
-    if (tracking && !paused && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      // Create a persistent notification on start
-      createPersistentNotification();
-      
-      // Update the notification every minute
-      notifyInterval = setInterval(() => {
-        updatePersistentNotification();
-      }, 60000); // Update every minute
-    }
-    return () => {
-      if (notifyInterval) clearInterval(notifyInterval);
-      if (!tracking && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-        closePersistentNotification();
-      }
-    };
-  }, [tracking, elapsedTime, paused, calculateDistance]);
-
-  // Add function to create persistent notification
-  const createPersistentNotification = useCallback(() => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'CREATE_PERSISTENT_NOTIFICATION',
-        data: {
-          title: 'GPS Tracking Active',
-          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
-          tag: 'gps-tracking-status', // Use a tag to update the same notification
-          requireInteraction: true, // Make it persistent
-          silent: false,
-          icon: '/icons/icon-192x192.png',
-        }
-      });
-    }
-  }, [calculateDistance, elapsedTime]);
-
-  // Add function to update persistent notification
-  const updatePersistentNotification = useCallback(() => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'UPDATE_PERSISTENT_NOTIFICATION',
-        data: {
-          title: 'GPS Tracking Active',
-          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
-          tag: 'gps-tracking-status',
-        }
-      });
-    }
-  }, [calculateDistance, elapsedTime]);
-
-  // Add function to close persistent notification
-  const closePersistentNotification = useCallback(() => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'CLOSE_PERSISTENT_NOTIFICATION',
-        data: {
-          tag: 'gps-tracking-status',
-        }
-      });
-    }
-  }, []);
-
-  // Add to the top of the component to listen for IndexedDB location events
-  useEffect(() => {
-    // Define the event handler for IndexedDB location found
-    const handleIndexedDBLocation = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail && customEvent.detail.location) {
-        if (!mapCenter) {
-          setMapCenter(customEvent.detail.location);
-          saveLocationForOffline(customEvent.detail.location);
-          toast.info('Retrieved location from offline storage');
-        }
-      }
-    };
-    
-    // Add the event listener
-    window.addEventListener('indexeddb-location-found', handleIndexedDBLocation);
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('indexeddb-location-found', handleIndexedDBLocation);
-    };
-  }, [mapCenter, saveLocationForOffline]);
 
   return (
     <>

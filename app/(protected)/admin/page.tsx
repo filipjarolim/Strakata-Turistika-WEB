@@ -6,7 +6,6 @@ import { FormSuccess } from "@/components/forms/form-success";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { UserRole } from "@prisma/client";
-import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast"
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import React, { useState } from "react";
@@ -137,9 +136,6 @@ const AdminPage = () => {
                     title: "Error",
                     description: data.error,
                     variant: "destructive",
-                    action: (
-                        <ToastAction altText="Dismiss">Dismiss</ToastAction>
-                    ),
                 });
             }
 
@@ -148,9 +144,6 @@ const AdminPage = () => {
                     title: "Success",
                     description: data.success,
                     variant: "default",
-                    action: (
-                        <ToastAction altText="Close">Close</ToastAction>
-                    ),
                 });
             }
         });
@@ -163,18 +156,12 @@ const AdminPage = () => {
                     title: "Success",
                     description: "Allowed API Route!",
                     variant: "default",
-                    action: (
-                        <ToastAction altText="Close">Close</ToastAction>
-                    ),
                 });
             } else {
                 toast({
                     title: "Error",
                     description: "Forbidden API Route!",
                     variant: "destructive",
-                    action: (
-                        <ToastAction altText="Dismiss">Dismiss</ToastAction>
-                    ),
                 });
             }
         });

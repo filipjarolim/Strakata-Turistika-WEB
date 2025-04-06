@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { PartyPopper } from "lucide-react";
 import Link from "next/link"; // Icon for fun feedback
 
@@ -65,14 +65,6 @@ const InstallButton: React.FC = () => {
                         <span>The app has been added to your home screen.</span>
                     </div>
                 ), // JSX allowed here in description
-                action: (
-                    <ToastAction
-                        altText="Learn more about the app"
-                        asChild
-                    >
-                        <Link href="/">Learn More</Link>
-                    </ToastAction>
-                ),
             });
         } else {
             console.log("PWA installation rejected");

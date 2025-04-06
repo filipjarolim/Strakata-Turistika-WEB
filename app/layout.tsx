@@ -5,7 +5,7 @@ import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
-import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 
 import { Toaster } from "@/components/ui/toaster"
