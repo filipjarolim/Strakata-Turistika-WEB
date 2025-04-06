@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import ShareButton from './ShareButton';
+import Image from 'next/image';
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -22,6 +23,31 @@ interface SyncManager {
 
 interface ExtendedServiceWorkerRegistration extends ServiceWorkerRegistration {
   sync?: SyncManager;
+}
+
+// Interface for track data and offline sync
+interface OfflineData {
+  routeId?: string;
+  positions?: [number, number][];
+  username?: string;
+  mapImage?: string | null;
+  elapsedTime?: number;
+  maxSpeed?: number | string;
+  totalAscent?: number | string;
+  totalDescent?: number | string;
+  avgSpeed?: number | string;
+  distance?: string;
+  timestamp: number | string;
+  [key: string]: unknown;
+}
+
+// Define calculations interface
+interface Calculations {
+  distance: () => string;
+  avgSpeed: () => string;
+  maxSpeed?: number;
+  totalAscent?: number;
+  totalDescent?: number;
 }
 
 // A dedicated component that re-centers the map when trigger changes.
@@ -161,6 +187,10 @@ interface GPSTrackerProps {
   username: string;
 }
 
+// Move these function declarations to the top level so they can be used in dependencies
+// Function to save location data for offline use - forward declaration
+let saveLocationForOffline: (locationData: [number, number]) => void;
+
 const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
@@ -179,6 +209,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
   const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   
   // Speed and stats state
   const [speed, setSpeed] = useState<number>(0);
@@ -206,7 +237,27 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   // Add elevations state
   const [elevations, setElevations] = useState<number[]>([]);
 
-  const calculations = useCallback(() => {
+  // Make clearAllData a useCallback function
+  const clearAllData = useCallback(() => {
+    setPositions([]);
+    setStartTime(null);
+    setElapsedTime(0);
+    setPauseDuration(0);
+    setLastPauseTime(null);
+    setCompleted(false);
+    setSpeed(0);
+    setMaxSpeed(0);
+    setElevation(null);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setLastElevation(null);
+    setShowResults(false);
+    setMapImage(null);
+    setSaveSuccess(null);
+  }, []);
+
+  // Calculations function with proper interface
+  const calculations = useCallback((): Calculations => {
     const distance = (): string => {
       let total = 0;
       for (let i = 1; i < positions.length; i++) {
@@ -227,8 +278,133 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       return avg.toFixed(1);
     };
 
-    return { distance, avgSpeed };
-  }, [positions, elapsedTime]);
+    return { 
+      distance, 
+      avgSpeed,
+      maxSpeed,
+      totalAscent,
+      totalDescent
+    };
+  }, [positions, elapsedTime, maxSpeed, totalAscent, totalDescent]);
+
+  // Extract these functions to avoid circular dependencies in useCallback hooks
+  const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
+
+  // Capture the map as a PNG image
+  const captureMapImage = useCallback(async () => {
+    if (!mapContainerRef.current) return null;
+    try {
+      const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
+      const imageData = canvas.toDataURL('image/png');
+      setMapImage(imageData);
+      return imageData;
+    } catch (error) {
+      console.error('Error capturing map image:', error);
+      toast.error('Failed to capture route image');
+      return null;
+    }
+  }, []);
+
+  // Sync offline data
+  const syncOfflineData = async () => {
+    try {
+      // Get data from storage
+      const storedData = localStorage.getItem('offlineGpsData');
+      
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        
+        if (parsedData && parsedData.length > 0) {
+          // Attempt to send data to the server
+          const response = await fetch('/api/sync-gps-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(parsedData),
+          });
+          
+          if (response.ok) {
+            // Clear the stored data if successfully synced
+            localStorage.removeItem('offlineGpsData');
+            console.log('Offline data synced successfully');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync offline data:', error);
+    }
+  };
+
+  // Store data for offline sync
+  const storeDataForOfflineSync = useCallback(async (data: OfflineData) => {
+    try {
+      // Get existing data from storage
+      const storedDataStr = localStorage.getItem('offlineGpsData') || '[]';
+      const storedData = JSON.parse(storedDataStr);
+      
+      // Add new data
+      storedData.push({
+        ...data,
+        timestamp: Date.now()
+      });
+      
+      // Save back to storage
+      localStorage.setItem('offlineGpsData', JSON.stringify(storedData));
+      
+      // If we're online, try to sync immediately
+      if (navigator.onLine) {
+        await syncOfflineData();
+      }
+      
+      console.log('Data stored for offline sync');
+    } catch (error) {
+      console.error('Failed to store data for offline sync:', error);
+    }
+  }, []);
+
+  // Function to save location data for offline use - actual implementation
+  saveLocationForOffline = useCallback((locationData: [number, number]): void => {
+    // Save to service worker cache if available
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SAVE_FOR_OFFLINE',
+        url: '/lastKnownLocation',
+        data: {
+          lat: locationData[0],
+          lng: locationData[1],
+          timestamp: Date.now()
+        }
+      });
+    }
+    
+    // Also save to IndexedDB for more reliable offline storage
+    try {
+      const openRequest = indexedDB.open('gpsTrackerDB', 1);
+      
+      openRequest.onupgradeneeded = function() {
+        const db = openRequest.result;
+        if (!db.objectStoreNames.contains('locations')) {
+          db.createObjectStore('locations', { keyPath: 'id' });
+        }
+      };
+      
+      openRequest.onsuccess = function() {
+        const db = openRequest.result;
+        const transaction = db.transaction('locations', 'readwrite');
+        const store = transaction.objectStore('locations');
+        
+        store.put({
+          id: 'lastKnown',
+          lat: locationData[0],
+          lng: locationData[1],
+          timestamp: Date.now()
+        });
+      };
+    } catch (err) {
+      console.error('Error storing location in IndexedDB:', err);
+    }
+  }, []);
 
   // Update UI when location access status changes
   useEffect(() => {
@@ -306,7 +482,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [watchId, saveLocationForOffline]);
+  }, [watchId]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -344,15 +520,33 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       }, 300000); // Reduced to 5 minutes to be less intrusive
     }
     return () => notifyInterval && clearInterval(notifyInterval);
-  }, [tracking, elapsedTime, paused, isOffline]);
+  }, [tracking, elapsedTime, paused, isOffline, calculateDistance]);
 
-  const startTracking = useCallback(() => {
-    // Remove the offline check to allow tracking even when offline
-    /* if (isOffline) {
-      toast.error('Cannot start tracking while offline.');
-      return;
-    } */
+  // Define stopTracking function
+  const stopTracking = useCallback(() => {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    setTracking(false);
+    setWatchId(null);
+    setCompleted(true);
     
+    try {
+      if (document.exitFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
+      }
+    } catch (error) {
+      console.error('Exit fullscreen error:', error);
+    }
+    
+    if (positions.length > 1) {
+      setShowResults(true);
+      captureMapImage();
+    } else {
+      toast.warning('No track data to save. Try again with a longer route.');
+    }
+  }, [watchId, positions.length, captureMapImage]);
+
+  // Fix the startTracking dependencies to include stopTracking
+  const startTracking = useCallback(() => {
     setTracking(true);
     setCompleted(false);
     setShowResults(false);
@@ -468,29 +662,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, isOffline, lastElevation, totalAscent, totalDescent]);
-
-  const stopTracking = useCallback(() => {
-    if (watchId) navigator.geolocation.clearWatch(watchId);
-    setTracking(false);
-    setWatchId(null);
-    setCompleted(true);
-    
-    try {
-      if (document.exitFullscreen && document.fullscreenElement) {
-        document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
-      }
-    } catch (error) {
-      console.error('Exit fullscreen error:', error);
-    }
-    
-    if (positions.length > 1) {
-      setShowResults(true);
-      captureMapImage();
-    } else {
-      toast.warning('No track data to save. Try again with a longer route.');
-    }
-  }, [watchId, positions.length]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, totalAscent, totalDescent, stopTracking]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -560,21 +732,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     );
   }, [isOffline]);
 
-  // Capture the map as a PNG image
-  const captureMapImage = useCallback(async () => {
-    if (!mapContainerRef.current) return;
-    try {
-      const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
-      const imageData = canvas.toDataURL('image/png');
-      setMapImage(imageData);
-      return imageData;
-    } catch (error) {
-      console.error('Error capturing map image:', error);
-      toast.error('Failed to capture route image');
-      return null;
-    }
-  }, []);
-
   // Declare functions first
   function formatTime(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
@@ -585,8 +742,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       ? `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`
       : `${pad(minutes)}:${pad(remainingSeconds)}`;
   }
-
-  const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
 
   // Add interface for track data for offline sync
   interface TrackData {
@@ -708,14 +863,14 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       maxSpeed: maxSpeed.toFixed(1),
       totalAscent: totalAscent.toFixed(0),
       totalDescent: totalDescent.toFixed(0),
-      timestamp: Date.now(), // Add timestamp for syncing
-      positions: positions // Include position data for offline use
+      timestamp: Date.now(),
+      positions: positions
     };
 
     try {
       if (isOffline) {
         // Store data locally and register for background sync
-        await storeDataForOfflineSync(trackData);
+        await storeDataForOfflineSync(trackData as unknown as OfflineData);
         
         // Update UI to show pending sync
         toast.success('Track saved offline. It will be uploaded when you reconnect.');
@@ -743,7 +898,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       
       // Attempt to save locally if online submission failed
       if (!isOffline) {
-        await storeDataForOfflineSync(trackData);
+        await storeDataForOfflineSync(trackData as unknown as OfflineData);
         toast.warning('Network error. Track saved offline for later upload.');
         setSaveSuccess(true);
       } else {
@@ -753,130 +908,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     } finally {
       setIsSaving(false);
     }
-  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, storeDataForOfflineSync]);
 
-  // Store data for offline sync
-  const storeDataForOfflineSync = async (data: any) => {
-    try {
-      // Get existing data from storage
-      const storedDataStr = localStorage.getItem('offlineGpsData') || '[]';
-      const storedData = JSON.parse(storedDataStr);
-      
-      // Add new data
-      storedData.push({
-        ...data,
-        timestamp: Date.now()
-      });
-      
-      // Save back to storage
-      localStorage.setItem('offlineGpsData', JSON.stringify(storedData));
-      
-      // If we're online, try to sync immediately
-      if (navigator.onLine) {
-        await syncOfflineData();
-      }
-      
-      console.log('Data stored for offline sync');
-    } catch (error) {
-      console.error('Failed to store data for offline sync:', error);
-    }
-  };
-
-  // Sync offline data
-  const syncOfflineData = async () => {
-    try {
-      // Get data from storage
-      const storedData = localStorage.getItem('offlineGpsData');
-      
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        
-        if (parsedData && parsedData.length > 0) {
-          // Attempt to send data to the server
-          const response = await fetch('/api/sync-gps-data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(parsedData),
-          });
-          
-          if (response.ok) {
-            // Clear the stored data if successfully synced
-            localStorage.removeItem('offlineGpsData');
-            console.log('Offline data synced successfully');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to sync offline data:', error);
-    }
-  };
-
-  // Add online/offline event listeners
-  useEffect(() => {
-    // Listen for online status changes
-    const handleOnline = () => {
-      console.log('Device is online, attempting to sync data');
-      syncOfflineData();
-    };
-    
-    window.addEventListener('online', handleOnline);
-    
-    // If we're already online, try syncing on component mount
-    if (navigator.onLine) {
-      syncOfflineData();
-    }
-    
-    return () => {
-      window.removeEventListener('online', handleOnline);
-    };
-  }, []);
-
-  // Function to save location data for offline use
-  const saveLocationForOffline = useCallback((locationData: [number, number]): void => {
-    // Save to service worker cache if available
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SAVE_FOR_OFFLINE',
-        url: '/lastKnownLocation',
-        data: {
-          lat: locationData[0],
-          lng: locationData[1],
-          timestamp: Date.now()
-        }
-      });
-    }
-    
-    // Also save to IndexedDB for more reliable offline storage
-    try {
-      const openRequest = indexedDB.open('gpsTrackerDB', 1);
-      
-      openRequest.onupgradeneeded = function() {
-        const db = openRequest.result;
-        if (!db.objectStoreNames.contains('locations')) {
-          db.createObjectStore('locations', { keyPath: 'id' });
-        }
-      };
-      
-      openRequest.onsuccess = function() {
-        const db = openRequest.result;
-        const transaction = db.transaction('locations', 'readwrite');
-        const store = transaction.objectStore('locations');
-        
-        store.put({
-          id: 'lastKnown',
-          lat: locationData[0],
-          lng: locationData[1],
-          timestamp: Date.now()
-        });
-      };
-    } catch (err) {
-      console.error('Error storing location in IndexedDB:', err);
-    }
-  }, []);
-
-  // Function to handle form submission - called from the submit button
+  // Include isOffline in handleSubmit dependencies
   const handleSubmit = useCallback(async () => {
     if (positions.length === 0) {
       toast.error('No GPS data to submit!');
@@ -895,10 +929,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         username,
         mapImage,
         elapsedTime,
-        maxSpeed: calculations.maxSpeed,
-        totalAscent: calculations.totalAscent,
-        totalDescent: calculations.totalDescent,
-        avgSpeed: calculations.avgSpeed,
+        maxSpeed: maxSpeed,
+        totalAscent: totalAscent,
+        totalDescent: totalDescent,
+        avgSpeed: calculateAverageSpeed(),
         distance: calculateDistance(),
         timestamp: new Date().toISOString()
       };
@@ -933,7 +967,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       toast.error('Failed to submit GPS data');
       setSubmitting(false);
     }
-  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, clearAllData, calculateDistance, calculateAverageSpeed, storeDataForOfflineSync, isOffline]);
 
   // Add the mobileCss definition back
   const mobileCss = `
@@ -1506,7 +1540,15 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
                 {mapImage && (
                   <div>
                     <p className="font-bold mb-2">Your Route:</p>
-                    <img src={mapImage} alt="Map showing your completed route" className="rounded-lg border border-gray-300 w-full" />
+                    <Image 
+                      src={mapImage} 
+                      alt="Map showing your completed route" 
+                      className="rounded-lg border border-gray-300 w-full" 
+                      width={400}
+                      height={300}
+                      style={{ width: '100%', height: 'auto' }}
+                      unoptimized // Using unoptimized for data URI images
+                    />
                   </div>
                 )}
                 

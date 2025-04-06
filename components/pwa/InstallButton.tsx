@@ -56,15 +56,10 @@ const InstallButton: React.FC = () => {
 
         if (choiceResult.outcome === "accepted") {
             console.log("PWA installed successfully");
-            // Trigger toast
+            // Trigger toast with string only description
             toast({
-                title: "App Installed Successfully!", // String title
-                description: (
-                    <div className="flex items-center gap-2">
-                        <PartyPopper className="h-4 w-4 text-green-500" />
-                        <span>The app has been added to your home screen.</span>
-                    </div>
-                ), // JSX allowed here in description
+                title: "App Installed Successfully!",
+                description: "The app has been added to your home screen."
             });
         } else {
             console.log("PWA installation rejected");
