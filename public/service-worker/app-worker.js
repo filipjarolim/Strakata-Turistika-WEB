@@ -3,6 +3,7 @@ const CACHE_VERSION = 'v1';
 const DYNAMIC_CACHE = 'dynamic-cache-' + CACHE_VERSION;
 const STATIC_CACHE = 'static-cache-' + CACHE_VERSION;
 const API_CACHE = 'api-cache-' + CACHE_VERSION;
+const IMAGE_CACHE = 'image-cache-' + CACHE_VERSION;
 
 // This is required by Serwist for precaching
 self.__SW_MANIFEST;
@@ -25,6 +26,11 @@ self.addEventListener('install', (event) => {
                 // Pre-cache important pages
                 return cache.addAll(PAGES_TO_CACHE);
             })
+            .catch(error => {
+                console.error('[Service Worker] Pre-caching failed:', error);
+                // Continue installation even if precaching fails
+                return Promise.resolve();
+            })
     );
     self.skipWaiting();
 });
@@ -39,7 +45,8 @@ self.addEventListener('activate', (event) => {
                     // If a cache doesn't match our current version, delete it
                     if (key !== STATIC_CACHE && 
                         key !== DYNAMIC_CACHE && 
-                        key !== API_CACHE) {
+                        key !== API_CACHE &&
+                        key !== IMAGE_CACHE) {
                         console.log('[Service Worker] Removing old cache', key);
                         return caches.delete(key);
                     }
@@ -52,6 +59,13 @@ self.addEventListener('activate', (event) => {
             })
     );
 });
+
+// Helper function to check if a URL is a Next.js image
+const isNextJsImage = (url) => {
+    return url.pathname.startsWith('/_next/image') || 
+           url.pathname.includes('/images/') ||
+           url.pathname.includes('/locations/');
+};
 
 // Fetch event - intercept network requests
 self.addEventListener('fetch', (event) => {
@@ -67,6 +81,42 @@ self.addEventListener('fetch', (event) => {
     
     // Skip POST requests, etc.
     if (request.method !== 'GET') {
+        return;
+    }
+    
+    // Special handling for Next.js image optimization routes
+    if (isNextJsImage(url)) {
+        event.respondWith(
+            // Network first, then cache
+            fetch(request)
+                .then(response => {
+                    // Only cache successful responses
+                    if (!response || !response.ok) {
+                        return response;
+                    }
+                    
+                    // Clone the response to store in cache
+                    const clonedResponse = response.clone();
+                    caches.open(IMAGE_CACHE)
+                        .then(cache => {
+                            cache.put(request, clonedResponse);
+                        })
+                        .catch(err => {
+                            console.error('[Service Worker] Failed to cache image:', err);
+                        });
+                    
+                    return response;
+                })
+                .catch(error => {
+                    console.error('[Service Worker] Image fetch failed:', error);
+                    // Try to get from cache if network failed
+                    return caches.match(request)
+                        .catch(err => {
+                            console.error('[Service Worker] Image cache match failed:', err);
+                            return Promise.reject('no-response');
+                        });
+                })
+        );
         return;
     }
     
@@ -208,7 +258,8 @@ self.addEventListener('message', (event) => {
                             return Promise.all([
                                 caches.open(STATIC_CACHE),
                                 caches.open(DYNAMIC_CACHE),
-                                caches.open(API_CACHE)
+                                caches.open(API_CACHE),
+                                caches.open(IMAGE_CACHE)
                             ]);
                         })
                         .then(() => {
