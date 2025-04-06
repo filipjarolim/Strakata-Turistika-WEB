@@ -14,19 +14,22 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check } from "lucide-react";
+import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check, Settings } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 
 // List of critical pages that should always be cached for offline use
 const CRITICAL_PAGES = [
   '/',
   '/vysledky',
   '/pravidla',
-  '/offline'
+  '/offline',
+  '/fotogalerie',
+  '/kontakty'
 ];
 
 export const OfflineController: React.FC = () => {
@@ -36,6 +39,7 @@ export const OfflineController: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCaching, setIsCaching] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [progress, setProgress] = useState(0);
   
   // Get list of cached pages from service worker
   useEffect(() => {
@@ -75,8 +79,20 @@ export const OfflineController: React.FC = () => {
     }
     
     setIsCaching(true);
+    setProgress(10);
     
     try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+      
       navigator.serviceWorker.controller.postMessage({
         type: 'CACHE_ALL_PAGES',
         pages: CRITICAL_PAGES
@@ -97,6 +113,14 @@ export const OfflineController: React.FC = () => {
         new Promise(resolve => setTimeout(() => resolve({ success: true }), 5000))
       ]);
       
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      setTimeout(() => {
+        setProgress(0);
+        setIsCaching(false);
+      }, 500);
+      
       toast({
         title: "Stránky uloženy offline",
         description: "Důležité stránky byly uloženy pro offline použití",
@@ -109,13 +133,14 @@ export const OfflineController: React.FC = () => {
       });
     } catch (error) {
       console.error('Error caching pages:', error);
+      setProgress(0);
+      setIsCaching(false);
+      
       toast({
         title: "Chyba při ukládání stránek",
         description: "Nastala chyba při ukládání stránek offline",
         variant: "destructive"
       });
-    } finally {
-      setIsCaching(false);
     }
   };
   
@@ -131,8 +156,20 @@ export const OfflineController: React.FC = () => {
     }
     
     setIsClearing(true);
+    setProgress(10);
     
     try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 15;
+        });
+      }, 200);
+      
       navigator.serviceWorker.controller.postMessage({
         type: 'CLEAR_ALL_CACHE'
       });
@@ -152,6 +189,14 @@ export const OfflineController: React.FC = () => {
         new Promise(resolve => setTimeout(() => resolve(null), 3000))
       ]);
       
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      setTimeout(() => {
+        setProgress(0);
+        setIsClearing(false);
+      }, 500);
+      
       toast({
         title: "Cache byla vymazána",
         description: "Všechna offline data byla smazána",
@@ -164,13 +209,14 @@ export const OfflineController: React.FC = () => {
       });
     } catch (error) {
       console.error('Error clearing cache:', error);
+      setProgress(0);
+      setIsClearing(false);
+      
       toast({
         title: "Chyba při mazání cache",
         description: "Nastala chyba při mazání cache",
         variant: "destructive"
       });
-    } finally {
-      setIsClearing(false);
     }
   };
   
@@ -190,55 +236,44 @@ export const OfflineController: React.FC = () => {
   };
 
   if (!isOfflineCapable) {
-    return (
-      <Button 
-        size="sm" 
-        variant="outline" 
-        onClick={() => {
-          toast({
-            title: "Offline mód není dostupný",
-            description: "Váš prohlížeč nepodporuje service worker nebo není inicializován",
-            variant: "destructive"
-          });
-        }}
-        className="gap-2"
-      >
-        <WifiOff className="h-4 w-4" />
-        <span>Offline nedostupné</span>
-      </Button>
-    );
+    return null;
   }
+  
+  // Calculate cache stats
+  const totalItems = cachedPages.length;
+  const apiItems = apiEndpoints.length;
+  const pageItems = cachedPageUrls.length;
+  const staticItems = totalItems - apiItems - pageItems;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
-          size="sm" 
+          size="icon" 
           variant="outline" 
-          className={`gap-2 ${!isOnline ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : ''}`}
+          className={`rounded-full w-10 h-10 shadow-md ${!isOnline ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : ''}`}
         >
-          {isOnline ? (
-            <Wifi className="h-4 w-4" />
-          ) : (
-            <WifiOff className="h-4 w-4" />
-          )}
-          <span>{isOnline ? 'Online' : 'Offline'}</span>
+          <Settings className="h-5 w-5" />
+          <span className="sr-only">Offline nastavení</span>
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
+      <SheetContent side="bottom" className="sm:max-w-lg mx-auto rounded-t-xl h-[80vh] sm:h-[70vh]">
+        <SheetHeader className="text-left space-y-1">
           <SheetTitle className="flex items-center gap-2">
             {isOnline ? (
               <>
                 <Wifi className="h-5 w-5 text-green-600" />
-                <span>Online</span>
+                <span>Online režim</span>
               </>
             ) : (
               <>
                 <WifiOff className="h-5 w-5 text-amber-600" />
-                <span>Offline mód</span>
+                <span>Offline režim</span>
               </>
             )}
+            <Badge variant={isOnline ? "outline" : "secondary"} className="ml-2">
+              {totalItems} položek v cache
+            </Badge>
           </SheetTitle>
           <SheetDescription>
             {isOnline 
@@ -247,14 +282,23 @@ export const OfflineController: React.FC = () => {
           </SheetDescription>
         </SheetHeader>
         
+        {progress > 0 && (
+          <div className="my-4">
+            <Progress value={progress} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              {progress < 100 ? 'Zpracovávám...' : 'Dokončeno!'}
+            </p>
+          </div>
+        )}
+        
         <div className="mt-6 space-y-4">
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <div className="text-sm font-medium">Offline správa</div>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={refreshCachedPages}
-              disabled={isLoading}
+              disabled={isLoading || isCaching || isClearing}
               className="h-8"
             >
               {isLoading ? (
@@ -266,12 +310,12 @@ export const OfflineController: React.FC = () => {
             </Button>
           </div>
           
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               onClick={cacheAllPages} 
-              variant="outline"
-              disabled={isCaching}
-              className="gap-2"
+              variant="default"
+              disabled={isCaching || isClearing}
+              className="gap-2 flex-1"
             >
               {isCaching ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -284,8 +328,8 @@ export const OfflineController: React.FC = () => {
             <Button 
               onClick={clearAllCache} 
               variant="outline"
-              disabled={isClearing}
-              className="gap-2"
+              disabled={isCaching || isClearing}
+              className="gap-2 flex-1"
             >
               {isClearing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -294,6 +338,21 @@ export const OfflineController: React.FC = () => {
               )}
               <span>Vymazat cache</span>
             </Button>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 my-6">
+            <div className="bg-green-50 p-3 rounded-md text-center">
+              <p className="text-xl font-bold text-green-600">{pageItems}</p>
+              <p className="text-xs text-muted-foreground">Stránky</p>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-md text-center">
+              <p className="text-xl font-bold text-blue-600">{apiItems}</p>
+              <p className="text-xs text-muted-foreground">API data</p>
+            </div>
+            <div className="bg-purple-50 p-3 rounded-md text-center">
+              <p className="text-xl font-bold text-purple-600">{staticItems}</p>
+              <p className="text-xs text-muted-foreground">Soubory</p>
+            </div>
           </div>
           
           <Accordion type="single" collapsible className="w-full">
@@ -305,7 +364,7 @@ export const OfflineController: React.FC = () => {
                 </Badge>
               </AccordionTrigger>
               <AccordionContent>
-                <ScrollArea className="h-40 rounded-md border p-2">
+                <ScrollArea className="h-28 rounded-md border p-2">
                   {cachedPageUrls.length > 0 ? (
                     <ul className="space-y-2">
                       {cachedPageUrls.map((url, index) => (
@@ -332,7 +391,7 @@ export const OfflineController: React.FC = () => {
                 </Badge>
               </AccordionTrigger>
               <AccordionContent>
-                <ScrollArea className="h-40 rounded-md border p-2">
+                <ScrollArea className="h-28 rounded-md border p-2">
                   {apiEndpoints.length > 0 ? (
                     <ul className="space-y-2">
                       {apiEndpoints.map((url, index) => (
@@ -358,9 +417,9 @@ export const OfflineController: React.FC = () => {
           </div>
         </div>
         
-        <SheetFooter className="pt-4">
+        <SheetFooter className="pt-4 sm:justify-center">
           <SheetClose asChild>
-            <Button variant="outline" className="w-full">Zavřít</Button>
+            <Button className="w-full sm:w-auto">Zavřít</Button>
           </SheetClose>
         </SheetFooter>
       </SheetContent>

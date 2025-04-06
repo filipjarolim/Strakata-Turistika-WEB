@@ -7,6 +7,7 @@ import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
+import { OfflineController } from "@/components/ui/OfflineController";
 
 import { Toaster } from "@/components/ui/toaster"
 
@@ -26,6 +27,14 @@ export const metadata = {
         { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png' },
         { rel: 'icon', url: '/icons/icon-192x192.png', type: 'image/png', sizes: '32x32'}
     ],
+    openGraph: {
+        title: basicInfo.name,
+        description: basicInfo.description,
+        url: defaultUrl,
+        siteName: basicInfo.name,
+        locale: 'cs_CZ',
+        type: 'website',
+    },
     appleWebApp: {
         capable: true,
         statusBarStyle: "black-translucent",
@@ -206,9 +215,11 @@ export const metadata = {
 }
 
 export const viewport: Viewport = {
-    themeColor: 'black',
+    width: 'device-width',
     initialScale: 1,
+    maximumScale: 5,
     userScalable: true,
+    themeColor: '#ffffff',
 }
 
 
@@ -223,7 +234,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <SessionProvider session={session}>
                     <ServiceWorkerRegistration />
                     {children}
-                    <OfflineIndicator />
+                    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end">
+                        <OfflineIndicator />
+                        <OfflineController />
+                    </div>
                     <Toaster />
                 </SessionProvider>
             </body>

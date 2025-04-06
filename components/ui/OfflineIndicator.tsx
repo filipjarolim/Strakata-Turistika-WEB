@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useOfflineStatus } from '@/lib/hooks/useOfflineStatus';
+import { Wifi, WifiOff, Info } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function OfflineIndicator() {
   const { isOnline, isOfflineCapable, cachedEndpoints, isEndpointCached } = useOfflineStatus();
@@ -41,62 +44,80 @@ export function OfflineIndicator() {
     return features;
   };
 
+  const features = getAvailableFeatures();
+  const featureCount = features.length;
+
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div 
+      className={`rounded-full shadow-md transition-all duration-300 flex items-center ${
+        isOnline 
+          ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+          : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+      } ${expanded ? 'p-3 rounded-lg' : 'p-2.5'}`}
+    >
       <div 
-        className={`p-3 rounded-lg shadow-md transition-all duration-300 ${
-          isOnline 
-            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-            : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-        }`}
+        className="flex items-center cursor-pointer gap-2"
+        onClick={() => setExpanded(!expanded)}
+        aria-label={`${isOnline ? 'Online' : 'Offline'} status. Click to expand`}
+        role="button"
+        tabIndex={0}
       >
-        <div 
-          className="flex items-center cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
-        >
-          <div className={`w-3 h-3 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}></div>
-          <span className="font-medium">
-            {isOnline ? 'Online' : 'Offline režim'}
-          </span>
-          <svg 
-            className={`ml-2 w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        {isOnline ? (
+          <Wifi className="h-4 w-4" />
+        ) : (
+          <WifiOff className="h-4 w-4" />
+        )}
+        <span className={`font-medium ${expanded ? 'inline' : 'hidden md:inline'}`}>
+          {isOnline ? 'Online' : 'Offline režim'}
+        </span>
         
-        {expanded && (
-          <div className="mt-2 text-sm">
-            {!isOnline && (
-              <p className="mb-2">
-                Pracujete v offline režimu. Některé funkce mohou být omezené.
-              </p>
-            )}
-            
-            <div className="mt-1">
-              <p className="font-medium mb-1">Dostupné offline:</p>
-              {getAvailableFeatures().length > 0 ? (
-                <ul className="list-disc pl-5">
-                  {getAvailableFeatures().map((feature, index) => (
-                    <li key={index}>{feature}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>Žádný obsah není momentálně uložen pro offline použití.</p>
-              )}
-            </div>
-            
-            {isOnline && (
-              <p className="mt-2 text-xs">
-                Pro offline použití si prohlédněte stránky při připojení k internetu.
-              </p>
-            )}
-          </div>
+        {!expanded && featureCount > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge 
+                  variant="secondary" 
+                  className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full"
+                >
+                  {featureCount}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="left" align="center">
+                <p>{featureCount} {featureCount === 1 ? 'funkce dostupná' : 'funkce dostupné'} offline</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
+      
+      {expanded && (
+        <div className="mt-2 text-sm">
+          {!isOnline && (
+            <p className="mb-2">
+              Pracujete v offline režimu. Některé funkce mohou být omezené.
+            </p>
+          )}
+          
+          <div className="mt-1">
+            <p className="font-medium mb-1">Dostupné offline:</p>
+            {features.length > 0 ? (
+              <ul className="list-disc pl-5">
+                {features.map((feature, index) => (
+                  <li key={index}>{feature}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>Žádný obsah není momentálně uložen pro offline použití.</p>
+            )}
+          </div>
+          
+          {isOnline && (
+            <p className="mt-2 text-xs">
+              Pro offline použití si prohlédněte stránky při připojení k internetu.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 } 
