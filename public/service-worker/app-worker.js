@@ -13,7 +13,18 @@ const PAGES_TO_CACHE = [
     '/',
     '/vysledky',
     '/pravidla',
-    '/offline'
+    '/offline',
+    '/fotogalerie',
+    '/kontakty'
+];
+
+// Additional resources to cache by default
+const RESOURCES_TO_CACHE = [
+    '/manifest.webmanifest',
+    '/icons/icon-192x192.png',
+    '/icons/icon-512x512.png',
+    '/favicon.ico',
+    '/favicon-196.png'
 ];
 
 // Helper function to detect offline status
@@ -86,20 +97,101 @@ const createFallbackResponse = (message) => {
     );
 };
 
+// Create an empty placeholder for script files
+const createEmptyScriptResponse = () => {
+    return new Response(
+        '/* Empty script provided when offline */',
+        {
+            status: 200,
+            headers: new Headers({
+                'Content-Type': 'application/javascript',
+                'Cache-Control': 'no-store'
+            })
+        }
+    );
+};
+
+// Create an empty placeholder for CSS files
+const createEmptyCssResponse = () => {
+    return new Response(
+        '/* Empty CSS provided when offline */',
+        {
+            status: 200,
+            headers: new Headers({
+                'Content-Type': 'text/css',
+                'Cache-Control': 'no-store'
+            })
+        }
+    );
+};
+
+// Create a basic manifest response
+const createBasicManifestResponse = () => {
+    return new Response(
+        JSON.stringify({
+            name: "Strakatá Turistika",
+            short_name: "StrakatáTuristika",
+            icons: [
+                {
+                    src: "/icons/icon-192x192.png",
+                    sizes: "192x192",
+                    type: "image/png"
+                },
+                {
+                    src: "/icons/icon-512x512.png",
+                    sizes: "512x512",
+                    type: "image/png"
+                }
+            ],
+            theme_color: "#ffffff",
+            background_color: "#ffffff",
+            start_url: "/",
+            display: "standalone",
+            orientation: "portrait",
+            offline_enabled: true
+        }),
+        {
+            status: 200,
+            headers: new Headers({
+                'Content-Type': 'application/manifest+json',
+                'Cache-Control': 'no-store'
+            })
+        }
+    );
+};
+
+// Helper function to check if a URL is a Next.js chunk
+const isNextJsChunk = (url) => {
+    return url.pathname.includes('/_next/static/chunks/') || 
+           url.pathname.includes('/_next/static/css/') ||
+           url.pathname.includes('/_next/static/media/');
+};
+
 // Install event - cache important resources
 self.addEventListener('install', (event) => {
     console.log('[Service Worker] Installing...');
     event.waitUntil(
         caches.open(STATIC_CACHE)
             .then(cache => {
-                console.log('[Service Worker] Pre-caching important pages');
-                // If we're online, try to pre-cache important pages
+                console.log('[Service Worker] Pre-caching important pages and resources');
+                
+                // If we're online, try to pre-cache important pages and resources
                 if (!isOffline()) {
-                    return cache.addAll(PAGES_TO_CACHE)
+                    // Concatenate the lists of resources to cache
+                    const allResourcesToCache = [...PAGES_TO_CACHE, ...RESOURCES_TO_CACHE];
+                    
+                    return cache.addAll(allResourcesToCache)
                         .catch(error => {
                             console.error('[Service Worker] Pre-caching failed:', error);
-                            // Continue installation even if precaching fails
-                            return Promise.resolve();
+                            // Try caching items individually if the batch failed
+                            const individualCachePromises = allResourcesToCache.map(resource => 
+                                cache.add(resource)
+                                    .catch(err => {
+                                        console.error(`[Service Worker] Failed to cache ${resource}:`, err);
+                                        return Promise.resolve(); // Continue even if individual item fails
+                                    })
+                            );
+                            return Promise.all(individualCachePromises);
                         });
                 } else {
                     console.log('[Service Worker] Offline during install, skipping pre-cache');
@@ -220,6 +312,100 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
+    // Handle manifest file specially
+    if (url.pathname.endsWith('/manifest.webmanifest') || url.pathname.endsWith('/manifest.json')) {
+        event.respondWith(
+            safeCacheMatch(request)
+                .then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    
+                    return safeFetch(request)
+                        .then(response => {
+                            // Store in cache
+                            const clonedResponse = response.clone();
+                            caches.open(STATIC_CACHE)
+                                .then(cache => {
+                                    cache.put(request, clonedResponse)
+                                        .catch(err => {
+                                            console.error('[Service Worker] Failed to cache manifest:', err);
+                                        });
+                                });
+                            return response;
+                        })
+                        .catch(error => {
+                            console.warn('[Service Worker] Manifest fetch failed:', error);
+                            // Return a basic manifest for offline use
+                            return createBasicManifestResponse();
+                        });
+                })
+                .catch(error => {
+                    console.warn('[Service Worker] Manifest cache match failed:', error);
+                    return createBasicManifestResponse();
+                })
+        );
+        return;
+    }
+    
+    // Handle Next.js chunks specially - these are important for page functionality
+    if (isNextJsChunk(url)) {
+        event.respondWith(
+            safeCacheMatch(request)
+                .then(cachedResponse => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+                    
+                    return safeFetch(request)
+                        .then(response => {
+                            // Only cache successful responses
+                            if (!response || !response.ok) {
+                                return response;
+                            }
+                            
+                            // Clone the response to store in cache
+                            const clonedResponse = response.clone();
+                            caches.open(STATIC_CACHE)
+                                .then(cache => {
+                                    cache.put(request, clonedResponse)
+                                        .catch(err => {
+                                            console.error('[Service Worker] Failed to cache Next.js chunk:', err);
+                                        });
+                                })
+                                .catch(err => {
+                                    console.error('[Service Worker] Failed to open static cache:', err);
+                                });
+                            
+                            return response;
+                        })
+                        .catch(error => {
+                            console.warn('[Service Worker] Next.js chunk fetch failed:', error);
+                            // Provide an empty JavaScript response for scripts
+                            if (url.pathname.endsWith('.js')) {
+                                return createEmptyScriptResponse();
+                            } else if (url.pathname.endsWith('.css')) {
+                                return createEmptyCssResponse();
+                            } else {
+                                return new Response('', { status: 200 });
+                            }
+                        });
+                })
+                .catch(error => {
+                    console.warn('[Service Worker] Next.js chunk cache match failed:', error);
+                    // Provide an empty JavaScript response for scripts
+                    if (url.pathname.endsWith('.js')) {
+                        return createEmptyScriptResponse();
+                    } else if (url.pathname.endsWith('.css')) {
+                        return createEmptyCssResponse();
+                    } else {
+                        return new Response('', { status: 200 });
+                    }
+                })
+        );
+        return;
+    }
+    
     // Handle API requests with Network-First strategy
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
@@ -300,6 +486,10 @@ self.addEventListener('fetch', (event) => {
                                         headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
                                     }
                                 );
+                            } else if (request.destination === 'script') {
+                                return createEmptyScriptResponse();
+                            } else if (request.destination === 'style') {
+                                return createEmptyCssResponse();
                             }
                             // For other assets, return an error response
                             return createFallbackResponse('Statický soubor není k dispozici offline');
@@ -307,6 +497,20 @@ self.addEventListener('fetch', (event) => {
                 })
                 .catch(error => {
                     console.warn('[Service Worker] Static asset cache match failed:', error);
+                    if (request.destination === 'image') {
+                        // Return placeholder for images
+                        return new Response(
+                            '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
+                            { 
+                                status: 200, 
+                                headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
+                            }
+                        );
+                    } else if (request.destination === 'script') {
+                        return createEmptyScriptResponse();
+                    } else if (request.destination === 'style') {
+                        return createEmptyCssResponse();
+                    }
                     return createFallbackResponse('Statický soubor není k dispozici offline');
                 })
         );
@@ -330,6 +534,10 @@ self.addEventListener('fetch', (event) => {
                         .catch(err => {
                             console.error('[Service Worker] Failed to open dynamic cache:', err);
                         });
+                    
+                    // Also cache styles and scripts needed for this page when online
+                    cacheDependentResources(response.clone());
+                    
                     return response;
                 })
                 .catch(() => {
@@ -363,15 +571,104 @@ self.addEventListener('fetch', (event) => {
                 return safeFetch(request)
                     .catch(error => {
                         console.warn('[Service Worker] Default handler fetch failed:', error);
+                        // Return generic fallback based on file extension
+                        const fileExtension = url.pathname.split('.').pop();
+                        if (fileExtension === 'js') {
+                            return createEmptyScriptResponse();
+                        } else if (fileExtension === 'css') {
+                            return createEmptyCssResponse();
+                        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
+                            return new Response(
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
+                                { 
+                                    status: 200, 
+                                    headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
+                                }
+                            );
+                        }
                         return createFallbackResponse('Obsah není k dispozici offline');
                     });
             })
             .catch(error => {
                 console.warn('[Service Worker] Default handler cache match failed:', error);
+                // Return generic fallback based on file extension
+                const fileExtension = url.pathname.split('.').pop();
+                if (fileExtension === 'js') {
+                    return createEmptyScriptResponse();
+                } else if (fileExtension === 'css') {
+                    return createEmptyCssResponse();
+                } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
+                    return new Response(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
+                        { 
+                            status: 200, 
+                            headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
+                        }
+                    );
+                }
                 return createFallbackResponse('Obsah není k dispozici offline');
             })
     );
 });
+
+// Function to extract and cache scripts and styles from a page response
+const cacheDependentResources = async (response) => {
+    try {
+        const text = await response.text();
+        const staticCache = await caches.open(STATIC_CACHE);
+        
+        // Extract Next.js chunks from the HTML
+        const chunkMatches = [...text.matchAll(/(href|src)=["']([^"']*\/_next\/static\/[^"']*(\.js|\.css))["']/g)];
+        
+        // Fetch and cache each chunk
+        const uniqueUrls = [...new Set(chunkMatches.map(match => match[2]))];
+        
+        // Cache each resource
+        uniqueUrls.forEach(url => {
+            if (!url.startsWith('http')) {
+                url = new URL(url, self.location.origin).href;
+            }
+            
+            fetch(url)
+                .then(chunkResponse => {
+                    if (chunkResponse.ok) {
+                        staticCache.put(url, chunkResponse)
+                            .catch(err => {
+                                console.error('[Service Worker] Failed to cache dependent resource:', err);
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.warn('[Service Worker] Failed to fetch dependent resource:', error);
+                });
+        });
+    } catch (error) {
+        console.error('[Service Worker] Error caching dependent resources:', error);
+    }
+};
+
+// Function to recursively cache all assets on a page
+const recursiveCachePage = async (url) => {
+    try {
+        if (isOffline()) {
+            console.log('[Service Worker] Offline, skipping recursive caching');
+            return;
+        }
+        
+        // Fetch the page
+        const response = await fetch(url);
+        const clonedResponse = response.clone();
+        
+        // Cache the page itself
+        const dynamicCache = await caches.open(DYNAMIC_CACHE);
+        await dynamicCache.put(url, response);
+        
+        // Extract and cache dependent resources
+        await cacheDependentResources(clonedResponse);
+    } catch (error) {
+        console.error('[Service Worker] Failed to recursively cache page:', error);
+    }
+};
 
 // Handle messages from clients
 self.addEventListener('message', (event) => {
@@ -397,54 +694,21 @@ self.addEventListener('message', (event) => {
                 return;
             }
             
-            caches.open(DYNAMIC_CACHE)
-                .then(cache => {
-                    const fetchPromises = pagesToCache.map(page => 
-                        safeFetch(page)
-                            .then(response => {
-                                if (response.ok) {
-                                    return cache.put(page, response)
-                                        .catch(error => {
-                                            console.error('[Service Worker] Failed to put in cache:', page, error);
-                                            return Promise.resolve();
-                                        });
-                                }
-                                return Promise.resolve();
-                            })
-                            .catch(error => {
-                                console.error('[Service Worker] Failed to cache:', page, error);
-                                return Promise.resolve();
-                            })
-                    );
-                    
-                    Promise.all(fetchPromises)
-                        .then(() => {
-                            self.clients.matchAll()
-                                .then(clients => {
-                                    clients.forEach(client => {
-                                        client.postMessage({
-                                            type: 'CACHE_COMPLETE',
-                                            success: true
-                                        });
-                                    });
+            // Use recursive caching for each page
+            Promise.all(pagesToCache.map(page => recursiveCachePage(page)))
+                .then(() => {
+                    self.clients.matchAll()
+                        .then(clients => {
+                            clients.forEach(client => {
+                                client.postMessage({
+                                    type: 'CACHE_COMPLETE',
+                                    success: true
                                 });
-                        })
-                        .catch(error => {
-                            console.error('[Service Worker] Cache all pages failed:', error);
-                            self.clients.matchAll()
-                                .then(clients => {
-                                    clients.forEach(client => {
-                                        client.postMessage({
-                                            type: 'CACHE_COMPLETE',
-                                            success: false,
-                                            message: error.message
-                                        });
-                                    });
-                                });
+                            });
                         });
                 })
                 .catch(error => {
-                    console.error('[Service Worker] Failed to open dynamic cache:', error);
+                    console.error('[Service Worker] Cache all pages failed:', error);
                     self.clients.matchAll()
                         .then(clients => {
                             clients.forEach(client => {
@@ -498,6 +762,38 @@ self.addEventListener('message', (event) => {
                                 });
                         });
                 });
+            break;
+            
+        case 'RECURSIVE_CACHE_PAGE':
+            if (data.url) {
+                recursiveCachePage(data.url)
+                    .then(() => {
+                        self.clients.matchAll()
+                            .then(clients => {
+                                clients.forEach(client => {
+                                    client.postMessage({
+                                        type: 'RECURSIVE_CACHE_COMPLETE',
+                                        url: data.url,
+                                        success: true
+                                    });
+                                });
+                            });
+                    })
+                    .catch(error => {
+                        console.error('[Service Worker] Recursive cache failed:', error);
+                        self.clients.matchAll()
+                            .then(clients => {
+                                clients.forEach(client => {
+                                    client.postMessage({
+                                        type: 'RECURSIVE_CACHE_COMPLETE',
+                                        url: data.url,
+                                        success: false,
+                                        message: error.message
+                                    });
+                                });
+                            });
+                    });
+            }
             break;
             
         case 'REQUEST_CACHED_PAGES':
