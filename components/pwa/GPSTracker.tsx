@@ -306,7 +306,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [watchId]);
+  }, [watchId, saveLocationForOffline]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
