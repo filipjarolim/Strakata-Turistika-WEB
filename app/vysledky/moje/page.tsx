@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { fetchWithCache, prefetchApiData } from '@/lib/api-utils';
 
 const YearSelector: React.FC<{ 
@@ -94,7 +95,6 @@ export default function MojeVysledkyPage() {
     const [displayCount, setDisplayCount] = useState(20);
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement>(null);
-    const [shouldRender, setShouldRender] = useState(true);
 
     // Calculate filtered data based on selected year
     const filteredData = useMemo(() => {
@@ -108,11 +108,6 @@ export default function MojeVysledkyPage() {
         });
     }, [visitData, selectedYear]);
 
-    // Slice the data based on current display count
-    const displayData = useMemo(() => {
-        return filteredData.slice(0, displayCount);
-    }, [filteredData, displayCount]);
-
     // Add prefetching on first load
     useEffect(() => {
         // Prefetch seasons data
@@ -123,16 +118,13 @@ export default function MojeVysledkyPage() {
     useEffect(() => {
         if (user === null) {
             router.push('/prihlaseni?callbackUrl=/vysledky/moje');
-            setShouldRender(false);
-        } else {
-            setShouldRender(true);
         }
     }, [user, router]);
 
-    // User data fetching
+    // Define user data fetching useEffect
     useEffect(() => {
-        // Only run if we should render and data not yet fetched
-        if (!shouldRender || !user || dataFetchedRef.current) return;
+        // Only fetch data once and only if user is authenticated
+        if (dataFetchedRef.current || !user) return;
         
         const fetchUserData = async () => {
             setLoading(true);
@@ -164,11 +156,11 @@ export default function MojeVysledkyPage() {
         };
 
         fetchUserData();
-    }, [user, shouldRender]);
+    }, [user]);
     
     // Set up intersection observer for infinite scrolling
     useEffect(() => {
-        if (!loadMoreRef.current || loading || !shouldRender) return;
+        if (!loadMoreRef.current || loading) return;
         
         observerRef.current = new IntersectionObserver(
             (entries) => {
@@ -187,7 +179,7 @@ export default function MojeVysledkyPage() {
                 observerRef.current.disconnect();
             }
         };
-    }, [loadMoreRef, displayCount, filteredData.length, loading, shouldRender]);
+    }, [loadMoreRef, displayCount, filteredData.length, loading]);
 
     const handleYearChange = (year: number) => {
         setSelectedYear(year === 0 ? null : year);
@@ -195,8 +187,13 @@ export default function MojeVysledkyPage() {
         setDisplayCount(20);
     };
     
-    // Don't render if not authenticated
-    if (!shouldRender) {
+    // Slice the data based on current display count
+    const displayData = useMemo(() => {
+        return filteredData.slice(0, displayCount);
+    }, [filteredData, displayCount]);
+
+    // If user is not authenticated, show loading or null instead of redirecting inside render
+    if (user === null) {
         return null;
     }
 

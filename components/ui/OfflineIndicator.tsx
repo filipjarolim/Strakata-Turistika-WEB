@@ -1,103 +1,102 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { WifiOff, Check } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useOfflineStatus } from '@/lib/hooks/useOfflineStatus';
 
-/**
- * Component that displays an offline indicator when the user loses their internet connection
- * Works with the service worker to provide real-time connection status updates
- */
-export default function OfflineIndicator() {
-  const [isOffline, setIsOffline] = useState<boolean>(false);
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const pathname = usePathname();
+export function OfflineIndicator() {
+  const { isOnline, isOfflineCapable, cachedEndpoints, isEndpointCached } = useOfflineStatus();
+  const [expanded, setExpanded] = useState(false);
 
+  // Show expanded view automatically when offline
   useEffect(() => {
-    // Initial check of offline status
-    setIsOffline(!navigator.onLine);
+    if (!isOnline) {
+      setExpanded(true);
+    }
+  }, [isOnline]);
+
+  if (!isOfflineCapable) {
+    return null; // Don't show anything if offline capabilities aren't available
+  }
+
+  // Generate user-friendly feature list based on cached endpoints
+  const getAvailableFeatures = (): string[] => {
+    const features = [];
     
-    // Listen for online/offline events from the browser
-    const handleOnline = () => {
-      setIsOffline(false);
-      setIsVisible(false);
-    };
-    
-    const handleOffline = () => {
-      setIsOffline(true);
-      setIsVisible(true);
-    };
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    // Listen for messages from the service worker
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'CONNECTION_STATUS') {
-          const newOfflineState = !!event.data.isOffline;
-          
-          if (newOfflineState !== isOffline) {
-            setIsOffline(newOfflineState);
-            
-            // Only show the indicator if we just went offline
-            if (newOfflineState) {
-              setIsVisible(true);
-            } else {
-              // When coming back online, show for 3 seconds then hide
-              setIsVisible(true);
-              setTimeout(() => setIsVisible(false), 3000);
-            }
-          }
-        }
-      });
-      
-      // Ask the service worker to check online status
-      navigator.serviceWorker.controller.postMessage({
-        type: 'CHECK_ONLINE_STATUS'
-      });
+    if (isEndpointCached('/api/seasons')) {
+      features.push('Sezóny');
     }
     
-    // Set up periodic online checks
-    const intervalId = setInterval(() => {
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'CHECK_ONLINE_STATUS'
-        });
-      }
-    }, 60000); // Every minute
+    if (isEndpointCached('/api/results')) {
+      features.push('Všechny výsledky');
+    }
     
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(intervalId);
-    };
-  }, [isOffline]);
-  
-  // Don't render on the offline page
-  if (pathname === '/offline') return null;
-  
-  if (!isVisible) return null;
-  
+    if (cachedEndpoints.some(url => url.includes('/api/results/'))) {
+      features.push('Výsledky podle roku');
+    }
+    
+    if (cachedEndpoints.some(url => url.includes('/api/user/results'))) {
+      features.push('Vaše výsledky');
+    }
+    
+    return features;
+  };
+
   return (
-    <div 
-      className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 py-2 px-4 rounded-full shadow-lg flex items-center gap-2 transition-all duration-300 ${
-        isOffline 
-          ? 'bg-red-500 text-white' 
-          : 'bg-green-500 text-white'
-      }`}
-    >
-      {isOffline ? (
-        <>
-          <WifiOff className="h-4 w-4" />
-          <span className="text-sm font-medium">Jste offline</span>
-        </>
-      ) : (
-        <>
-          <Check className="h-4 w-4" />
-          <span className="text-sm font-medium">Připojení obnoveno</span>
-        </>
-      )}
+    <div className="fixed bottom-4 right-4 z-50">
+      <div 
+        className={`p-3 rounded-lg shadow-md transition-all duration-300 ${
+          isOnline 
+            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+            : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+        }`}
+      >
+        <div 
+          className="flex items-center cursor-pointer"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <div className={`w-3 h-3 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+          <span className="font-medium">
+            {isOnline ? 'Online' : 'Offline režim'}
+          </span>
+          <svg 
+            className={`ml-2 w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        
+        {expanded && (
+          <div className="mt-2 text-sm">
+            {!isOnline && (
+              <p className="mb-2">
+                Pracujete v offline režimu. Některé funkce mohou být omezené.
+              </p>
+            )}
+            
+            <div className="mt-1">
+              <p className="font-medium mb-1">Dostupné offline:</p>
+              {getAvailableFeatures().length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {getAvailableFeatures().map((feature, index) => (
+                    <li key={index}>{feature}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Žádný obsah není momentálně uložen pro offline použití.</p>
+              )}
+            </div>
+            
+            {isOnline && (
+              <p className="mt-2 text-xs">
+                Pro offline použití si prohlédněte stránky při připojení k internetu.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

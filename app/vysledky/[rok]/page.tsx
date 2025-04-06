@@ -185,7 +185,7 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
         fetchData();
     }, [params]);
     
-    // Update loadMoreData to use cached fetch and wrap in useCallback
+    // Update loadMoreData to use cached fetch
     const loadMoreData = useCallback(async () => {
         if (loadingMore || pagination.currentPage >= pagination.totalPages) return;
         

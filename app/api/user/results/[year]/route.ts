@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { Prisma } from "@prisma/client";
-
-type JsonValue = Prisma.JsonValue;
 
 type tParams = Promise<{ year: string }>;
 
@@ -11,25 +8,26 @@ type tParams = Promise<{ year: string }>;
 const CACHE_TTL = 5 * 60 * 1000;
 const userYearResultsCache = new Map();
 
-// Define interfaces for our data
-interface ExtraPoints {
+// Define the structure for the extraPoints field
+interface ExtraPointsData {
     userId?: string;
     reason?: string;
     amount?: number;
     [key: string]: unknown;
 }
 
+// Define the visit data structure
 interface VisitData {
     id: string;
     visitDate: Date | null;
-    fullName: string;
+    fullName: string | null;
     dogName: string | null;
-    points: number;
-    visitedPlaces: string;
+    points: number | null;
+    visitedPlaces: unknown;
     dogNotAllowed: boolean | null;
     routeLink: string | null;
-    year: number;
-    extraPoints: JsonValue;
+    year: number | null;
+    extraPoints: unknown;
 }
 
 export async function GET(request: Request, { params }: { params: tParams }) {
@@ -92,7 +90,7 @@ export async function GET(request: Request, { params }: { params: tParams }) {
                 extraPoints: true
             },
             orderBy: { visitDate: 'desc' }
-        }) as VisitData[];
+        });
 
         // Create a more efficient filter - first check if we can filter by name
         // as it's faster than parsing JSON
@@ -100,7 +98,7 @@ export async function GET(request: Request, { params }: { params: tParams }) {
         
         if (user.name) {
             // First pass - filter by name (faster)
-            userYearVisitData = yearVisitData.filter(item => item.fullName === user.name);
+            userYearVisitData = yearVisitData.filter(item => item.fullName === user.name) as VisitData[];
         }
         
         // If we have no name matches or user has no name, also check the extraPoints.userId
@@ -108,13 +106,12 @@ export async function GET(request: Request, { params }: { params: tParams }) {
             // Second pass - filter by extraPoints.userId
             userYearVisitData = yearVisitData.filter(item => {
                 try {
-                    // Parse extraPoints as our defined type instead of any
-                    const extraPoints = item.extraPoints as ExtraPoints;
+                    const extraPoints = item.extraPoints as ExtraPointsData | null;
                     return extraPoints && extraPoints.userId === user.id;
                 } catch (e) {
                     return false;
                 }
-            });
+            }) as VisitData[];
         }
 
         // Store in cache

@@ -197,17 +197,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   // Add elevations state
   const [elevations, setElevations] = useState<number[]>([]);
 
-  // Declare functions first
-  function formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    const pad = (n: number) => (n < 10 ? `0${n}` : n);
-    return hours > 0 
-      ? `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`
-      : `${pad(minutes)}:${pad(remainingSeconds)}`;
-  }
-
   const calculations = useCallback(() => {
     const distance = (): string => {
       let total = 0;
@@ -231,137 +220,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
 
     return { distance, avgSpeed };
   }, [positions, elapsedTime]);
-
-  const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
-
-  // Add interface for track data for offline sync
-  interface TrackData {
-    season: number;
-    image: string | null;
-    distance: string;
-    elapsedTime: number;
-    averageSpeed: string;
-    fullName: string;
-    maxSpeed: string;
-    totalAscent: string;
-    totalDescent: string;
-    timestamp: number;
-    positions: [number, number][];
-  }
-
-  // Types for gradient path segments
-  interface PathSegment {
-    positions: [number, number][];
-    color: string;
-    weight: number;
-    opacity: number;
-  }
-
-  // Add function to create gradient path
-  const createGradientPath = (
-    positions: [number, number][],
-    elevations: number[]
-  ): PathSegment | PathSegment[] => {
-    // Default to blue line if no elevation data
-    if (!elevations || elevations.length < positions.length) {
-      return {
-        positions,
-        color: '#007aff',
-        weight: 5,
-        opacity: 0.8
-      };
-    }
-    
-    // Create segments with color based on elevation change
-    const segments: PathSegment[] = [];
-    const minElevation = Math.min(...elevations);
-    const maxElevation = Math.max(...elevations);
-    let range = maxElevation - minElevation;
-    
-    if (range === 0) range = 1; // Avoid division by zero
-    
-    for (let i = 1; i < positions.length; i++) {
-      const elev = elevations[i];
-      const normalizedElevation = (elev - minElevation) / range;
-      
-      // Create color gradient: green for low, yellow for mid, red for high elevations
-      let color;
-      if (normalizedElevation < 0.33) {
-        color = '#4caf50'; // Green for lower elevations
-      } else if (normalizedElevation < 0.66) {
-        color = '#ff9800'; // Orange for middle elevations
-      } else {
-        color = '#f44336'; // Red for higher elevations
-      }
-      
-      segments.push({
-        positions: [positions[i-1], positions[i]],
-        color,
-        weight: 5,
-        opacity: 0.8
-      });
-    }
-    
-    return segments;
-  };
-
-  // Function to save location data for offline use
-  const saveLocationForOffline = useCallback((locationData: [number, number]): void => {
-    // Save to service worker cache if available
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SAVE_FOR_OFFLINE',
-        url: '/lastKnownLocation',
-        data: {
-          lat: locationData[0],
-          lng: locationData[1],
-          timestamp: Date.now()
-        }
-      });
-    }
-    
-    // Also save to IndexedDB for more reliable offline storage
-    try {
-      const openRequest = indexedDB.open('gpsTrackerDB', 1);
-      
-      openRequest.onupgradeneeded = function() {
-        const db = openRequest.result;
-        if (!db.objectStoreNames.contains('locations')) {
-          db.createObjectStore('locations', { keyPath: 'id' });
-        }
-      };
-      
-      openRequest.onsuccess = function() {
-        const db = openRequest.result;
-        const transaction = db.transaction('locations', 'readwrite');
-        const store = transaction.objectStore('locations');
-        
-        store.put({
-          id: 'lastKnown',
-          lat: locationData[0],
-          lng: locationData[1],
-          timestamp: Date.now()
-        });
-      };
-    } catch (err) {
-      console.error('Error storing location in IndexedDB:', err);
-    }
-  }, []);
-
-  // Capture the map as a PNG image
-  const captureMapImage = useCallback(async () => {
-    if (!mapContainerRef.current) return;
-    try {
-      const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
-      const imageData = canvas.toDataURL('image/png');
-      setMapImage(imageData);
-      return imageData;
-    } catch (error) {
-      console.error('Error capturing map image:', error);
-      toast.error('Failed to capture route image');
-      return null;
-    }
-  }, []);
 
   // Update UI when location access status changes
   useEffect(() => {
@@ -439,7 +297,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [watchId, saveLocationForOffline]);
+  }, [watchId]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -477,29 +335,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       }, 300000); // Reduced to 5 minutes to be less intrusive
     }
     return () => notifyInterval && clearInterval(notifyInterval);
-  }, [tracking, elapsedTime, paused, isOffline, calculateDistance]);
-
-  const stopTracking = useCallback(() => {
-    if (watchId) navigator.geolocation.clearWatch(watchId);
-    setTracking(false);
-    setWatchId(null);
-    setCompleted(true);
-    
-    try {
-      if (document.exitFullscreen && document.fullscreenElement) {
-        document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
-      }
-    } catch (error) {
-      console.error('Exit fullscreen error:', error);
-    }
-    
-    if (positions.length > 1) {
-      setShowResults(true);
-      captureMapImage();
-    } else {
-      toast.warning('No track data to save. Try again with a longer route.');
-    }
-  }, [watchId, positions.length, captureMapImage]);
+  }, [tracking, elapsedTime, paused, isOffline]);
 
   const startTracking = useCallback(() => {
     // Remove the offline check to allow tracking even when offline
@@ -623,7 +459,29 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, isOffline, lastElevation, totalAscent, totalDescent, stopTracking]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, isOffline, lastElevation, totalAscent, totalDescent]);
+
+  const stopTracking = useCallback(() => {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    setTracking(false);
+    setWatchId(null);
+    setCompleted(true);
+    
+    try {
+      if (document.exitFullscreen && document.fullscreenElement) {
+        document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
+      }
+    } catch (error) {
+      console.error('Exit fullscreen error:', error);
+    }
+    
+    if (positions.length > 1) {
+      setShowResults(true);
+      captureMapImage();
+    } else {
+      toast.warning('No track data to save. Try again with a longer route.');
+    }
+  }, [watchId, positions.length]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -692,6 +550,105 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, [isOffline]);
+
+  // Capture the map as a PNG image
+  const captureMapImage = useCallback(async () => {
+    if (!mapContainerRef.current) return;
+    try {
+      const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
+      const imageData = canvas.toDataURL('image/png');
+      setMapImage(imageData);
+      return imageData;
+    } catch (error) {
+      console.error('Error capturing map image:', error);
+      toast.error('Failed to capture route image');
+      return null;
+    }
+  }, []);
+
+  // Declare functions first
+  function formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+    const pad = (n: number) => (n < 10 ? `0${n}` : n);
+    return hours > 0 
+      ? `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`
+      : `${pad(minutes)}:${pad(remainingSeconds)}`;
+  }
+
+  const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
+
+  // Add interface for track data for offline sync
+  interface TrackData {
+    season: number;
+    image: string | null;
+    distance: string;
+    elapsedTime: number;
+    averageSpeed: string;
+    fullName: string;
+    maxSpeed: string;
+    totalAscent: string;
+    totalDescent: string;
+    timestamp: number;
+    positions: [number, number][];
+  }
+
+  // Types for gradient path segments
+  interface PathSegment {
+    positions: [number, number][];
+    color: string;
+    weight: number;
+    opacity: number;
+  }
+
+  // Add function to create gradient path
+  const createGradientPath = (
+    positions: [number, number][],
+    elevations: number[]
+  ): PathSegment | PathSegment[] => {
+    // Default to blue line if no elevation data
+    if (!elevations || elevations.length < positions.length) {
+      return {
+        positions,
+        color: '#007aff',
+        weight: 5,
+        opacity: 0.8
+      };
+    }
+    
+    // Create segments with color based on elevation change
+    const segments: PathSegment[] = [];
+    const minElevation = Math.min(...elevations);
+    const maxElevation = Math.max(...elevations);
+    let range = maxElevation - minElevation;
+    
+    if (range === 0) range = 1; // Avoid division by zero
+    
+    for (let i = 1; i < positions.length; i++) {
+      const elev = elevations[i];
+      const normalizedElevation = (elev - minElevation) / range;
+      
+      // Create color gradient: green for low, yellow for mid, red for high elevations
+      let color;
+      if (normalizedElevation < 0.33) {
+        color = '#4caf50'; // Green for lower elevations
+      } else if (normalizedElevation < 0.66) {
+        color = '#ff9800'; // Orange for middle elevations
+      } else {
+        color = '#f44336'; // Red for higher elevations
+      }
+      
+      segments.push({
+        positions: [positions[i-1], positions[i]],
+        color,
+        weight: 5,
+        opacity: 0.8
+      });
+    }
+    
+    return segments;
+  };
 
   // Toggle map type between standard and satellite
   const toggleMapType = useCallback(() => {
@@ -793,17 +750,24 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   const storeDataForOfflineSync = async (trackData: TrackData): Promise<boolean> => {
     // Store the data in cache storage via the service worker
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      try {
-        // Use postMessage instead of sync API for better compatibility
-        navigator.serviceWorker.controller.postMessage({
-          type: 'STORE_FOR_SYNC',
-          data: trackData
-        });
-        return true;
-      } catch (err) {
-        console.error('Background sync registration failed:', err);
-        return false;
+      // Save pending track data
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SAVE_FOR_OFFLINE',
+        url: '/pending-gps-data',
+        data: trackData
+      });
+      
+      // Register for background sync if supported
+      if ('sync' in navigator.serviceWorker) {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.sync.register('sync-gps-data');
+        } catch (err) {
+          console.error('Background sync registration failed:', err);
+        }
       }
+      
+      return true;
     } else {
       // Fallback to localStorage if service worker is not available
       try {
@@ -843,6 +807,49 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     };
   }, []);
 
+  // Function to save location data for offline use
+  const saveLocationForOffline = useCallback((locationData: [number, number]): void => {
+    // Save to service worker cache if available
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SAVE_FOR_OFFLINE',
+        url: '/lastKnownLocation',
+        data: {
+          lat: locationData[0],
+          lng: locationData[1],
+          timestamp: Date.now()
+        }
+      });
+    }
+    
+    // Also save to IndexedDB for more reliable offline storage
+    try {
+      const openRequest = indexedDB.open('gpsTrackerDB', 1);
+      
+      openRequest.onupgradeneeded = function() {
+        const db = openRequest.result;
+        if (!db.objectStoreNames.contains('locations')) {
+          db.createObjectStore('locations', { keyPath: 'id' });
+        }
+      };
+      
+      openRequest.onsuccess = function() {
+        const db = openRequest.result;
+        const transaction = db.transaction('locations', 'readwrite');
+        const store = transaction.objectStore('locations');
+        
+        store.put({
+          id: 'lastKnown',
+          lat: locationData[0],
+          lng: locationData[1],
+          timestamp: Date.now()
+        });
+      };
+    } catch (err) {
+      console.error('Error storing location in IndexedDB:', err);
+    }
+  }, []);
+
   // Add to the top of the component to check for network status changes
   useEffect(() => {
     // Handler for online status changes
@@ -854,9 +861,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         toast.success('You are back online!');
         
         // Try to sync pending data when back online
-        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'SYNC_GPS_DATA'
+        if (navigator.serviceWorker && 'sync' in navigator.serviceWorker) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.sync.register('sync-gps-data').catch(err => {
+              console.error('Sync registration failed:', err);
+            });
           });
         }
       } else {
@@ -1009,17 +1018,68 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
   `;
 
+  // Add to the notification section
   useEffect(() => {
-    if (tracking) {
-      // Handle tracking notifications
-    } else {
-      // Handle cleanup
+    let notifyInterval: NodeJS.Timeout;
+    if (tracking && !paused && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      // Create a persistent notification on start
+      createPersistentNotification();
+      
+      // Update the notification every minute
+      notifyInterval = setInterval(() => {
+        updatePersistentNotification();
+      }, 60000); // Update every minute
     }
-
     return () => {
-      // Cleanup code
+      if (notifyInterval) clearInterval(notifyInterval);
+      if (!tracking && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        closePersistentNotification();
+      }
     };
-  }, [tracking]);
+  }, [tracking, elapsedTime, paused, calculateDistance]);
+
+  // Add function to create persistent notification
+  const createPersistentNotification = useCallback(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CREATE_PERSISTENT_NOTIFICATION',
+        data: {
+          title: 'GPS Tracking Active',
+          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
+          tag: 'gps-tracking-status', // Use a tag to update the same notification
+          requireInteraction: true, // Make it persistent
+          silent: false,
+          icon: '/icons/icon-192x192.png',
+        }
+      });
+    }
+  }, [calculateDistance, elapsedTime]);
+
+  // Add function to update persistent notification
+  const updatePersistentNotification = useCallback(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'UPDATE_PERSISTENT_NOTIFICATION',
+        data: {
+          title: 'GPS Tracking Active',
+          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
+          tag: 'gps-tracking-status',
+        }
+      });
+    }
+  }, [calculateDistance, elapsedTime]);
+
+  // Add function to close persistent notification
+  const closePersistentNotification = useCallback(() => {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CLOSE_PERSISTENT_NOTIFICATION',
+        data: {
+          tag: 'gps-tracking-status',
+        }
+      });
+    }
+  }, []);
 
   // Add to the top of the component to listen for IndexedDB location events
   useEffect(() => {
