@@ -11,10 +11,34 @@ self.__SW_MANIFEST;
 const PAGES_TO_CACHE = [
     '/',
     '/vysledky',
+    '/vysledky/moje',
     '/pravidla',
     '/offline',
     '/fotogalerie',
-    '/kontakty'
+    '/kontakty',
+    '/playground',
+    '/offline-test',
+    // Auth pages
+    '/auth/login',
+    '/auth/register',
+    '/auth/profil',
+    '/auth/reset',
+    '/auth/new-password',
+    '/auth/new-verification',
+    '/auth/error',
+    // Protected routes are cached but will return auth errors when offline if not authenticated
+    '/admin',
+    '/nastaveni',
+    '/client',
+    '/server'
+];
+
+// API routes that should be pre-cached when possible
+const API_ROUTES_TO_CACHE = [
+    '/api/results',
+    '/api/seasons',
+    '/api/news',
+    '/api/user/results'
 ];
 
 // Additional resources to cache by default
@@ -184,6 +208,28 @@ self.addEventListener('install', (event) => {
                     // Concatenate the lists of resources to cache
                     const allResourcesToCache = [...PAGES_TO_CACHE, ...RESOURCES_TO_CACHE];
                     
+                    // Also attempt to pre-cache important API responses
+                    API_ROUTES_TO_CACHE.forEach(apiRoute => {
+                        fetch(apiRoute)
+                            .then(response => {
+                                if (response.ok) {
+                                    caches.open(API_CACHE)
+                                        .then(apiCache => {
+                                            apiCache.put(apiRoute, response.clone())
+                                                .then(() => {
+                                                    console.log(`[Service Worker] Pre-cached API: ${apiRoute}`);
+                                                })
+                                                .catch(err => {
+                                                    console.error(`[Service Worker] Failed to pre-cache API: ${apiRoute}`, err);
+                                                });
+                                        });
+                                }
+                            })
+                            .catch(error => {
+                                console.warn(`[Service Worker] Failed to fetch API for pre-caching: ${apiRoute}`, error);
+                            });
+                    });
+                    
                     return cache.addAll(allResourcesToCache)
                         .catch(error => {
                             console.error('[Service Worker] Pre-caching failed:', error);
@@ -346,12 +392,24 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             safeFetch(request)
                 .then(response => {
-                    // Clone the response to store in cache
-                    const clonedResponse = response.clone();
-                    caches.open(API_CACHE)
-                        .then(cache => {
-                            cache.put(request, clonedResponse);
-                        });
+                    // Only cache successful responses (not auth errors, etc.)
+                    if (response && response.ok) {
+                        // Clone the response to store in cache
+                        const clonedResponse = response.clone();
+                        caches.open(API_CACHE)
+                            .then(cache => {
+                                cache.put(request, clonedResponse)
+                                    .then(() => {
+                                        console.log(`[Service Worker] Cached API response: ${request.url}`);
+                                    })
+                                    .catch(err => {
+                                        console.error(`[Service Worker] Failed to cache API response: ${request.url}`, err);
+                                    });
+                            })
+                            .catch(err => {
+                                console.error('[Service Worker] Failed to open API cache:', err);
+                            });
+                    }
                     return response;
                 })
                 .catch(() => {
@@ -548,6 +606,33 @@ const cacheDependentResources = async (response) => {
         console.error('[Service Worker] Error caching dependent resources:', error);
     }
 };
+
+// ADDED: Function to periodically refresh cached API routes (if online)
+const refreshCachedAPIs = async () => {
+    console.log('[Service Worker] Refreshing cached API routes...');
+    if (isOffline()) {
+        console.log('[Service Worker] Offline, skipping API refresh');
+        return;
+    }
+    
+    for (const apiRoute of API_ROUTES_TO_CACHE) {
+        try {
+            const response = await fetch(apiRoute);
+            if (response.ok) {
+                const cache = await caches.open(API_CACHE);
+                await cache.put(apiRoute, response);
+                console.log(`[Service Worker] Refreshed cached API: ${apiRoute}`);
+            }
+        } catch (error) {
+            console.warn(`[Service Worker] Failed to refresh API cache: ${apiRoute}`, error);
+        }
+    }
+};
+
+// Periodic API refresh (every hour if tab is open)
+setInterval(() => {
+    refreshCachedAPIs();
+}, 60 * 60 * 1000); // 1 hour in milliseconds
 
 // Handle messages from clients
 self.addEventListener('message', (event) => {
@@ -812,6 +897,36 @@ self.addEventListener('message', (event) => {
                                     endpoints: [],
                                     timestamp: Date.now(),
                                     error: error.message
+                                });
+                            });
+                        });
+                });
+            break;
+            
+        case 'REFRESH_API_CACHE':
+            refreshCachedAPIs()
+                .then(() => {
+                    self.clients.matchAll()
+                        .then(clients => {
+                            clients.forEach(client => {
+                                client.postMessage({
+                                    type: 'API_CACHE_REFRESHED',
+                                    success: true,
+                                    timestamp: Date.now()
+                                });
+                            });
+                        });
+                })
+                .catch(error => {
+                    console.error('[Service Worker] API cache refresh failed:', error);
+                    self.clients.matchAll()
+                        .then(clients => {
+                            clients.forEach(client => {
+                                client.postMessage({
+                                    type: 'API_CACHE_REFRESHED',
+                                    success: false,
+                                    message: error.message,
+                                    timestamp: Date.now()
                                 });
                             });
                         });
