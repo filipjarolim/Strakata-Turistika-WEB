@@ -3,7 +3,6 @@ const CACHE_VERSION = 'v1';
 const DYNAMIC_CACHE = 'dynamic-cache-' + CACHE_VERSION;
 const STATIC_CACHE = 'static-cache-' + CACHE_VERSION;
 const API_CACHE = 'api-cache-' + CACHE_VERSION;
-const IMAGE_CACHE = 'image-cache-' + CACHE_VERSION;
 
 // This is required by Serwist for precaching
 self.__SW_MANIFEST;
@@ -167,6 +166,11 @@ const isNextJsChunk = (url) => {
            url.pathname.includes('/_next/static/media/');
 };
 
+// Helper function to check if a response is valid
+const isValidResponse = (response) => {
+    return response && response.ok && response.status === 200;
+};
+
 // Install event - cache important resources
 self.addEventListener('install', (event) => {
     console.log('[Service Worker] Installing...');
@@ -212,8 +216,7 @@ self.addEventListener('activate', (event) => {
                     // If a cache doesn't match our current version, delete it
                     if (key !== STATIC_CACHE && 
                         key !== DYNAMIC_CACHE && 
-                        key !== API_CACHE &&
-                        key !== IMAGE_CACHE) {
+                        key !== API_CACHE) {
                         console.log('[Service Worker] Removing old cache', key);
                         return caches.delete(key);
                     }
@@ -227,91 +230,23 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Helper function to check if a URL is a Next.js image
-const isNextJsImage = (url) => {
-    return url.pathname.startsWith('/_next/image') || 
-           url.pathname.includes('/images/') ||
-           url.pathname.includes('/locations/');
-};
-
 // Fetch event - intercept network requests
 self.addEventListener('fetch', (event) => {
     const request = event.request;
     const url = new URL(request.url);
     
-    // Don't cache cross-origin requests, browser extensions, etc.
+    // Don't cache cross-origin requests, except for specific domains we trust
     if (!url.origin.includes(self.location.origin) && 
         !url.hostname.includes('tile.openstreetmap.org') && 
         !url.hostname.includes('server.arcgisonline.com')) {
         return;
     }
     
-    // Skip POST requests, etc.
+    // Skip POST requests
     if (request.method !== 'GET') {
         return;
     }
-    
-    // Special handling for Next.js image optimization routes
-    if (isNextJsImage(url)) {
-        event.respondWith(
-            safeCacheMatch(request)
-                .then(cachedResponse => {
-                    if (cachedResponse) {
-                        // If we have a cached version, return it immediately
-                        return cachedResponse;
-                    }
-                    
-                    // Try to fetch from network
-                    return safeFetch(request)
-                        .then(response => {
-                            // Only cache successful responses
-                            if (!response || !response.ok) {
-                                return response;
-                            }
-                            
-                            // Clone the response to store in cache
-                            const clonedResponse = response.clone();
-                            caches.open(IMAGE_CACHE)
-                                .then(cache => {
-                                    cache.put(request, clonedResponse)
-                                        .catch(err => {
-                                            console.error('[Service Worker] Failed to cache image:', err);
-                                        });
-                                })
-                                .catch(err => {
-                                    console.error('[Service Worker] Failed to open image cache:', err);
-                                });
-                            
-                            return response;
-                        })
-                        .catch(error => {
-                            console.warn('[Service Worker] Image fetch failed:', error);
-                            // If network fails and no cache exists, return an offline image placeholder
-                            return Promise.resolve(
-                                new Response(
-                                    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
-                                    { 
-                                        status: 200, 
-                                        headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
-                                    }
-                                )
-                            );
-                        });
-                })
-                .catch(error => {
-                    console.warn('[Service Worker] Image cache match failed:', error);
-                    return new Response(
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
-                        { 
-                            status: 200, 
-                            headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
-                        }
-                    );
-                })
-        );
-        return;
-    }
-    
+
     // Handle manifest file specially
     if (url.pathname.endsWith('/manifest.webmanifest') || url.pathname.endsWith('/manifest.json')) {
         event.respondWith(
@@ -415,13 +350,7 @@ self.addEventListener('fetch', (event) => {
                     const clonedResponse = response.clone();
                     caches.open(API_CACHE)
                         .then(cache => {
-                            cache.put(request, clonedResponse)
-                                .catch(err => {
-                                    console.error('[Service Worker] Failed to cache API response:', err);
-                                });
-                        })
-                        .catch(err => {
-                            console.error('[Service Worker] Failed to open API cache:', err);
+                            cache.put(request, clonedResponse);
                         });
                     return response;
                 })
@@ -450,8 +379,7 @@ self.addEventListener('fetch', (event) => {
     // Handle static assets with Cache-First strategy
     if (request.destination === 'style' || 
         request.destination === 'script' || 
-        request.destination === 'font' || 
-        request.destination === 'image') {
+        request.destination === 'font') {
         event.respondWith(
             safeCacheMatch(request)
                 .then(cachedResponse => {
@@ -477,36 +405,20 @@ self.addEventListener('fetch', (event) => {
                         })
                         .catch(error => {
                             console.warn('[Service Worker] Failed to fetch static asset:', error);
-                            if (request.destination === 'image') {
-                                // Return placeholder for images
-                                return new Response(
-                                    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
-                                    { 
-                                        status: 200, 
-                                        headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
-                                    }
-                                );
-                            } else if (request.destination === 'script') {
+                            // Return appropriate empty responses based on destination
+                            if (request.destination === 'script') {
                                 return createEmptyScriptResponse();
                             } else if (request.destination === 'style') {
                                 return createEmptyCssResponse();
                             }
-                            // For other assets, return an error response
+                            // For fonts or others, return an error response
                             return createFallbackResponse('Statický soubor není k dispozici offline');
                         });
                 })
                 .catch(error => {
                     console.warn('[Service Worker] Static asset cache match failed:', error);
-                    if (request.destination === 'image') {
-                        // Return placeholder for images
-                        return new Response(
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
-                            { 
-                                status: 200, 
-                                headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
-                            }
-                        );
-                    } else if (request.destination === 'script') {
+                    // Return appropriate empty responses based on destination
+                    if (request.destination === 'script') {
                         return createEmptyScriptResponse();
                     } else if (request.destination === 'style') {
                         return createEmptyCssResponse();
@@ -526,13 +438,7 @@ self.addEventListener('fetch', (event) => {
                     const clonedResponse = response.clone();
                     caches.open(DYNAMIC_CACHE)
                         .then(cache => {
-                            cache.put(request, clonedResponse)
-                                .catch(err => {
-                                    console.error('[Service Worker] Failed to cache page:', err);
-                                });
-                        })
-                        .catch(err => {
-                            console.error('[Service Worker] Failed to open dynamic cache:', err);
+                            cache.put(request, clonedResponse);
                         });
                     
                     // Also cache styles and scripts needed for this page when online
@@ -561,52 +467,48 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     
-    // Default: Cache falling back to network
+    // Default: Cache falling back to network (General fallback)
     event.respondWith(
         safeCacheMatch(request)
             .then(cachedResponse => {
                 if (cachedResponse) {
+                    // console.log('[Service Worker] Default handler found in cache:', request.url);
                     return cachedResponse;
                 }
+                // console.log('[Service Worker] Default handler fetching from network:', request.url);
+                // If not in cache, fetch from network
                 return safeFetch(request)
                     .catch(error => {
-                        console.warn('[Service Worker] Default handler fetch failed:', error);
-                        // Return generic fallback based on file extension
+                        console.warn('[Service Worker] Default handler fetch failed:', error, request.url);
+                        // Provide appropriate fallback if network fails
                         const fileExtension = url.pathname.split('.').pop();
-                        if (fileExtension === 'js') {
+                        if (fileExtension === 'js' || request.destination === 'script') {
                             return createEmptyScriptResponse();
-                        } else if (fileExtension === 'css') {
+                        } else if (fileExtension === 'css' || request.destination === 'style') {
                             return createEmptyCssResponse();
-                        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
-                            return new Response(
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
-                                { 
-                                    status: 200, 
-                                    headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
-                                }
-                            );
                         }
+                        // REMOVED specific image fallback check here
+                        console.log('[Service Worker] Default handler returning generic fallback (network failed):', request.url);
                         return createFallbackResponse('Obsah není k dispozici offline');
                     });
             })
             .catch(error => {
-                console.warn('[Service Worker] Default handler cache match failed:', error);
-                // Return generic fallback based on file extension
-                const fileExtension = url.pathname.split('.').pop();
-                if (fileExtension === 'js') {
-                    return createEmptyScriptResponse();
-                } else if (fileExtension === 'css') {
-                    return createEmptyCssResponse();
-                } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension)) {
-                    return new Response(
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none"><rect width="400" height="300" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" fill="#999" font-family="system-ui, sans-serif" font-size="24">Image unavailable offline</text></svg>',
-                        { 
-                            status: 200, 
-                            headers: new Headers({ 'Content-Type': 'image/svg+xml' }) 
+                // This catch handles the failure of safeCacheMatch
+                console.warn('[Service Worker] Default handler cache match failed, attempting network fetch:', error, request.url);
+                return safeFetch(request)
+                    .catch(fetchError => {
+                        // This catch handles the failure of the fallback network fetch
+                        console.warn('[Service Worker] Default handler fallback fetch also failed:', fetchError, request.url);
+                        const fileExtension = url.pathname.split('.').pop();
+                         if (fileExtension === 'js' || request.destination === 'script') {
+                            return createEmptyScriptResponse();
+                        } else if (fileExtension === 'css' || request.destination === 'style') {
+                            return createEmptyCssResponse();
                         }
-                    );
-                }
-                return createFallbackResponse('Obsah není k dispozici offline');
+                         // REMOVED specific image fallback check here
+                        console.log('[Service Worker] Default handler returning generic fallback (cache miss + network failed):', request.url);
+                        return createFallbackResponse('Obsah není k dispozici offline');
+                    });
             })
     );
 });
@@ -647,29 +549,6 @@ const cacheDependentResources = async (response) => {
     }
 };
 
-// Function to recursively cache all assets on a page
-const recursiveCachePage = async (url) => {
-    try {
-        if (isOffline()) {
-            console.log('[Service Worker] Offline, skipping recursive caching');
-            return;
-        }
-        
-        // Fetch the page
-        const response = await fetch(url);
-        const clonedResponse = response.clone();
-        
-        // Cache the page itself
-        const dynamicCache = await caches.open(DYNAMIC_CACHE);
-        await dynamicCache.put(url, response);
-        
-        // Extract and cache dependent resources
-        await cacheDependentResources(clonedResponse);
-    } catch (error) {
-        console.error('[Service Worker] Failed to recursively cache page:', error);
-    }
-};
-
 // Handle messages from clients
 self.addEventListener('message', (event) => {
     const data = event.data;
@@ -695,6 +574,32 @@ self.addEventListener('message', (event) => {
             }
             
             // Use recursive caching for each page
+            const recursiveCachePage = async (url) => {
+                try {
+                    if (isOffline()) {
+                        console.log('[Service Worker] Offline, skipping recursive caching');
+                        return;
+                    }
+                    
+                    // Fetch the page
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                         console.error(`[Service Worker] Failed to fetch page for recursive cache: ${url} (${response.status})`);
+                         return; // Don't cache bad responses
+                    }
+                    const clonedResponse = response.clone();
+                    
+                    // Cache the page itself
+                    const dynamicCache = await caches.open(DYNAMIC_CACHE);
+                    await dynamicCache.put(url, response);
+                    
+                    // Extract and cache dependent resources
+                    await cacheDependentResources(clonedResponse);
+                } catch (error) {
+                    console.error(`[Service Worker] Failed to recursively cache page: ${url}`, error);
+                }
+            };
+
             Promise.all(pagesToCache.map(page => recursiveCachePage(page)))
                 .then(() => {
                     self.clients.matchAll()
@@ -733,8 +638,7 @@ self.addEventListener('message', (event) => {
                             return Promise.all([
                                 caches.open(STATIC_CACHE),
                                 caches.open(DYNAMIC_CACHE),
-                                caches.open(API_CACHE),
-                                caches.open(IMAGE_CACHE)
+                                caches.open(API_CACHE)
                             ]);
                         })
                         .then(() => {
@@ -766,7 +670,34 @@ self.addEventListener('message', (event) => {
             
         case 'RECURSIVE_CACHE_PAGE':
             if (data.url) {
-                recursiveCachePage(data.url)
+                const recursiveCachePageSingle = async (url) => {
+                    try {
+                        if (isOffline()) {
+                            console.log('[Service Worker] Offline, skipping recursive caching');
+                            return;
+                        }
+                        
+                        // Fetch the page
+                        const response = await fetch(url);
+                         if (!response.ok) {
+                             console.error(`[Service Worker] Failed to fetch page for recursive cache: ${url} (${response.status})`);
+                             return; // Don't cache bad responses
+                        }
+                        const clonedResponse = response.clone();
+                        
+                        // Cache the page itself
+                        const dynamicCache = await caches.open(DYNAMIC_CACHE);
+                        await dynamicCache.put(url, response);
+                        
+                        // Extract and cache dependent resources
+                        await cacheDependentResources(clonedResponse);
+                    } catch (error) {
+                        console.error(`[Service Worker] Failed to recursively cache page: ${url}`, error);
+                         throw error; // Rethrow to be caught below
+                    }
+                };
+
+                recursiveCachePageSingle(data.url)
                     .then(() => {
                         self.clients.matchAll()
                             .then(clients => {
