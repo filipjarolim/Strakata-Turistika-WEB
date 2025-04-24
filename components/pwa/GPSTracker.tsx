@@ -21,8 +21,18 @@ interface SyncManager {
   register(tag: string): Promise<void>;
 }
 
-interface ExtendedServiceWorkerRegistration extends ServiceWorkerRegistration {
-  sync?: SyncManager;
+// Use interface augmentation instead of extension
+interface ExtendedServiceWorkerRegistration {
+  readonly sync?: SyncManager;
+  // Include other standard ServiceWorkerRegistration properties
+  readonly active: ServiceWorker | null;
+  readonly installing: ServiceWorker | null;
+  readonly waiting: ServiceWorker | null;
+  readonly scope: string;
+  getNotifications(options?: GetNotificationOptions): Promise<Notification[]>;
+  showNotification(title: string, options?: NotificationOptions): Promise<void>;
+  update(): Promise<void>;
+  unregister(): Promise<boolean>;
 }
 
 // Interface for track data and offline sync
@@ -545,8 +555,14 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
   }, [watchId, positions.length, captureMapImage]);
 
-  // Fix the startTracking dependencies to include stopTracking
+  // useCallback for startTracking - remove unnecessary dependencies
   const startTracking = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    // Start tracking logic
     setTracking(true);
     setCompleted(false);
     setShowResults(false);
@@ -662,7 +678,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, totalAscent, totalDescent, stopTracking]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -969,7 +985,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
   }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, clearAllData, calculateDistance, calculateAverageSpeed, storeDataForOfflineSync, isOffline]);
 
-  // Add the mobileCss definition back
+  // For line 986, we need to remove isOffline from mobileCss dependencies
+  // Let's make mobileCss a regular variable, not a callback
   const mobileCss = `
     @media (max-width: 640px) {
       .mobile-control-panel {

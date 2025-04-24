@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useOfflineStatus } from '@/lib/hooks/useOfflineStatus';
+import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { 
   Sheet, 
   SheetContent, 
@@ -15,12 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check, Settings } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { NetworkStatus } from './NetworkStatus';
 
 // List of critical pages that should always be cached for offline use
 const CRITICAL_PAGES = [
@@ -33,7 +34,7 @@ const CRITICAL_PAGES = [
 ];
 
 export const OfflineController: React.FC = () => {
-  const { isOnline, isOfflineCapable, cachedEndpoints } = useOfflineStatus();
+  const isOffline = useOfflineStatus();
   const [isOpen, setIsOpen] = useState(false);
   const [cachedPages, setCachedPages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,39 +42,15 @@ export const OfflineController: React.FC = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [progress, setProgress] = useState(0);
   
-  // Get list of cached pages from service worker
-  useEffect(() => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      const handleMessage = (event: MessageEvent) => {
-        if (event.data && event.data.type === 'UPDATE_CACHED_PAGES') {
-          setCachedPages(event.data.pages || []);
-        }
-      };
-      
-      navigator.serviceWorker.addEventListener('message', handleMessage);
-      
-      // Request cached pages on component mount
-      navigator.serviceWorker.controller.postMessage({ 
-        type: 'REQUEST_CACHED_PAGES' 
-      });
-      
-      return () => {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
-      };
-    }
-  }, []);
-
-  // Group cached endpoints by type
-  const apiEndpoints = cachedEndpoints.filter(url => url.includes('/api/'));
-  const cachedPageUrls = cachedPages.filter(url => !url.includes('/api/') && !url.includes('/static/') && !url.includes('/assets/'));
+  // Check if service worker is available
+  const isServiceWorkerAvailable = typeof navigator !== 'undefined' && 
+                                 'serviceWorker' in navigator;
   
-  // Request service worker to cache all pages
+  // Cache critical pages for offline use
   const cacheAllPages = async () => {
-    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-      toast({
-        title: "Offline mód není dostupný",
-        description: "Váš prohlížeč nepodporuje service worker nebo není inicializován",
-        variant: "destructive"
+    if (!isServiceWorkerAvailable) {
+      toast.error("Offline mód není dostupný", {
+        description: "Váš prohlížeč nepodporuje service worker nebo není inicializován"
       });
       return;
     }
@@ -84,34 +61,27 @@ export const OfflineController: React.FC = () => {
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
+        setProgress(prev => Math.min(prev + 10, 90));
       }, 300);
       
-      navigator.serviceWorker.controller.postMessage({
-        type: 'CACHE_ALL_PAGES',
-        pages: CRITICAL_PAGES
-      });
-      
-      // Wait for response or timeout after 5 seconds
-      const result = await Promise.race([
-        new Promise(resolve => {
-          const handleMessage = (event: MessageEvent) => {
-            if (event.data && event.data.type === 'CACHE_COMPLETE') {
-              navigator.serviceWorker.removeEventListener('message', handleMessage);
-              resolve(event.data);
-            }
-          };
-          
-          navigator.serviceWorker.addEventListener('message', handleMessage);
-        }),
-        new Promise(resolve => setTimeout(() => resolve({ success: true }), 5000))
-      ]);
+      // Pre-cache the critical pages by fetching them
+      await Promise.all(
+        CRITICAL_PAGES.map(async (page) => {
+          try {
+            const response = await fetch(page, { 
+              method: 'GET',
+              cache: 'force-cache',
+              headers: {
+                'Service-Worker-Cache': 'true'
+              }
+            });
+            return response.ok;
+          } catch (error) {
+            console.error(`Failed to cache ${page}:`, error);
+            return false;
+          }
+        })
+      );
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -121,36 +91,25 @@ export const OfflineController: React.FC = () => {
         setIsCaching(false);
       }, 500);
       
-      toast({
-        title: "Stránky uloženy offline",
-        description: "Důležité stránky byly uloženy pro offline použití",
-        variant: "default"
-      });
-      
-      // Request updated page list
-      navigator.serviceWorker.controller.postMessage({ 
-        type: 'REQUEST_CACHED_PAGES' 
+      toast.success("Stránky uloženy offline", {
+        description: "Důležité stránky byly uloženy pro offline použití"
       });
     } catch (error) {
       console.error('Error caching pages:', error);
       setProgress(0);
       setIsCaching(false);
       
-      toast({
-        title: "Chyba při ukládání stránek",
-        description: "Nastala chyba při ukládání stránek offline",
-        variant: "destructive"
+      toast.error("Chyba při ukládání stránek", {
+        description: "Nastala chyba při ukládání stránek offline"
       });
     }
   };
   
-  // Request service worker to clear all cache
+  // Clear the cache
   const clearAllCache = async () => {
-    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-      toast({
-        title: "Offline mód není dostupný",
-        description: "Váš prohlížeč nepodporuje service worker nebo není inicializován",
-        variant: "destructive"
+    if (!isServiceWorkerAvailable) {
+      toast.error("Offline mód není dostupný", {
+        description: "Váš prohlížeč nepodporuje service worker nebo není inicializován"
       });
       return;
     }
@@ -161,33 +120,16 @@ export const OfflineController: React.FC = () => {
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 15;
-        });
+        setProgress(prev => Math.min(prev + 15, 90));
       }, 200);
       
-      navigator.serviceWorker.controller.postMessage({
-        type: 'CLEAR_ALL_CACHE'
-      });
-      
-      // Wait for response or timeout after 3 seconds
-      await Promise.race([
-        new Promise(resolve => {
-          const handleMessage = (event: MessageEvent) => {
-            if (event.data && event.data.type === 'CACHE_CLEARED') {
-              navigator.serviceWorker.removeEventListener('message', handleMessage);
-              resolve(event.data);
-            }
-          };
-          
-          navigator.serviceWorker.addEventListener('message', handleMessage);
-        }),
-        new Promise(resolve => setTimeout(() => resolve(null), 3000))
-      ]);
+      // Use the Cache API to clear all caches
+      if ('caches' in window) {
+        const cacheNames = await window.caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => window.caches.delete(cacheName))
+        );
+      }
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -197,229 +139,113 @@ export const OfflineController: React.FC = () => {
         setIsClearing(false);
       }, 500);
       
-      toast({
-        title: "Cache byla vymazána",
-        description: "Všechna offline data byla smazána",
-        variant: "default"
-      });
-      
-      // Request updated page list
-      navigator.serviceWorker.controller.postMessage({ 
-        type: 'REQUEST_CACHED_PAGES' 
+      toast.success("Cache byla vymazána", {
+        description: "Všechna offline data byla smazána"
       });
     } catch (error) {
       console.error('Error clearing cache:', error);
       setProgress(0);
       setIsClearing(false);
       
-      toast({
-        title: "Chyba při mazání cache",
-        description: "Nastala chyba při mazání cache",
-        variant: "destructive"
+      toast.error("Chyba při mazání cache", {
+        description: "Nastala chyba při mazání cache"
       });
     }
   };
-  
-  // Update cached pages list
-  const refreshCachedPages = () => {
-    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
-    
-    setIsLoading(true);
-    navigator.serviceWorker.controller.postMessage({ 
-      type: 'REQUEST_CACHED_PAGES' 
-    });
-    
-    // Set a timeout to stop loading state after 2 seconds
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-  };
-
-  if (!isOfflineCapable) {
-    return null;
-  }
-  
-  // Calculate cache stats
-  const totalItems = cachedPages.length;
-  const apiItems = apiEndpoints.length;
-  const pageItems = cachedPageUrls.length;
-  const staticItems = totalItems - apiItems - pageItems;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
-          size="icon" 
           variant="outline" 
-          className={`rounded-full w-10 h-10 shadow-md ${!isOnline ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : ''}`}
+          size="icon"
+          onClick={() => setIsOpen(true)}
+          className="bg-white shadow-sm"
+          aria-label="Offline nastavení"
         >
-          <Settings className="h-5 w-5" />
-          <span className="sr-only">Offline nastavení</span>
+          <Settings className="h-4 w-4" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="sm:max-w-lg mx-auto rounded-t-xl h-[80vh] sm:h-[70vh]">
-        <SheetHeader className="text-left space-y-1">
-          <SheetTitle className="flex items-center gap-2">
-            {isOnline ? (
-              <>
-                <Wifi className="h-5 w-5 text-green-600" />
-                <span>Online režim</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-5 w-5 text-amber-600" />
-                <span>Offline režim</span>
-              </>
-            )}
-            <Badge variant={isOnline ? "outline" : "secondary"} className="ml-2">
-              {totalItems} položek v cache
-            </Badge>
-          </SheetTitle>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Offline nastavení</SheetTitle>
           <SheetDescription>
-            {isOnline 
-              ? "Jste připojeni k síti. Můžete spravovat obsah pro offline použití."
-              : "Pracujete v režimu offline. Některé funkce mohou být omezené."}
+            Správa offline funkcionality aplikace
           </SheetDescription>
         </SheetHeader>
         
-        {progress > 0 && (
-          <div className="my-4">
-            <Progress value={progress} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1 text-center">
-              {progress < 100 ? 'Zpracovávám...' : 'Dokončeno!'}
+        <div className="py-4">
+          <div className="flex items-center justify-between mb-4">
+            <span className="font-medium">Stav sítě:</span>
+            <NetworkStatus />
+          </div>
+          
+          <div className="space-y-4 mt-6">
+            <h4 className="font-medium mb-2">Akce</h4>
+            
+            {/* Conditional progress indicator */}
+            {(isCaching || isClearing) && (
+              <div className="mb-2">
+                <Progress value={progress} className="h-2" />
+                <p className="text-sm text-gray-500 mt-1">
+                  {isCaching ? 'Ukládání stránek...' : 'Mazání cache...'}
+                </p>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="outline" 
+                className="w-full"
+                disabled={isCaching || isClearing || isOffline}
+                onClick={cacheAllPages}
+              >
+                {isCaching ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Uložit offline
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full"
+                disabled={isCaching || isClearing}
+                onClick={clearAllCache}
+              >
+                {isClearing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Vymazat cache
+              </Button>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <h4 className="font-medium mb-2">Offline dostupnost</h4>
+            <p className="text-sm text-gray-500 mb-2">
+              Při použití offline máte přístup k základním stránkám a předem načteným datům.
             </p>
-          </div>
-        )}
-        
-        <div className="mt-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="text-sm font-medium">Offline správa</div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={refreshCachedPages}
-              disabled={isLoading || isCaching || isClearing}
-              className="h-8"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              <span className="sr-only">Aktualizovat</span>
-            </Button>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              onClick={cacheAllPages} 
-              variant="default"
-              disabled={isCaching || isClearing}
-              className="gap-2 flex-1"
-            >
-              {isCaching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              <span>Uložit důležité stránky</span>
-            </Button>
             
-            <Button 
-              onClick={clearAllCache} 
-              variant="outline"
-              disabled={isCaching || isClearing}
-              className="gap-2 flex-1"
-            >
-              {isClearing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4 text-destructive" />
-              )}
-              <span>Vymazat cache</span>
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2 my-6">
-            <div className="bg-green-50 p-3 rounded-md text-center">
-              <p className="text-xl font-bold text-green-600">{pageItems}</p>
-              <p className="text-xs text-muted-foreground">Stránky</p>
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm mt-4">
+              <p className="flex items-start">
+                <WifiOff className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                <span>
+                  Pro nejlepší offline zkušenost doporučujeme nejprve načíst všechny důležité stránky pomocí tlačítka &quot;Uložit offline&quot;.
+                </span>
+              </p>
             </div>
-            <div className="bg-blue-50 p-3 rounded-md text-center">
-              <p className="text-xl font-bold text-blue-600">{apiItems}</p>
-              <p className="text-xs text-muted-foreground">API data</p>
-            </div>
-            <div className="bg-purple-50 p-3 rounded-md text-center">
-              <p className="text-xl font-bold text-purple-600">{staticItems}</p>
-              <p className="text-xs text-muted-foreground">Soubory</p>
-            </div>
-          </div>
-          
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="pages">
-              <AccordionTrigger className="text-sm font-medium">
-                Uložené stránky
-                <Badge variant="outline" className="ml-2">
-                  {cachedPageUrls.length}
-                </Badge>
-              </AccordionTrigger>
-              <AccordionContent>
-                <ScrollArea className="h-28 rounded-md border p-2">
-                  {cachedPageUrls.length > 0 ? (
-                    <ul className="space-y-2">
-                      {cachedPageUrls.map((url, index) => (
-                        <li key={index} className="text-xs flex justify-between items-center">
-                          <span>{url.split('?')[0]}</span>
-                          <Check className="h-3 w-3 text-green-500" />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-xs text-muted-foreground p-2 text-center">
-                      Žádné stránky uložené offline
-                    </div>
-                  )}
-                </ScrollArea>
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="api">
-              <AccordionTrigger className="text-sm font-medium">
-                Uložené API data
-                <Badge variant="outline" className="ml-2">
-                  {apiEndpoints.length}
-                </Badge>
-              </AccordionTrigger>
-              <AccordionContent>
-                <ScrollArea className="h-28 rounded-md border p-2">
-                  {apiEndpoints.length > 0 ? (
-                    <ul className="space-y-2">
-                      {apiEndpoints.map((url, index) => (
-                        <li key={index} className="text-xs flex justify-between items-center">
-                          <span>{url.split('?')[0]}</span>
-                          <Check className="h-3 w-3 text-green-500" />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="text-xs text-muted-foreground p-2 text-center">
-                      Žádná API data uložená offline
-                    </div>
-                  )}
-                </ScrollArea>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-          
-          <div className="flex items-center space-x-2 pt-4">
-            <Switch id="auto-cache" />
-            <Label htmlFor="auto-cache">Automaticky ukládat navštívené stránky</Label>
           </div>
         </div>
         
-        <SheetFooter className="pt-4 sm:justify-center">
+        <SheetFooter>
           <SheetClose asChild>
-            <Button className="w-full sm:w-auto">Zavřít</Button>
+            <Button type="button" className="w-full">
+              Zavřít
+            </Button>
           </SheetClose>
         </SheetFooter>
       </SheetContent>

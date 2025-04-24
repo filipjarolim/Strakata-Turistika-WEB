@@ -7,6 +7,7 @@ import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { OfflineController } from "@/components/ui/OfflineController";
+import { PwaRegistration } from "@/components/pwa/PwaRegistration";
 
 import { Toaster } from "@/components/ui/toaster"
 
@@ -19,7 +20,7 @@ export const metadata = {
     metadataBase: new URL(defaultUrl),
     title: basicInfo.name,
     description: basicInfo.description,
-    manifest:"/manifest.json",
+    manifest:"/manifest.webmanifest",
     category: "website",
     generator: "Next.js", // framework used
     icons: [
@@ -237,6 +238,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                         <OfflineController />
                     </div>
                     <Toaster />
+                    <PwaRegistration />
                 </SessionProvider>
             </body>
         </html>
