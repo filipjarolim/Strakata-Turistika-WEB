@@ -7,7 +7,6 @@ import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { OfflineController } from "@/components/ui/OfflineController";
-import Script from 'next/script';
 
 import { Toaster } from "@/components/ui/toaster"
 
@@ -230,24 +229,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
     return (
         <html lang="cs" suppressHydrationWarning>
-            <head>
-                <Script id="register-sw" strategy="afterInteractive">
-                    {`
-                    if ('serviceWorker' in navigator) {
-                        window.addEventListener('load', function() {
-                            navigator.serviceWorker.register('/sw.js').then(
-                                function(registration) {
-                                    console.log('Service Worker registration successful with scope: ', registration.scope);
-                                },
-                                function(err) {
-                                    console.log('Service Worker registration failed: ', err);
-                                }
-                            );
-                        });
-                    }
-                    `}
-                </Script>
-            </head>
             <body className={myFont.className}>
                 <SessionProvider session={session}>
                     {children}
