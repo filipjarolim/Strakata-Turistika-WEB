@@ -21,10 +21,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { NetworkStatus } from './NetworkStatus';
 
 // List of critical pages that should always be cached for offline use
-const CRITICAL_PAGES = [
+const DEFAULT_CRITICAL_PAGES = [
   '/',
   '/vysledky',
   '/pravidla',
@@ -33,24 +34,73 @@ const CRITICAL_PAGES = [
   '/kontakty'
 ];
 
+// All available pages that can be selected for caching
+const AVAILABLE_PAGES = [
+  { id: 'home', name: 'Domovská stránka', path: '/' },
+  { id: 'results', name: 'Výsledky', path: '/vysledky' },
+  { id: 'rules', name: 'Pravidla', path: '/pravidla' },
+  { id: 'offline', name: 'Offline stránka', path: '/offline' },
+  { id: 'gallery', name: 'Fotogalerie', path: '/fotogalerie' },
+  { id: 'contacts', name: 'Kontakty', path: '/kontakty' },
+  { id: 'settings', name: 'Nastavení', path: '/nastaveni' },
+  { id: 'profile', name: 'Profil', path: '/auth/profil' }
+];
+
 export const OfflineController: React.FC = () => {
   const isOffline = useOfflineStatus();
   const [isOpen, setIsOpen] = useState(false);
-  const [cachedPages, setCachedPages] = useState<string[]>([]);
+  const [selectedPages, setSelectedPages] = useState<string[]>(DEFAULT_CRITICAL_PAGES);
   const [isLoading, setIsLoading] = useState(false);
   const [isCaching, setIsCaching] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showPageSelector, setShowPageSelector] = useState(false);
   
   // Check if service worker is available
   const isServiceWorkerAvailable = typeof navigator !== 'undefined' && 
                                  'serviceWorker' in navigator;
   
-  // Cache critical pages for offline use
-  const cacheAllPages = async () => {
+  // Toggle a page selection
+  const togglePageSelection = (path: string) => {
+    setSelectedPages(prev => 
+      prev.includes(path)
+        ? prev.filter(p => p !== path)
+        : [...prev, path]
+    );
+  };
+  
+  // Check if a page is selected
+  const isPageSelected = (path: string) => {
+    return selectedPages.includes(path);
+  };
+
+  // Select all pages
+  const selectAllPages = () => {
+    setSelectedPages(AVAILABLE_PAGES.map(page => page.path));
+  };
+
+  // Clear page selection
+  const clearPageSelection = () => {
+    setSelectedPages([]);
+  };
+  
+  // Reset to default pages
+  const resetToDefaultPages = () => {
+    setSelectedPages(DEFAULT_CRITICAL_PAGES);
+  };
+  
+  // Cache selected pages for offline use
+  const cacheSelectedPages = async () => {
     if (!isServiceWorkerAvailable) {
       toast.error("Offline mód není dostupný", {
         description: "Váš prohlížeč nepodporuje service worker nebo není inicializován"
+      });
+      return;
+    }
+    
+    if (selectedPages.length === 0) {
+      toast.warning("Vyberte alespoň jednu stránku", {
+        description: "Pro uložení offline je potřeba vybrat alespoň jednu stránku"
       });
       return;
     }
@@ -64,9 +114,9 @@ export const OfflineController: React.FC = () => {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 300);
       
-      // Pre-cache the critical pages by fetching them
+      // Pre-cache the critical pages by fetching them - using the same method as before
       await Promise.all(
-        CRITICAL_PAGES.map(async (page) => {
+        selectedPages.map(async (page) => {
           try {
             const response = await fetch(page, { 
               method: 'GET',
@@ -92,7 +142,7 @@ export const OfflineController: React.FC = () => {
       }, 500);
       
       toast.success("Stránky uloženy offline", {
-        description: "Důležité stránky byly uloženy pro offline použití"
+        description: `${selectedPages.length} stránek bylo uloženo pro offline použití`
       });
     } catch (error) {
       console.error('Error caching pages:', error);
@@ -105,7 +155,7 @@ export const OfflineController: React.FC = () => {
     }
   };
   
-  // Clear the cache
+  // Clear the cache - using the same method as before
   const clearAllCache = async () => {
     if (!isServiceWorkerAvailable) {
       toast.error("Offline mód není dostupný", {
@@ -198,14 +248,14 @@ export const OfflineController: React.FC = () => {
                 variant="outline" 
                 className="w-full"
                 disabled={isCaching || isClearing || isOffline}
-                onClick={cacheAllPages}
+                onClick={showPageSelector ? cacheSelectedPages : () => setShowPageSelector(true)}
               >
                 {isCaching ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                Uložit offline
+                {showPageSelector ? "Uložit vybrané" : "Uložit offline"}
               </Button>
               
               <Button 
@@ -223,6 +273,75 @@ export const OfflineController: React.FC = () => {
               </Button>
             </div>
           </div>
+
+          {/* Page selector section */}
+          {showPageSelector && (
+            <div className="mt-6 border rounded-md p-3">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium">Vyberte stránky k uložení</h4>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={selectAllPages}
+                    className="text-xs h-7 px-2"
+                  >
+                    Vše
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearPageSelection}
+                    className="text-xs h-7 px-2"
+                  >
+                    Žádné
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={resetToDefaultPages}
+                    className="text-xs h-7 px-2"
+                  >
+                    Výchozí
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowPageSelector(false)}
+                    className="text-xs h-7"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <ScrollArea className="h-40">
+                <div className="space-y-2">
+                  {AVAILABLE_PAGES.map((page) => (
+                    <div key={page.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`page-${page.id}`} 
+                        checked={isPageSelected(page.path)}
+                        onCheckedChange={() => togglePageSelection(page.path)}
+                      />
+                      <Label 
+                        htmlFor={`page-${page.id}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {page.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              <div className="mt-3 text-right">
+                <Badge variant="outline">
+                  {selectedPages.length} stránek vybráno
+                </Badge>
+              </div>
+            </div>
+          )}
           
           <div className="mt-6">
             <h4 className="font-medium mb-2">Offline dostupnost</h4>
