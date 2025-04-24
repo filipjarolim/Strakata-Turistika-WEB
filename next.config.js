@@ -2,7 +2,7 @@
 
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // Remove swcMinify as it's deprecated in Next.js 15+
   // Add other Next.js config options here
 };
 
