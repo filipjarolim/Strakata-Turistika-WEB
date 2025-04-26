@@ -101,7 +101,7 @@ const navConfig: NavConfigType = [
         type: "odkaz",
         title: "Soutěžit",
         icon: Award,
-        href: "/playground"
+        href: "/soutez"
         },
 ];
 

@@ -216,7 +216,7 @@ export const OfflineController: React.FC = () => {
           <Settings className="h-4 w-4" />
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="z-100">
         <SheetHeader>
           <SheetTitle>Offline nastavení</SheetTitle>
           <SheetDescription>

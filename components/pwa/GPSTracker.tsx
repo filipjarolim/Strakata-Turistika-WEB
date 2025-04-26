@@ -1,20 +1,32 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
-import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Compass, Clock, Activity, Ruler, Share2, BatteryMedium, Wifi, Settings, AlertTriangle } from 'lucide-react';
+import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Activity, Menu, Clock, Gauge, ChevronUp } from 'lucide-react';
 import { useMap } from 'react-leaflet';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import ShareButton from './ShareButton';
 import Image from 'next/image';
+import { GPSTrackerProps, Calculations, OfflineData, TrackData } from './gps-tracker/types';
+import MapComponent from './gps-tracker/MapComponent';
+import ControlsComponent from './gps-tracker/ControlsComponent';
+import StatsComponent from './gps-tracker/StatsComponent';
+import ResultsModal from './gps-tracker/ResultsModal';
+import { haversineDistance, formatTime } from './gps-tracker/utils';
+import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync, syncOfflineData } from './gps-tracker/storage';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerPortal,
+  DrawerOverlay,
+} from "@/components/ui/drawer"
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -35,67 +47,6 @@ interface ExtendedServiceWorkerRegistration {
   unregister(): Promise<boolean>;
 }
 
-// Interface for track data and offline sync
-interface OfflineData {
-  routeId?: string;
-  positions?: [number, number][];
-  username?: string;
-  mapImage?: string | null;
-  elapsedTime?: number;
-  maxSpeed?: number | string;
-  totalAscent?: number | string;
-  totalDescent?: number | string;
-  avgSpeed?: number | string;
-  distance?: string;
-  timestamp: number | string;
-  [key: string]: unknown;
-}
-
-// Define calculations interface
-interface Calculations {
-  distance: () => string;
-  avgSpeed: () => string;
-  maxSpeed?: number;
-  totalAscent?: number;
-  totalDescent?: number;
-}
-
-// A dedicated component that re-centers the map when trigger changes.
-const RecenterMapComponent: React.FC<{
-  trigger: number;
-  center: [number, number] | null;
-  zoom: number;
-}> = ({ trigger, center, zoom }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (center) {
-      map.setView(center, zoom);
-    }
-  }, [trigger, center, zoom, map]);
-  return null;
-};
-
-const MapContainerWrapper = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayerWrapper = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const PolylineWrapper = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polyline),
-  { ssr: false }
-);
-const MarkerWrapper = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
-  { ssr: false }
-);
-const PopupWrapper = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Popup),
-  { ssr: false }
-);
-
 // Constants & configurations
 const ZOOM_LEVEL = 16;
 const MIN_DISTANCE_KM = 0.002;
@@ -108,15 +59,14 @@ const POSITION_OPTIONS = {
 };
 const TILE_LAYER_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const SATELLITE_LAYER_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community';
+const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri';
 
 // Marker Icon Configuration
 const currentPositionIcon = L.icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjEyMCIgZmlsbD0icmdiYSgwLCAxMjIsIDI1NSwgMC44KSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSI4Ii8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSI2MCIgZmlsbD0id2hpdGUiLz48Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjMwIiBmaWxsPSIjMDA3YWZmIi8+PC9zdmc+',
+  iconUrl: '/icons/dog_emoji.png',
   iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
-  className: 'animate-pulse custom-marker',
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
 });
 
 const startPositionIcon = L.icon({
@@ -126,82 +76,7 @@ const startPositionIcon = L.icon({
   popupAnchor: [0, -42],
 });
 
-// Haversine formula for distance calculation
-const haversineDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const R = 6371;
-  const toRad = (deg: number) => deg * (Math.PI / 180);
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-const getStoredLocation = () => {
-  if (typeof window === 'undefined') return null;
-  
-  // First try localStorage
-  const saved = localStorage.getItem('lastKnownLocation');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch (e) {
-      console.error('Error parsing stored location:', e);
-    }
-  }
-  
-  // Then try to check IndexedDB synchronously (return the localStorage result for now)
-  // The actual IndexedDB check will happen asynchronously and update the state if found
-  try {
-    const openRequest = indexedDB.open('gpsTrackerDB', 1);
-    
-    openRequest.onsuccess = function() {
-      const db = openRequest.result;
-      
-      try {
-        const transaction = db.transaction('locations', 'readonly');
-        const store = transaction.objectStore('locations');
-        const request = store.get('lastKnown');
-        
-        request.onsuccess = function() {
-          if (request.result) {
-            const { lat, lng } = request.result;
-            // Instead of returning, we need to update the state
-            // This happens asynchronously after the function has returned
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('indexeddb-location-found', { 
-                detail: { location: [lat, lng] }
-              }));
-            }
-          }
-        };
-      } catch (e) {
-        console.error('Error reading from IndexedDB:', e);
-      }
-    };
-  } catch (e) {
-    console.error('Error opening IndexedDB:', e);
-  }
-  
-  return saved ? JSON.parse(saved) : null;
-};
-
-interface GPSTrackerProps {
-  username: string;
-}
-
-// Move these function declarations to the top level so they can be used in dependencies
-// Function to save location data for offline use - forward declaration
-let saveLocationForOffline: (locationData: [number, number]) => void;
-
-const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
+const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => {
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
   const [paused, setPaused] = useState<boolean>(false);
@@ -242,12 +117,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
   
   // Reference for map container element for capturing
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null as unknown as HTMLDivElement);
 
   // Add elevations state
   const [elevations, setElevations] = useState<number[]>([]);
 
-  // Make clearAllData a useCallback function
   const clearAllData = useCallback(() => {
     setPositions([]);
     setStartTime(null);
@@ -266,7 +140,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     setSaveSuccess(null);
   }, []);
 
-  // Calculations function with proper interface
   const calculations = useCallback((): Calculations => {
     const distance = (): string => {
       let total = 0;
@@ -297,14 +170,18 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     };
   }, [positions, elapsedTime, maxSpeed, totalAscent, totalDescent]);
 
-  // Extract these functions to avoid circular dependencies in useCallback hooks
   const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
 
-  // Capture the map as a PNG image
   const captureMapImage = useCallback(async () => {
     if (!mapContainerRef.current) return null;
     try {
-      const canvas = await html2canvas(mapContainerRef.current, { useCORS: true });
+      const canvas = await html2canvas(mapContainerRef.current!, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+      });
       const imageData = canvas.toDataURL('image/png');
       setMapImage(imageData);
       return imageData;
@@ -315,108 +192,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
   }, []);
 
-  // Sync offline data
-  const syncOfflineData = async () => {
-    try {
-      // Get data from storage
-      const storedData = localStorage.getItem('offlineGpsData');
-      
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        
-        if (parsedData && parsedData.length > 0) {
-          // Attempt to send data to the server
-          const response = await fetch('/api/sync-gps-data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(parsedData),
-          });
-          
-          if (response.ok) {
-            // Clear the stored data if successfully synced
-            localStorage.removeItem('offlineGpsData');
-            console.log('Offline data synced successfully');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to sync offline data:', error);
-    }
-  };
-
-  // Store data for offline sync
-  const storeDataForOfflineSync = useCallback(async (data: OfflineData) => {
-    try {
-      // Get existing data from storage
-      const storedDataStr = localStorage.getItem('offlineGpsData') || '[]';
-      const storedData = JSON.parse(storedDataStr);
-      
-      // Add new data
-      storedData.push({
-        ...data,
-        timestamp: Date.now()
-      });
-      
-      // Save back to storage
-      localStorage.setItem('offlineGpsData', JSON.stringify(storedData));
-      
-      // If we're online, try to sync immediately
-      if (navigator.onLine) {
-        await syncOfflineData();
-      }
-      
-      console.log('Data stored for offline sync');
-    } catch (error) {
-      console.error('Failed to store data for offline sync:', error);
-    }
-  }, []);
-
-  // Function to save location data for offline use - actual implementation
-  saveLocationForOffline = useCallback((locationData: [number, number]): void => {
-    // Save to service worker cache if available
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'SAVE_FOR_OFFLINE',
-        url: '/lastKnownLocation',
-        data: {
-          lat: locationData[0],
-          lng: locationData[1],
-          timestamp: Date.now()
-        }
-      });
-    }
-    
-    // Also save to IndexedDB for more reliable offline storage
-    try {
-      const openRequest = indexedDB.open('gpsTrackerDB', 1);
-      
-      openRequest.onupgradeneeded = function() {
-        const db = openRequest.result;
-        if (!db.objectStoreNames.contains('locations')) {
-          db.createObjectStore('locations', { keyPath: 'id' });
-        }
-      };
-      
-      openRequest.onsuccess = function() {
-        const db = openRequest.result;
-        const transaction = db.transaction('locations', 'readwrite');
-        const store = transaction.objectStore('locations');
-        
-        store.put({
-          id: 'lastKnown',
-          lat: locationData[0],
-          lng: locationData[1],
-          timestamp: Date.now()
-        });
-      };
-    } catch (err) {
-      console.error('Error storing location in IndexedDB:', err);
-    }
-  }, []);
-
-  // Update UI when location access status changes
   useEffect(() => {
     setLoading(true);
     
@@ -431,18 +206,14 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         
         if (!navigator.onLine) {
           setIsOffline(true);
-          // Enhanced offline location retrieval with better error handling and defaults
           const cached = getStoredLocation();
           if (cached) {
             setMapCenter(cached);
             toast.warning('You are offline. Using cached location data.');
-            // Cache to service worker for consistency
             saveLocationForOffline(cached);
           } else {
-            // Fallback to a default location (or you can customize this for your area)
             toast.error('No cached location available. Using default location.');
-            // Set a default position (customize these coordinates for your area)
-            const defaultLocation: [number, number] = [50.0755, 14.4378]; // Prague coordinates
+            const defaultLocation: [number, number] = [50.0755, 14.4378];
             setMapCenter(defaultLocation);
           }
           setLoading(false);
@@ -450,39 +221,44 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         }
         
         setIsOffline(false);
+        let timeoutId: NodeJS.Timeout;
+        
+        const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Location request timed out. Please check your GPS signal and try again.'));
+          }, 10000); // 10 second timeout
+          
         navigator.geolocation.getCurrentPosition(
           (pos) => {
+              clearTimeout(timeoutId);
+              resolve(pos);
+            },
+            (err) => {
+              clearTimeout(timeoutId);
+              reject(err);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        });
+
+        const pos = await positionPromise;
             const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
             setMapCenter(loc);
-            // Save location data for offline use both in localStorage and via service worker
             localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
             saveLocationForOffline(loc);
             setLoading(false);
-          },
-          (err) => {
-            console.error('Error retrieving position:', err);
-            toast.error(`Location error: ${err.message}`);
-            
-            // Try to use cached location as fallback
-            const cached = getStoredLocation();
-            if (cached) {
-              setMapCenter(cached);
-              toast.warning('Using cached location due to GPS error.');
-            }
-            
-            setLoading(false);
-          },
-          { enableHighAccuracy: true, timeout: 10000 }
-        );
       } catch (error) {
         console.error('Permission check error:', error);
         setLoading(false);
         
-        // Try to use cached location as ultimate fallback
         const cached = getStoredLocation();
         if (cached) {
           setMapCenter(cached);
           toast.warning('Using cached location due to error.');
+        } else {
+          toast.error('Could not get your location. Please check your GPS signal and try again.');
+          const defaultLocation: [number, number] = [50.0755, 14.4378];
+          setMapCenter(defaultLocation);
         }
       }
     };
@@ -532,37 +308,26 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     return () => notifyInterval && clearInterval(notifyInterval);
   }, [tracking, elapsedTime, paused, isOffline, calculateDistance]);
 
-  // Define stopTracking function
   const stopTracking = useCallback(() => {
     if (watchId) navigator.geolocation.clearWatch(watchId);
     setTracking(false);
     setWatchId(null);
     setCompleted(true);
     
-    try {
-      if (document.exitFullscreen && document.fullscreenElement) {
-        document.exitFullscreen().catch(err => console.error('Exit full screen error:', err));
-      }
-    } catch (error) {
-      console.error('Exit fullscreen error:', error);
-    }
-    
     if (positions.length > 1) {
       setShowResults(true);
       captureMapImage();
     } else {
-      toast.warning('No track data to save. Try again with a longer route.');
+      toast.warning('No track data to save.');
     }
   }, [watchId, positions.length, captureMapImage]);
 
-  // useCallback for startTracking - remove unnecessary dependencies
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
       return;
     }
 
-    // Start tracking logic
     setTracking(true);
     setCompleted(false);
     setShowResults(false);
@@ -576,22 +341,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     setLastElevation(null);
     setElevations([]);
     
-    try {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.error('Full screen error:', err);
-          toast.warning('Could not enter fullscreen mode.');
-        });
-      }
-    } catch (error) {
-      console.error('Fullscreen error:', error);
-    }
-
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         if (paused) return;
         
-        // Check position accuracy - only warn for very low accuracy
         if (pos.coords.accuracy > MIN_ACCURACY * 2) {
           toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
           return;
@@ -600,16 +353,14 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
         
-        // Update elevation data if available
         if (pos.coords.altitude !== null) {
           const currentElevation = pos.coords.altitude;
           setElevation(currentElevation);
           setElevations(prev => [...prev, currentElevation]);
           
-          // Track ascent/descent with accuracy check
           if (lastElevation !== null && pos.coords.altitudeAccuracy && pos.coords.altitudeAccuracy < 10) {
             const elevationDiff = currentElevation - lastElevation;
-            if (elevationDiff > 0.5) { // More sensitive elevation tracking
+            if (elevationDiff > 0.5) {
               setTotalAscent(prev => prev + elevationDiff);
             } else if (elevationDiff < -0.5) {
               setTotalDescent(prev => prev + Math.abs(elevationDiff));
@@ -617,25 +368,22 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
           }
           setLastElevation(currentElevation);
         } else {
-          // If no altitude data available, use a placeholder for consistent array sizes
           setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
         }
         
-        // Enhanced speed calculation
         let computedSpeed = pos.coords.speed;
         if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
           const [lastLat, lastLon] = positions[positions.length - 1];
-          const timeDiff = (currentTime - lastUpdateTime) / 1000; // Convert to seconds
+          const timeDiff = (currentTime - lastUpdateTime) / 1000;
           if (timeDiff > 0) {
             computedSpeed = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) / timeDiff * 3600;
           }
         } else if (computedSpeed !== null) {
-          computedSpeed *= 3.6; // Convert m/s to km/h
+          computedSpeed *= 3.6;
         }
         
         if (computedSpeed !== null && computedSpeed >= 0) {
-          // Apply smoothing to speed
-          setSpeed(prev => computedSpeed * 0.3 + prev * 0.7); // Weighted average
+          setSpeed(prev => computedSpeed * 0.3 + prev * 0.7);
           if (computedSpeed > maxSpeed) {
             setMaxSpeed(computedSpeed);
           }
@@ -645,7 +393,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
           if (prev.length > 0) {
             const [lastLat, lastLon] = prev[prev.length - 1];
             const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
-            // Only update if we've moved enough or enough time has passed
             if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
               return prev;
             }
@@ -696,23 +443,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
   }, [lastPauseTime]);
 
   const resetTracking = useCallback(() => {
-    setPositions([]);
-    setStartTime(null);
-    setElapsedTime(0);
-    setPauseDuration(0);
-    setLastPauseTime(null);
-    setCompleted(false);
-    setSpeed(0);
-    setMaxSpeed(0);
-    setElevation(null);
-    setTotalAscent(0);
-    setTotalDescent(0);
-    setLastElevation(null);
-    setShowResults(false);
-    setMapImage(null);
-    setSaveSuccess(null);
+    clearAllData();
     toast.info('Tracking reset');
-  }, []);
+  }, [clearAllData]);
 
   const recenterMap = useCallback(() => {
     if (isOffline) {
@@ -728,128 +461,46 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     }
     
     setLoading(true);
+    let timeoutId: NodeJS.Timeout;
+    
+    const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('Location request timed out. Please check your GPS signal and try again.'));
+      }, 10000);
+      
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+          clearTimeout(timeoutId);
+          resolve(pos);
+        },
+        (err) => {
+          clearTimeout(timeoutId);
+          reject(err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+
+    positionPromise
+      .then((pos) => {
         const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setMapCenter(loc);
         setRecenterTrigger((prev) => prev + 1);
-        
-        // Save location data for offline use
         localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
-        
         setLoading(false);
-      },
-      (err) => {
+      })
+      .catch((err) => {
         console.error('Error recentering map:', err);
         toast.error(`Couldn't get location: ${err.message}`);
         setLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      });
   }, [isOffline]);
 
-  // Declare functions first
-  function formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-    const pad = (n: number) => (n < 10 ? `0${n}` : n);
-    return hours > 0 
-      ? `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`
-      : `${pad(minutes)}:${pad(remainingSeconds)}`;
-  }
-
-  // Add interface for track data for offline sync
-  interface TrackData {
-    season: number;
-    image: string | null;
-    distance: string;
-    elapsedTime: number;
-    averageSpeed: string;
-    fullName: string;
-    maxSpeed: string;
-    totalAscent: string;
-    totalDescent: string;
-    timestamp: number;
-    positions: [number, number][];
-  }
-
-  // Types for gradient path segments
-  interface PathSegment {
-    positions: [number, number][];
-    color: string;
-    weight: number;
-    opacity: number;
-  }
-
-  // Add function to create gradient path
-  const createGradientPath = (
-    positions: [number, number][],
-    elevations: number[]
-  ): PathSegment | PathSegment[] => {
-    // Default to blue line if no elevation data
-    if (!elevations || elevations.length < positions.length) {
-      return {
-        positions,
-        color: '#007aff',
-        weight: 5,
-        opacity: 0.8
-      };
-    }
-    
-    // Create segments with color based on elevation change
-    const segments: PathSegment[] = [];
-    const minElevation = Math.min(...elevations);
-    const maxElevation = Math.max(...elevations);
-    let range = maxElevation - minElevation;
-    
-    if (range === 0) range = 1; // Avoid division by zero
-    
-    for (let i = 1; i < positions.length; i++) {
-      const elev = elevations[i];
-      const normalizedElevation = (elev - minElevation) / range;
-      
-      // Create color gradient: green for low, yellow for mid, red for high elevations
-      let color;
-      if (normalizedElevation < 0.33) {
-        color = '#4caf50'; // Green for lower elevations
-      } else if (normalizedElevation < 0.66) {
-        color = '#ff9800'; // Orange for middle elevations
-      } else {
-        color = '#f44336'; // Red for higher elevations
-      }
-      
-      segments.push({
-        positions: [positions[i-1], positions[i]],
-        color,
-        weight: 5,
-        opacity: 0.8
-      });
-    }
-    
-    return segments;
-  };
-
-  // Toggle map type between standard and satellite
   const toggleMapType = useCallback(() => {
     setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
     toast.info(`Switched to ${mapType === 'standard' ? 'satellite' : 'standard'} map`);
   }, [mapType]);
 
-  // Download track image
-  const downloadTrackImage = useCallback(() => {
-    if (!mapImage) return;
-    
-    const link = document.createElement('a');
-    link.href = mapImage;
-    link.download = `gps-track-${new Date().toISOString().slice(0, 10)}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Track image downloaded');
-  }, [mapImage]);
-
-  // Save the tracking data to the API
   const handleFinish = useCallback(async () => {
     if (positions.length <= 1) {
       toast.error('Not enough tracking data to save');
@@ -885,14 +536,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
 
     try {
       if (isOffline) {
-        // Store data locally and register for background sync
         await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        
-        // Update UI to show pending sync
         toast.success('Track saved offline. It will be uploaded when you reconnect.');
         setSaveSuccess(true);
       } else {
-        // Online - direct API submission
         const response = await fetch('/api/saveTrack', {
           method: 'POST',
           headers: {
@@ -912,7 +559,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     } catch (error) {
       console.error('Error saving track:', error);
       
-      // Attempt to save locally if online submission failed
       if (!isOffline) {
         await storeDataForOfflineSync(trackData as unknown as OfflineData);
         toast.warning('Network error. Track saved offline for later upload.');
@@ -924,710 +570,106 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username }) => {
     } finally {
       setIsSaving(false);
     }
-  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, storeDataForOfflineSync]);
-
-  // Include isOffline in handleSubmit dependencies
-  const handleSubmit = useCallback(async () => {
-    if (positions.length === 0) {
-      toast.error('No GPS data to submit!');
-      return;
-    }
-
-    setSubmitting(true);
-    await captureMapImage(); // Make sure we have a map image
-
-    try {
-      // Prepare data to send
-      const routeId = `route_${Date.now()}`;
-      const data = {
-        routeId,
-        positions,
-        username,
-        mapImage,
-        elapsedTime,
-        maxSpeed: maxSpeed,
-        totalAscent: totalAscent,
-        totalDescent: totalDescent,
-        avgSpeed: calculateAverageSpeed(),
-        distance: calculateDistance(),
-        timestamp: new Date().toISOString()
-      };
-
-      // Check if we're online
-      if (navigator.onLine) {
-        // If online, send directly to the API
-        const response = await fetch('/api/routes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-
-        if (response.ok) {
-          toast.success('Route saved successfully!');
-          clearAllData();
-          setSubmitting(false);
-        } else {
-          throw new Error('Failed to save route');
-        }
-      } else {
-        // If offline, store for later sync
-        await storeDataForOfflineSync(data);
-        toast.success('Route saved for later sync!');
-        clearAllData();
-        setSubmitting(false);
-      }
-    } catch (error) {
-      console.error('Error submitting GPS data:', error);
-      toast.error('Failed to submit GPS data');
-      setSubmitting(false);
-    }
-  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, clearAllData, calculateDistance, calculateAverageSpeed, storeDataForOfflineSync, isOffline]);
-
-  // For line 986, we need to remove isOffline from mobileCss dependencies
-  // Let's make mobileCss a regular variable, not a callback
-  const mobileCss = `
-    @media (max-width: 640px) {
-      .mobile-control-panel {
-        width: 100% !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        top: auto !important;
-        transform: none !important;
-        border-radius: 12px 12px 0 0 !important;
-        z-index: 30 !important;
-      }
-      
-      .mobile-control-content {
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        gap: 8px !important;
-      }
-      
-      .mobile-bottom-safe {
-        margin-bottom: 80px !important;
-      }
-      
-      .mobile-header {
-        padding: 8px 12px !important;
-      }
-      
-      .mobile-small-text {
-        font-size: 0.75rem !important;
-      }
-      
-      .mobile-xs-text {
-        font-size: 0.7rem !important;
-      }
-    }
-    
-    .animate-dash {
-      animation: dash 1.5s linear infinite;
-      stroke-dasharray: 10, 10;
-      stroke-dashoffset: 0;
-    }
-    
-    @keyframes dash {
-      to {
-        stroke-dashoffset: 20;
-      }
-    }
-  `;
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
   return (
-    <>
-      <style jsx global>{mobileCss}</style>
-      <div 
-        className="relative rounded-lg shadow-lg overflow-hidden border border-gray-200 bg-gray-50" 
-        style={{ width: '100%', height: '85vh', maxHeight: 'calc(100vh - 100px)' }}
-        aria-label="GPS Trail Tracker"
-        role="application"
-      >
-        {/* Status Bar */}
-        <div className="absolute top-0 left-0 w-full p-1.5 flex justify-between items-center bg-gray-900 bg-opacity-90 backdrop-blur-sm z-20 mobile-header">
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-gray-200" />
-            <span className="text-xs text-gray-200 mobile-xs-text">
-              {tracking ? formatTime(elapsedTime) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOffline ? (
-              <div className="flex items-center text-red-400 gap-1">
-                <Wifi className="h-3.5 w-3.5" />
-                <span className="text-xs mobile-xs-text">Offline</span>
-              </div>
-            ) : (
-              <Wifi className="h-3.5 w-3.5 text-green-400" />
-            )}
-            <BatteryMedium className="h-3.5 w-3.5 text-gray-200" />
-          </div>
-        </div>
-
-        {/* Loading Overlay */}
+    <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
+      {/* iPhone notch simulation - only show on larger screens */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-[20px] z-50 hidden md:block" />
+      
+      <div className="absolute inset-0">
         {loading && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" aria-live="polite" role="status">
-            <div className="bg-white rounded-lg p-4 flex flex-col items-center space-y-2">
-              <Loader2 className="animate-spin text-gray-800" size={36} aria-hidden="true" />
-              <p className="text-gray-800 font-medium">Loading location...</p>
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="animate-spin text-gray-800 h-9 w-9" />
+              <p className="text-lg font-medium text-gray-800">Loading map...</p>
             </div>
           </div>
         )}
-      
-        {/* Map container with id and ref for screenshot */}
-        <div id="mapContainer" ref={mapContainerRef} style={{ width: '100%', height: '100%' }} aria-label="Interactive map displaying your route">
-          {!loading && mapCenter && (
-            <MapContainerWrapper
-              center={mapCenter}
-              zoom={ZOOM_LEVEL}
-              style={{ width: '100%', height: '100%', zIndex: 1 }}
-              attributionControl={false}
-              zoomControl={false}
-            >
-              {mapType === 'standard' ? (
-                <TileLayerWrapper 
-                  attribution="&copy; OpenStreetMap contributors" 
-                  url={TILE_LAYER_URL}
-                  maxZoom={19}
-                  minZoom={3}
-                  keepBuffer={8}
-                  className="map-tiles"
-                />
-              ) : (
-                <TileLayerWrapper 
-                  attribution={SATELLITE_ATTRIBUTION} 
-                  url={SATELLITE_LAYER_URL}
-                  maxZoom={19}
-                  minZoom={3}
-                  keepBuffer={8}
-                  className="map-tiles"
-                />
-              )}
-              
-              {/* Start position marker */}
-              {positions.length > 0 && (
-                <MarkerWrapper 
-                  position={positions[0]} 
-                  icon={startPositionIcon}
-                  zIndexOffset={1000}
-                >
-                  <PopupWrapper>
-                    <div className="text-center">
-                      <div className="font-bold text-green-600">Start Point</div>
-                      <div className="text-sm text-gray-600">
-                        {new Date(startTime || Date.now()).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </PopupWrapper>
-                </MarkerWrapper>
-              )}
-              
-              {/* Current position marker */}
-              {positions.length > 0 && (
-                <MarkerWrapper 
-                  position={positions[positions.length - 1]} 
-                  icon={currentPositionIcon}
-                  zIndexOffset={1000}
-                >
-                  <PopupWrapper>
-                    <div className="text-center">
-                      <div className="font-bold text-blue-600">Current Position</div>
-                      <div className="flex justify-between text-sm">
-                        <span>Speed:</span> 
-                        <span className="font-medium">{speed.toFixed(1)} km/h</span>
-                      </div>
-                      {elevation !== null && (
-                        <div className="flex justify-between text-sm">
-                          <span>Altitude:</span>
-                          <span className="font-medium">{elevation.toFixed(0)}m</span>
-                        </div>
-                      )}
-                    </div>
-                  </PopupWrapper>
-                </MarkerWrapper>
-              )}
-              
-              {/* Track line with gradient color based on elevation */}
-              {positions.length > 1 && elevations.length > 0 && (
-                // Use multiple polylines for elevation-based gradient 
-                <>
-                  {/* First add a slightly wider background line for a nice effect */}
-                  <PolylineWrapper
-                    positions={positions}
-                    color="#ffffff"
-                    weight={7}
-                    opacity={0.4}
-                    lineCap="round"
-                    lineJoin="round"
-                  />
-                  
-                  {/* Then add the colored segments based on elevation */}
-                  {(() => {
-                    const gradientPath = createGradientPath(positions, elevations);
-                    
-                    if (Array.isArray(gradientPath)) {
-                      // Render individual segments with their own colors
-                      return gradientPath.map((segment, index) => (
-                        <PolylineWrapper
-                          key={index}
-                          positions={segment.positions}
-                          color={segment.color}
-                          weight={segment.weight}
-                          opacity={segment.opacity}
-                          lineCap="round"
-                          lineJoin="round"
-                          dashArray={tracking && !paused ? "10,10" : ""}
-                          className={tracking && !paused ? "animate-dash" : ""}
-                        />
-                      ));
-                    } else {
-                      // Render a single polyline
-                      return (
-                        <PolylineWrapper
-                          positions={gradientPath.positions}
-                          color={gradientPath.color}
-                          weight={gradientPath.weight}
-                          opacity={gradientPath.opacity}
-                          lineCap="round"
-                          lineJoin="round"
-                          dashArray={tracking && !paused ? "10,10" : ""}
-                          className={tracking && !paused ? "animate-dash" : ""}
-                        />
-                      );
-                    }
-                  })()}
-                </>
-              )}
-              
-              {/* Fallback for when there's no elevation data */}
-              {positions.length > 1 && elevations.length === 0 && (
-                <PolylineWrapper
-                  positions={positions}
-                  color="#007aff"
-                  weight={5}
-                  opacity={0.8}
-                  lineCap="round"
-                  lineJoin="round"
-                  dashArray={tracking && !paused ? "10,10" : ""}
-                  className={tracking && !paused ? "animate-dash" : ""}
-                />
-              )}
-              
-              <RecenterMapComponent trigger={recenterTrigger} center={mapCenter} zoom={ZOOM_LEVEL} />
-            </MapContainerWrapper>
-          )}
-        </div>
 
-        {/* Header Overlay */}
-        <div className="absolute top-8 left-0 w-full px-3 py-2 flex justify-between items-center bg-gray-800 bg-opacity-80 backdrop-blur-sm z-10 mobile-header">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-white">GPS Trail Tracker</h1>
-            {isOffline ? (
-              <Badge variant="destructive" className="text-xs">Offline</Badge>
-            ) : tracking ? (
-              paused ? (
-                <div className="relative w-6 h-6 flex items-center justify-center">
-                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 text-xs">Paused</Badge>
+        <MapComponent
+          mapCenter={mapCenter}
+          positions={positions}
+          mapType={mapType}
+          recenterTrigger={recenterTrigger}
+          mapContainerRef={mapContainerRef}
+          loading={loading}
+          className="w-full h-full"
+        />
+
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <Drawer defaultOpen modal={false}>
+            <DrawerTrigger asChild>
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-sm flex items-center justify-between px-4 cursor-pointer transition-all duration-300 hover:bg-white group">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-full">
+                    <Activity className="h-5 w-5 text-blue-500" />
+                    <span className="text-sm font-medium text-blue-700">{calculateDistance()} km</span>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-full">
+                    <Clock className="h-5 w-5 text-green-500" />
+                    <span className="text-sm font-medium text-green-700">{formatTime(elapsedTime)}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-orange-50 px-3 py-1.5 rounded-full">
+                    <Gauge className="h-5 w-5 text-orange-500" />
+                    <span className="text-sm font-medium text-orange-700">{speed.toFixed(1)} km/h</span>
+                  </div>
                 </div>
-              ) : (
-                <div className="relative w-6 h-6 flex items-center justify-center">
-                  <div className="absolute w-6 h-6 bg-green-500 rounded-full opacity-25 animate-ping"></div>
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <Badge variant="outline" className="bg-green-100 text-green-800 text-xs ml-7">Live</Badge>
+                <div className="flex items-center space-x-2">
+                  <ChevronUp className="h-5 w-5 text-gray-500 transition-transform duration-300 group-data-[state=open]:rotate-180" />
                 </div>
-              )
-            ) : (
-              <Badge variant="outline" className="bg-gray-100 text-gray-800 text-xs">Ready</Badge>
-            )}
-          </div>
-          
-          {/* Accessible battery saver toggle */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-1 rounded-full" 
-            onClick={() => toast.info("Battery saver mode toggled")}
-            aria-label={`Toggle battery saver mode, currently off`}
-          >
-            <Settings className="h-5 w-5 text-white" />
-          </Button>
-        </div>
-
-        {/* Right-Side Controls Card - Desktop */}
-        <Card className="absolute top-1/2 right-3 transform -translate-y-1/2 z-10 bg-opacity-95 shadow-lg w-[120px] hidden sm:block">
-          <CardContent className="p-3 flex flex-col gap-2">
-            {!tracking ? (
-              <Button 
-                onClick={startTracking} 
-                className="bg-green-600 text-white hover:bg-green-700"
-                disabled={isOffline || loading}
-                size="sm"
-                aria-label="Start tracking"
-              >
-                <Play className="mr-1 h-4 w-4" /> Start
-              </Button>
-            ) : (
-              <>
-                {paused ? (
-                  <Button 
-                    onClick={resumeTracking} 
-                    className="bg-green-600 text-white hover:bg-green-700" 
-                    size="sm"
-                    aria-label="Resume tracking"
-                  >
-                    <PlayCircle className="mr-1 h-4 w-4" /> Resume
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={pauseTracking} 
-                    className="bg-yellow-600 text-white hover:bg-yellow-700" 
-                    size="sm"
-                    aria-label="Pause tracking"
-                  >
-                    <Pause className="mr-1 h-4 w-4" /> Pause
-                  </Button>
-                )}
-                <Button 
-                  onClick={stopTracking} 
-                  className="bg-red-600 text-white hover:bg-red-700" 
-                  size="sm"
-                  aria-label="Stop tracking"
-                >
-                  <StopCircle className="mr-1 h-4 w-4" /> Stop
-                </Button>
-              </>
-            )}
-            
-            <Button 
-              onClick={recenterMap} 
-              className="bg-gray-800 text-white hover:bg-gray-700" 
-              size="sm"
-              aria-label="Center map on current location"
-            >
-              <Target className="mr-1 h-4 w-4" /> Center
-            </Button>
-            
-            <Button 
-              onClick={toggleMapType} 
-              className="bg-gray-800 text-white hover:bg-gray-700" 
-              size="sm"
-              aria-label={`Switch to ${mapType === 'standard' ? 'satellite' : 'standard'} map view`}
-            >
-              <Map className="mr-1 h-4 w-4" /> {mapType === 'standard' ? 'Satellite' : 'Standard'}
-            </Button>
-            
-            <Button 
-              onClick={resetTracking} 
-              className="bg-gray-800 text-white hover:bg-gray-700" 
-              size="sm" 
-              disabled={tracking && !paused}
-              aria-label="Reset tracking data"
-            >
-              <RefreshCcw className="mr-1 h-4 w-4" /> Reset
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Mobile Control Panel */}
-        <Card className="mobile-control-panel absolute top-1/2 right-3 transform -translate-y-1/2 z-30 bg-white shadow-lg w-[120px] block sm:hidden">
-          <CardContent className="p-3 flex flex-col gap-2 mobile-control-content">
-            {!tracking ? (
-              <Button 
-                onClick={startTracking} 
-                className="bg-green-600 text-white hover:bg-green-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center"
-                disabled={isOffline || loading}
-                aria-label="Start tracking"
-              >
-                <Play className="h-6 w-6" />
-              </Button>
-            ) : (
-              <>
-                {paused ? (
-                  <Button 
-                    onClick={resumeTracking} 
-                    className="bg-green-600 text-white hover:bg-green-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-                    aria-label="Resume tracking"
-                  >
-                    <PlayCircle className="h-6 w-6" />
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={pauseTracking} 
-                    className="bg-yellow-600 text-white hover:bg-yellow-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-                    aria-label="Pause tracking"
-                  >
-                    <Pause className="h-6 w-6" />
-                  </Button>
-                )}
-                <Button 
-                  onClick={stopTracking} 
-                  className="bg-red-600 text-white hover:bg-red-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-                  aria-label="Stop tracking"
-                >
-                  <StopCircle className="h-6 w-6" />
-                </Button>
-              </>
-            )}
-            
-            <Button 
-              onClick={recenterMap} 
-              className="bg-gray-800 text-white hover:bg-gray-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-              aria-label="Center map on current location"
-            >
-              <Target className="h-6 w-6" />
-            </Button>
-            
-            <Button 
-              onClick={toggleMapType} 
-              className="bg-gray-800 text-white hover:bg-gray-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-              aria-label={`Switch to ${mapType === 'standard' ? 'satellite' : 'standard'} map view`}
-            >
-              <Map className="h-6 w-6" />
-            </Button>
-            
-            {!tracking && (
-              <Button 
-                onClick={resetTracking} 
-                className="bg-gray-800 text-white hover:bg-gray-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-                disabled={tracking && !paused}
-                aria-label="Reset tracking data"
-              >
-                <RefreshCcw className="h-6 w-6" />
-              </Button>
-            )}
-            
-            {!tracking && (
-              <div className="flex items-center justify-center w-[48px] h-[48px]">
-                <ShareButton variant="mobile" />
               </div>
-            )}
-            
-            {tracking && !paused && (
-              <Button 
-                onClick={() => toast.info("Sharing is not available yet")} 
-                className="bg-blue-600 text-white hover:bg-blue-700 rounded-full w-[48px] h-[48px] p-0 flex items-center justify-center" 
-                aria-label="Share your current location"
-              >
-                <Share2 className="h-6 w-6" />
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+            </DrawerTrigger>
+            <DrawerPortal>
+              <DrawerOverlay className="bg-black/50 transition-opacity duration-300" />
+              <DrawerContent className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:w-[400px] h-[60vh] rounded-t-[40px] border-0 transition-transform duration-300 ease-out">
+                <DrawerHeader className="px-6">
+                  <DrawerTitle className="text-xl font-semibold">Tracking Controls</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-6 space-y-6 overflow-y-auto">
+                  <StatsComponent
+                    distance={calculateDistance()}
+                    elapsedTime={elapsedTime}
+                    speed={speed}
+                    className="mb-4"
+                  />
 
-        {/* Bottom Info Card */}
-        <Card className="absolute bottom-0 left-0 right-0 m-3 bg-white bg-opacity-95 z-10 mobile-bottom-safe">
-          <CardContent className="p-3">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-2">
-                <TabsTrigger value="basic" aria-label="View basic tracking information">Basic</TabsTrigger>
-                <TabsTrigger value="advanced" aria-label="View detailed tracking statistics">Details</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="basic" className="mt-0">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Ruler className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
-                      <p className="text-xs text-gray-500 mobile-small-text">Distance</p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-800" aria-label={`Distance: ${calculateDistance()} kilometers`}>{calculateDistance()} km</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
-                      <p className="text-xs text-gray-500 mobile-small-text">Time</p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-800" aria-label={`Elapsed time: ${formatTime(elapsedTime)}`}>{formatTime(elapsedTime)}</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Activity className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
-                      <p className="text-xs text-gray-500 mobile-small-text">Speed</p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-800" aria-label={`Current speed: ${speed.toFixed(1)} kilometers per hour`}>{speed.toFixed(1)} km/h</p>
-                  </div>
+                  <ControlsComponent
+                    tracking={tracking}
+                    paused={paused}
+                    isOffline={isOffline}
+                    loading={loading}
+                    onStartTracking={startTracking}
+                    onStopTracking={stopTracking}
+                    onPauseTracking={pauseTracking}
+                    onResumeTracking={resumeTracking}
+                    onRecenterMap={recenterMap}
+                    onToggleMapType={toggleMapType}
+                    onResetTracking={resetTracking}
+                    className="flex flex-col space-y-4"
+                  />
                 </div>
-                
-                {tracking && !paused && (
-                  <div className="mt-2">
-                    <Progress 
-                      value={(elapsedTime % 60) / 60 * 100} 
-                      className="h-1" 
-                      aria-label={`${elapsedTime % 60} seconds of current minute elapsed`}
-                    />
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="advanced" className="mt-0">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Compass className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
-                      <p className="text-xs text-gray-500 mobile-small-text">Avg. Speed</p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-800" aria-label={`Average speed: ${calculateAverageSpeed()} kilometers per hour`}>{calculateAverageSpeed()} km/h</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Activity className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
-                      <p className="text-xs text-gray-500 mobile-small-text">Max Speed</p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-800" aria-label={`Maximum speed: ${maxSpeed.toFixed(1)} kilometers per hour`}>{maxSpeed.toFixed(1)} km/h</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <Compass className="h-3.5 w-3.5 text-gray-500 stat-icon" aria-hidden="true" />
-                      <p className="text-xs text-gray-500 mobile-small-text">Elevation</p>
-                    </div>
-                    <p className="text-lg font-bold text-gray-800" aria-label={elevation !== null ? `Current elevation: ${elevation.toFixed(0)} meters` : 'Elevation data not available'}>
-                      {elevation !== null ? `${elevation.toFixed(0)}m` : '-'}
-                    </p>
-                  </div>
-                </div>
-                
-                {totalAscent > 0 || totalDescent > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div className="text-center">
-                      <p className="text-xs text-gray-500 mobile-small-text">Ascent</p>
-                      <p className="text-lg font-bold text-green-700" aria-label={`Total ascent: ${totalAscent.toFixed(0)} meters`}>↑ {totalAscent.toFixed(0)}m</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-500 mobile-small-text">Descent</p>
-                      <p className="text-lg font-bold text-red-700" aria-label={`Total descent: ${totalDescent.toFixed(0)} meters`}>↓ {totalDescent.toFixed(0)}m</p>
-                    </div>
-                  </div>
-                ) : null}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+              </DrawerContent>
+            </DrawerPortal>
+          </Drawer>
+        </div>
 
-        {/* Results Modal Overlay */}
-        {showResults && (
-          <div 
-            className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" 
-            role="dialog" 
-            aria-modal="true" 
-            aria-labelledby="results-heading"
-          >
-            <Card className="w-full max-w-md mx-auto">
-              <CardContent className="p-5 text-center space-y-4">
-                <h2 id="results-heading" className="text-2xl font-bold flex items-center justify-center gap-2">
-                  <Award className="text-yellow-500" aria-hidden="true" /> 
-                  Track Completed!
-                </h2>
-                
-                <div className="grid grid-cols-2 gap-4 text-left">
-                  <div>
-                    <p className="text-sm text-gray-500">Distance</p>
-                    <p className="text-lg font-bold">{calculateDistance()} km</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Time</p>
-                    <p className="text-lg font-bold">{formatTime(elapsedTime)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Average Speed</p>
-                    <p className="text-lg font-bold">{calculateAverageSpeed()} km/h</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Max Speed</p>
-                    <p className="text-lg font-bold">{maxSpeed.toFixed(1)} km/h</p>
-                  </div>
-                  
-                  {totalAscent > 0 || totalDescent > 0 ? (
-                    <>
-                      <div>
-                        <p className="text-sm text-gray-500">Total Ascent</p>
-                        <p className="text-lg font-bold text-green-700">↑ {totalAscent.toFixed(0)}m</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Total Descent</p>
-                        <p className="text-lg font-bold text-red-700">↓ {totalDescent.toFixed(0)}m</p>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-                
-                {mapImage && (
-                  <div>
-                    <p className="font-bold mb-2">Your Route:</p>
-                    <Image 
-                      src={mapImage} 
-                      alt="Map showing your completed route" 
-                      className="rounded-lg border border-gray-300 w-full" 
-                      width={400}
-                      height={300}
-                      style={{ width: '100%', height: 'auto' }}
-                      unoptimized // Using unoptimized for data URI images
-                    />
-                  </div>
-                )}
-                
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button 
-                    onClick={handleFinish} 
-                    className="bg-green-600 text-white hover:bg-green-700"
-                    disabled={isSaving || saveSuccess === true}
-                    aria-label={isSaving ? "Saving track data" : saveSuccess === true ? "Track saved successfully" : "Save track data"}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                        Saving...
-                      </>
-                    ) : saveSuccess === true ? (
-                      <>
-                        <Award className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Saved!
-                      </>
-                    ) : (
-                      <>
-                        <DownloadCloud className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Save Track
-                      </>
-                    )}
-                  </Button>
-                  
-                  {mapImage && (
-                    <Button 
-                      onClick={downloadTrackImage} 
-                      className="bg-blue-600 text-white hover:bg-blue-700"
-                      aria-label="Download route image"
-                    >
-                      <DownloadCloud className="mr-2 h-4 w-4" aria-hidden="true" />
-                      Download Image
-                    </Button>
-                  )}
-                  
-                  <Button 
-                    onClick={() => setShowResults(false)} 
-                    className="bg-gray-600 text-white hover:bg-gray-700"
-                    aria-label="Close results window"
-                  >
-                    Close
-                  </Button>
-                  
-                  <Button 
-                    onClick={resetTracking} 
-                    className="bg-gray-800 text-white hover:bg-gray-700"
-                    aria-label="Reset tracking data"
-                  >
-                    <RefreshCcw className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Reset
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        <ResultsModal
+          showResults={showResults}
+          mapImage={mapImage}
+          distance={calculateDistance()}
+          elapsedTime={elapsedTime}
+          avgSpeed={calculateAverageSpeed()}
+          maxSpeed={maxSpeed}
+          isSaving={isSaving}
+          saveSuccess={saveSuccess}
+          onClose={() => setShowResults(false)}
+          onFinish={handleFinish}
+          onReset={resetTracking}
+          className="bg-white rounded-lg shadow-xl"
+        />
       </div>
-    </>
+    </div>
   );
 };
 

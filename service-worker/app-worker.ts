@@ -1,5 +1,7 @@
 import { defaultCache } from "@serwist/next/worker";
 import { Serwist } from "serwist";
+import { CacheFirst, NetworkFirst } from "workbox-strategies";
+import { ExpirationPlugin } from "workbox-expiration";
 
 declare const self: ServiceWorkerGlobalScope & {
   __SW_MANIFEST: Array<string>;
@@ -10,13 +12,53 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // Cache map tiles with a network-first strategy
+    {
+      matcher: ({ url }) => {
+        return url.hostname.includes('tile.openstreetmap.org') || 
+               url.hostname.includes('server.arcgisonline.com');
+      },
+      handler: new CacheFirst({
+        cacheName: 'map-tiles',
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 200,
+            maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+          }),
+        ],
+      }),
+    },
+    // Cache the competition page with a network-first strategy
+    {
+      matcher: ({ url }) => {
+        return url.pathname === '/soutez';
+      },
+      handler: new NetworkFirst({
+        cacheName: 'competition-page',
+        plugins: [
+          new ExpirationPlugin({
+            maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          }),
+        ],
+      }),
+    },
+    // Default cache for other assets
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {
         url: '/offline',
         matcher({ request }) {
           return request.destination === 'document';
+        },
+      },
+      {
+        url: '/offline-map',
+        matcher({ request }) {
+          return request.url.includes('tile.openstreetmap.org') || 
+                 request.url.includes('server.arcgisonline.com');
         },
       },
     ],
@@ -28,11 +70,86 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   
-  // Only handle GET requests for Google user content images
+  // Handle map tile requests
+  if (url.hostname.includes('tile.openstreetmap.org') || 
+      url.hostname.includes('server.arcgisonline.com')) {
+    event.respondWith(
+      caches.match(request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            // Update cache in the background
+            fetch(request)
+              .then(response => {
+                if (response.ok) {
+                  caches.open('map-tiles').then(cache => {
+                    cache.put(request, response);
+                  });
+                }
+              })
+              .catch(() => {});
+            return cachedResponse;
+          }
+          
+          return fetch(request)
+            .then(response => {
+              if (response.ok) {
+                const responseToCache = response.clone();
+                caches.open('map-tiles').then(cache => {
+                  cache.put(request, responseToCache);
+                });
+              }
+              return response;
+            })
+            .catch(() => {
+              // Return a placeholder tile for offline use
+              return new Response(
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                {
+                  headers: {
+                    'Content-Type': 'image/png',
+                    'Cache-Control': 'no-cache',
+                  },
+                }
+              );
+            });
+        })
+    );
+  }
+  
+  // Handle competition page requests
+  if (url.pathname === '/soutez') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            const responseToCache = response.clone();
+            caches.open('competition-page').then(cache => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedResponse = await caches.match(request);
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          const offlineResponse = await caches.match('/offline');
+          if (offlineResponse) {
+            return offlineResponse;
+          }
+          return new Response('Offline page not found', {
+            status: 503,
+            statusText: 'Service Unavailable'
+          });
+        })
+    );
+  }
+  
+  // Handle other image requests
   if (request.method === 'GET' && 
       (url.hostname.includes('googleusercontent.com') || 
        url.pathname.startsWith('/_next/image'))) {
-    
     event.respondWith(
       caches.match(request)
         .then(cachedResponse => {
@@ -42,16 +159,15 @@ self.addEventListener('fetch', (event) => {
           
           return fetch(request)
             .then(response => {
-              // Cache the fetched response
-              const responseToCache = response.clone();
-              caches.open('image-cache').then(cache => {
-                cache.put(request, responseToCache);
-              });
-              
+              if (response.ok) {
+                const responseToCache = response.clone();
+                caches.open('image-cache').then(cache => {
+                  cache.put(request, responseToCache);
+                });
+              }
               return response;
             })
             .catch(() => {
-              // Return transparent 1x1 pixel if fetch fails
               return new Response(
                 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
                 {

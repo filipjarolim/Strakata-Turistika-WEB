@@ -8,6 +8,15 @@ const serwistConfig = withSerwist({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '**',
+      },
+    ],
+  },
   // Add other Next.js config options here
 };
 

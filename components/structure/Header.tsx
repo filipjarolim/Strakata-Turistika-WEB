@@ -74,7 +74,7 @@ const Header = ({
                     "grid grid-cols-3 select-none md:grid-cols-12 w-full md:w-[90%] mx-auto px-4 py-3 fixed left-1/2 translate-x-[-50%] transition-all duration-300 rounded-b-xl h-fit",
                     isScrolled ? "md:w-[95%] shadow-md backdrop-blur-lg bg-white/80" : "bg-white/70 backdrop-blur-md"
                 )}
-                style={{ zIndex: 100 }}
+                style={{ zIndex: 10 }}
             >
                 <Link
                     href="/"
@@ -245,10 +245,10 @@ const Header = ({
                                                 </div>
                                             </div>
                                             <Link 
-                                                href="/playground" 
+                                                href="/soutez" 
                                                 className={cn(
                                                     "block py-2 px-3 rounded-md transition-colors",
-                                                    pathname === "/playground" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                    pathname === "/soutez" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
                                                 )}
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                             >
