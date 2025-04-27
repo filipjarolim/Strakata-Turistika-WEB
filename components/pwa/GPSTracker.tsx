@@ -524,12 +524,32 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         // Add to GPS log with cumulative distance
         setGpsLog(prev => {
+          // Calculate total distance from all positions
+          let totalDistance = 0;
+          for (let i = 1; i < positions.length; i++) {
+            totalDistance += haversineDistance(
+              positions[i - 1][0],
+              positions[i - 1][1],
+              positions[i][0],
+              positions[i][1]
+            );
+          }
+          // Add the distance from the last position to the new position
+          if (positions.length > 0) {
+            totalDistance += haversineDistance(
+              positions[positions.length - 1][0],
+              positions[positions.length - 1][1],
+              newPos[0],
+              newPos[1]
+            );
+          }
+
           const newLog = [...prev, {
             time: new Date().toLocaleTimeString(),
             pos: newPos,
             accuracy: pos.coords.accuracy,
             speed: pos.coords.speed ? pos.coords.speed * 3.6 : null,
-            cumulativeDistance: parseFloat(calculateDistance()) // Convert string to number
+            cumulativeDistance: totalDistance
           }];
           return newLog;
         });
