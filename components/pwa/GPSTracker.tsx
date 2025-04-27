@@ -260,7 +260,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     window.addEventListener('indexeddb-location-found', handleInitialLocationFound);
     window.addEventListener('indexeddb-location-not-found', handleInitialLocationNotFound);
 
-    // Initial location check: Try permissions/live location first
     setLoading(true);
     const checkPermissionAndGetLiveLocation = async () => {
         try {
@@ -297,27 +296,41 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           saveLocationForOffline(loc); // Update IndexedDB
           setLoading(false);
 
-        } catch (error: any) {
-          // Live location failed - rely on IndexedDB
+        } catch (error: unknown) {
           console.warn('Live location failed, checking stored location:', error);
-          getStoredLocation(); // Trigger IndexedDB check
-          // If error was timeout/unavailable, show warning
-          if (error.message?.includes('timed out') || error.code === 2 /* POSITION_UNAVAILABLE */ ) {
-             toast.warning('Could not get live location. Checking stored data...');
+          getStoredLocation(); 
+          // Type check error before accessing properties
+          let errorCode: number | undefined;
+          if (error instanceof Error) {
+             // GeolocationPositionError might have a code property, but Error doesn't guarantee it.
+             // We might need a more specific check if error codes are critical.
+             // For now, check message for timeout.
+             if (error.message?.includes('timed out')) {
+                toast.warning('Could not get live location (Timeout). Checking stored data...');
+             } else {
+                // Handle other errors if needed
+             }
+          } else if (typeof error === 'object' && error !== null && 'code' in error) {
+             // Handle GeolocationPositionError-like objects
+             errorCode = (error as GeolocationPositionError).code;
+             if (errorCode === 2 /* POSITION_UNAVAILABLE */) {
+                toast.warning('Could not get live location (Unavailable). Checking stored data...');
+             }
+          } else {
+             // Handle other unknown error types
+             toast.warning('Could not get live location (Unknown Error). Checking stored data...');
           }
-          // If error was permission denied, already handled above
           setLoading(false);
         }
       };
       
       checkPermissionAndGetLiveLocation();
     
-    // Cleanup listeners
     return () => {
       window.removeEventListener('indexeddb-location-found', handleInitialLocationFound);
       window.removeEventListener('indexeddb-location-not-found', handleInitialLocationNotFound);
     };
-  }, []); // Run only on mount
+  }, [mapCenter, positions.length]); // Added mapCenter and positions.length to dependencies
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -816,7 +829,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       totalDescent, 
       calculations, 
       isOffline, 
-      storeDataForOfflineSync
+      // storeDataForOfflineSync // Removed unnecessary dependency
+      // trackData // trackData is defined inside, no need for dependency
    ]);
 
   return (
