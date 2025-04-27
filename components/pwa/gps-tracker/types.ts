@@ -85,7 +85,6 @@ export interface ControlsComponentProps {
   onRecenterMap: () => void;
   onToggleMapType: () => void;
   onResetTracking: () => void;
-  onShowPath: () => void;
   className?: string;
 }
 
@@ -109,11 +108,4 @@ export interface ResultsModalProps {
   onFinish: () => void;
   onReset: () => void;
   className?: string;
-}
-
-export interface LogEntry {
-  timestamp: number;
-  distance: string;
-  speed: number;
-  position: [number, number];
 } 

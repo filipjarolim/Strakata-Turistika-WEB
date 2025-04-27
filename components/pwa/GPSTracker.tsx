@@ -11,7 +11,7 @@ import { useMap } from 'react-leaflet';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { GPSTrackerProps, Calculations, OfflineData, TrackData, LogEntry } from './gps-tracker/types';
+import { GPSTrackerProps, Calculations, OfflineData, TrackData } from './gps-tracker/types';
 import MapComponent from './gps-tracker/MapComponent';
 import ControlsComponent from './gps-tracker/ControlsComponent';
 import StatsComponent from './gps-tracker/StatsComponent';
@@ -27,8 +27,6 @@ import {
   DrawerPortal,
   DrawerOverlay,
 } from "@/components/ui/drawer"
-import LogConsole from './gps-tracker/LogConsole';
-import PathDialog from './gps-tracker/PathDialog';
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -54,10 +52,11 @@ const ZOOM_LEVEL = 16;
 const MIN_DISTANCE_KM = 0.002;
 const MIN_UPDATE_INTERVAL = 1000;
 const MIN_ACCURACY = 35;
-const STATIONARY_THRESHOLD_KM = 0.002; // Reduced from 0.005 to 2 meters
-const STATIONARY_TIME_THRESHOLD = 10000; // 10 seconds
-const SPEED_FILTER_THRESHOLD = 0.5; // Consider speeds below 0.5 km/h as stationary
-const POSITION_HISTORY_SIZE = 20; // Increased from 10 to 20 positions
+const STATIONARY_THRESHOLD_KM = 0.002;
+const STATIONARY_TIME_THRESHOLD = 10000;
+const SPEED_FILTER_THRESHOLD = 0.5;
+const POSITION_HISTORY_SIZE = 20;
+const MAX_GAP_INTERPOLATION = 300000; // 5 minutes
 const POSITION_OPTIONS = {
   enableHighAccuracy: true,
   maximumAge: 0,
@@ -139,21 +138,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [lastValidPosition, setLastValidPosition] = useState<[number, number] | null>(null);
   const [positionHistory, setPositionHistory] = useState<Array<{ pos: [number, number], time: number }>>([]);
 
-  // Add logging state with proper type
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  
-  // Add logging function with proper types
-  const addLog = useCallback((position: [number, number], speed: number, currentDistance: string) => {
-    setLogs(prev => {
-      const newLog: LogEntry = {
-        timestamp: Date.now(),
-        distance: currentDistance,
-        speed,
-        position
-      };
-      return [...prev, newLog];
-    });
-  }, []);
+  // Add new state variables for gap handling
+  const [lastKnownPosition, setLastKnownPosition] = useState<[number, number] | null>(null);
+  const [lastKnownTime, setLastKnownTime] = useState<number | null>(null);
+  const [interpolatedPositions, setInterpolatedPositions] = useState<[number, number][]>([]);
 
   const clearAllData = useCallback(() => {
     setPositions([]);
@@ -355,6 +343,81 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
   }, [watchId, positions.length, captureMapImage]);
 
+  // Function to interpolate positions between two points
+  const interpolatePositions = useCallback((startPos: [number, number], endPos: [number, number], 
+                                          startTime: number, endTime: number, 
+                                          maxGap: number = MAX_GAP_INTERPOLATION) => {
+    const timeDiff = endTime - startTime;
+    if (timeDiff > maxGap) return []; // Don't interpolate for large gaps
+    
+    const distance = haversineDistance(startPos[0], startPos[1], endPos[0], endPos[1]);
+    const speed = distance / (timeDiff / 3600000); // km/h
+    
+    // Only interpolate if speed is reasonable (less than 30 km/h)
+    if (speed > 30) return [];
+    
+    const numPoints = Math.ceil(timeDiff / 10000); // One point every 10 seconds
+    const interpolated: [number, number][] = [];
+    
+    for (let i = 1; i < numPoints; i++) {
+      const ratio = i / numPoints;
+      const lat = startPos[0] + (endPos[0] - startPos[0]) * ratio;
+      const lng = startPos[1] + (endPos[1] - startPos[1]) * ratio;
+      interpolated.push([lat, lng]);
+    }
+    
+    return interpolated;
+  }, []);
+
+  // Function to handle visibility change (phone turned off/on)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && tracking && !paused) {
+        // Phone was turned back on
+        if (lastKnownPosition && lastKnownTime) {
+          const currentTime = Date.now();
+          const timeDiff = currentTime - lastKnownTime;
+          
+          if (timeDiff > 10000) { // More than 10 seconds gap
+            toast.info('Resuming tracking after phone was turned off');
+            
+            // Get current position
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const currentPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                
+                // Interpolate positions for the gap
+                const interpolated = interpolatePositions(
+                  lastKnownPosition,
+                  currentPos,
+                  lastKnownTime,
+                  currentTime
+                );
+                
+                if (interpolated.length > 0) {
+                  setInterpolatedPositions(prev => [...prev, ...interpolated]);
+                  setPositions(prev => [...prev, ...interpolated, currentPos]);
+                } else {
+                  setPositions(prev => [...prev, currentPos]);
+                }
+                
+                setLastKnownPosition(currentPos);
+                setLastKnownTime(currentTime);
+              },
+              (err) => {
+                console.error('Error getting position after phone turned on:', err);
+              },
+              POSITION_OPTIONS
+            );
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [tracking, paused, lastKnownPosition, lastKnownTime, interpolatePositions]);
+
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
@@ -379,7 +442,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setStationaryStartTime(null);
     setLastValidPosition(null);
     setPositionHistory([]);
-    setLogs([]); // Clear logs when starting new tracking
     
     // Register background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
@@ -403,6 +465,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
+        
+        // Store last known position for gap handling
+        setLastKnownPosition(newPos);
+        setLastKnownTime(currentTime);
         
         // Update position history
         setPositionHistory(prev => {
@@ -479,9 +545,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         if (speedValue !== null && speedValue >= 0) {
           setSpeed(prev => {
-            const alpha = 0.2;
+            // Use more aggressive exponential moving average for smoother speed display
+            const alpha = 0.2; // Reduced from 0.3 for more smoothing
             const newSpeed = speedValue * alpha + prev * (1 - alpha);
             
+            // Force zero speed when stationary or below threshold
             if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
               return 0;
             }
@@ -491,9 +559,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           if (speedValue > maxSpeed) {
             setMaxSpeed(speedValue);
           }
-          
-          // Add log entry with current distance
-          addLog(newPos, speedValue, calculateDistance());
         }
         
         if (pos.coords.altitude !== null) {
@@ -557,7 +622,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, addLog, calculateDistance]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -766,11 +831,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                     className="mb-4"
                   />
 
-                  <LogConsole 
-                    logs={logs}
-                    className="mb-4"
-                  />
-
                   <ControlsComponent
                     tracking={tracking}
                     paused={paused}
@@ -783,11 +843,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                     onRecenterMap={recenterMap}
                     onToggleMapType={toggleMapType}
                     onResetTracking={resetTracking}
-                    onShowPath={() => {}}
                     className="flex flex-col space-y-4"
                   />
-
-                  <PathDialog positions={positions} className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg shadow-sm transition-colors" />
                 </div>
               </DrawerContent>
             </DrawerPortal>
