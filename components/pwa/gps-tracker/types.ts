@@ -14,9 +14,17 @@ export interface ExtendedServiceWorkerRegistration {
   unregister(): Promise<boolean>;
 }
 
+export interface Position {
+  lat: number;
+  lng: number;
+  timestamp: number;
+  accuracy: number;
+  speed: number | null;
+}
+
 export interface OfflineData {
   routeId?: string;
-  positions?: [number, number][];
+  positions?: Position[] | [number, number][];
   username?: string;
   mapImage?: string | null;
   elapsedTime?: number;
@@ -48,7 +56,7 @@ export interface TrackData {
   totalAscent: string;
   totalDescent: string;
   timestamp: number;
-  positions: [number, number][];
+  positions: Position[] | [number, number][];
 }
 
 export interface PathSegment {

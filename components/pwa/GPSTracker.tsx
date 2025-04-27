@@ -11,7 +11,7 @@ import { useMap } from 'react-leaflet';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { GPSTrackerProps, Calculations, OfflineData, TrackData } from './gps-tracker/types';
+import { GPSTrackerProps, Calculations, OfflineData, TrackData, Position } from './gps-tracker/types';
 import MapComponent from './gps-tracker/MapComponent';
 import ControlsComponent from './gps-tracker/ControlsComponent';
 import StatsComponent from './gps-tracker/StatsComponent';
@@ -27,6 +27,8 @@ import {
   DrawerPortal,
   DrawerOverlay,
 } from "@/components/ui/drawer"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Terminal } from 'lucide-react';
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -65,6 +67,7 @@ const POSITION_OPTIONS = {
 const TILE_LAYER_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const SATELLITE_LAYER_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri';
+const UPDATE_INTERVAL = 5000; // 5 seconds
 
 // Marker Icon Configuration
 const currentPositionIcon = L.icon({
@@ -85,7 +88,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
   const [paused, setPaused] = useState<boolean>(false);
-  const [positions, setPositions] = useState<[number, number][]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -143,6 +146,20 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [lastKnownTime, setLastKnownTime] = useState<number | null>(null);
   const [interpolatedPositions, setInterpolatedPositions] = useState<[number, number][]>([]);
 
+  // Development console state
+  const [showConsole, setShowConsole] = useState<boolean>(false);
+  const [consoleLog, setConsoleLog] = useState<Array<{
+    type: 'info' | 'error' | 'position';
+    message: string;
+    timestamp: number;
+  }>>([]);
+
+  // Add log entry to console
+  const addLog = useCallback((type: 'info' | 'error' | 'position', message: string) => {
+    setConsoleLog(prev => [...prev, { type, message, timestamp: Date.now() }]);
+  }, []);
+
+  // Clear all data
   const clearAllData = useCallback(() => {
     setPositions([]);
     setStartTime(null);
@@ -159,17 +176,19 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setShowResults(false);
     setMapImage(null);
     setSaveSuccess(null);
-  }, []);
+    setConsoleLog([]);
+    addLog('info', 'All tracking data cleared');
+  }, [addLog]);
 
   const calculations = useCallback((): Calculations => {
     const distance = (): string => {
       let total = 0;
       for (let i = 1; i < positions.length; i++) {
         total += haversineDistance(
-          positions[i - 1][0],
-          positions[i - 1][1],
-          positions[i][0],
-          positions[i][1]
+          positions[i - 1].lat,
+          positions[i - 1].lng,
+          positions[i].lat,
+          positions[i].lng
         );
       }
       return total.toFixed(2);
@@ -396,9 +415,27 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                 
                 if (interpolated.length > 0) {
                   setInterpolatedPositions(prev => [...prev, ...interpolated]);
-                  setPositions(prev => [...prev, ...interpolated, currentPos]);
+                  setPositions(prev => [...prev, ...interpolated.map(([lat, lng]) => ({
+                    lat,
+                    lng,
+                    timestamp: currentTime,
+                    accuracy: pos.coords.accuracy,
+                    speed: pos.coords.speed ? pos.coords.speed * 3.6 : null
+                  })), {
+                    lat: currentPos[0],
+                    lng: currentPos[1],
+                    timestamp: currentTime,
+                    accuracy: pos.coords.accuracy,
+                    speed: pos.coords.speed ? pos.coords.speed * 3.6 : null
+                  }]);
                 } else {
-                  setPositions(prev => [...prev, currentPos]);
+                  setPositions(prev => [...prev, {
+                    lat: currentPos[0],
+                    lng: currentPos[1],
+                    timestamp: currentTime,
+                    accuracy: pos.coords.accuracy,
+                    speed: pos.coords.speed ? pos.coords.speed * 3.6 : null
+                  }]);
                 }
                 
                 setLastKnownPosition(currentPos);
@@ -502,17 +539,23 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Only update position if we're moving or if we've been stationary for a while
         if (!isStationary || (stationaryStartTime && currentTime - stationaryStartTime > STATIONARY_TIME_THRESHOLD)) {
           setLastValidPosition(newPos);
-          setPositions((prev) => {
+          setPositions(prev => {
             if (prev.length > 0) {
-              const [lastLat, lastLon] = prev[prev.length - 1];
-              const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
+              const lastPos = prev[prev.length - 1];
+              const dist = haversineDistance(lastPos.lat, lastPos.lng, newPos[0], newPos[1]);
               if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
                 return prev;
               }
             }
             setLastUpdateTime(currentTime);
             setMapCenter(newPos);
-            return [...prev, newPos];
+            return [...prev, {
+              lat: newPos[0],
+              lng: newPos[1],
+              timestamp: currentTime,
+              accuracy: pos.coords.accuracy,
+              speed: pos.coords.speed ? pos.coords.speed * 3.6 : null
+            }];
           });
         }
         
@@ -589,12 +632,12 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           
           // Store track data for offline sync
           const trackData: OfflineData = {
-            positions: positions,
+            positions: positions.map(({ lat, lng }) => [lat, lng] as [number, number]),
             timestamp: currentTime,
             elapsedTime: elapsedTime,
             maxSpeed: maxSpeed,
-            totalAscent: totalAscent,
-            totalDescent: totalDescent
+            totalAscent: totalAscent.toFixed(0),
+            totalDescent: totalDescent.toFixed(0)
           };
           storeDataForOfflineSync(trackData);
         }
@@ -721,14 +764,14 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       season: new Date().getFullYear(),
       image: imageData,
       distance: distance(),
-      elapsedTime,
+      elapsedTime: elapsedTime,
       averageSpeed: avgSpeed(),
       fullName: username || 'Unknown User',
       maxSpeed: maxSpeed.toFixed(1),
       totalAscent: totalAscent.toFixed(0),
       totalDescent: totalDescent.toFixed(0),
       timestamp: Date.now(),
-      positions: positions
+      positions: positions.map(p => [p.lat, p.lng] as [number, number])
     };
 
     try {
@@ -770,7 +813,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
   return (
-    <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
+    <div className={`relative bg-gray-100 w-full md:w-[400px] h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
       {/* iPhone notch simulation - only show on larger screens */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-[20px] z-50 hidden md:block" />
       
@@ -786,7 +829,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
         <MapComponent
           mapCenter={mapCenter}
-          positions={positions}
+          positions={positions.map(p => [p.lat, p.lng])}
           mapType={mapType}
           recenterTrigger={recenterTrigger}
           mapContainerRef={mapContainerRef}
@@ -866,6 +909,30 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           className="bg-white rounded-lg shadow-xl"
         />
       </div>
+
+      {/* Development Console Button */}
+      <Dialog open={showConsole} onOpenChange={setShowConsole}>
+        <DialogTrigger asChild>
+          <Button
+            className="absolute top-4 right-4 z-50 bg-gray-800 text-white p-2 rounded-full"
+            onClick={() => setShowConsole(true)}
+          >
+            <Terminal className="h-5 w-5" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Tracking Console</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 h-[60vh] overflow-y-auto bg-black text-green-400 font-mono p-4 rounded-lg">
+            {consoleLog.map((log, index) => (
+              <div key={index} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : ''}`}>
+                [{new Date(log.timestamp).toLocaleTimeString()}] {log.message}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
