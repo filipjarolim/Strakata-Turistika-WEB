@@ -404,17 +404,15 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Update position history
         setPositionHistory(prev => {
           const updated = [...prev, { pos: newPos, time: currentTime }];
-          // Keep only last POSITION_HISTORY_SIZE positions for drift detection
           return updated.slice(-POSITION_HISTORY_SIZE);
         });
         
-        // Check if we're stationary with improved detection
+        // Check if we're stationary
         if (positionHistory.length > 0) {
           const avgDistance = positionHistory.reduce((sum, { pos }) => {
             return sum + haversineDistance(pos[0], pos[1], newPos[0], newPos[1]);
           }, 0) / positionHistory.length;
           
-          // Check if all recent positions are within the stationary threshold
           const allPositionsStationary = positionHistory.every(({ pos }) => 
             haversineDistance(pos[0], pos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
           );
@@ -447,7 +445,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           });
         }
         
-        // Calculate speed with improved drift filtering
+        // Calculate speed
         let speedValue = pos.coords.speed;
         if (speedValue === null && lastValidPosition && lastUpdateTime) {
           const timeDiff = (currentTime - lastUpdateTime) / 1000;
@@ -460,7 +458,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             );
             speedValue = dist / timeDiff * 3600;
             
-            // More aggressive speed filtering when stationary
             if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
               speedValue = 0;
             }
@@ -468,7 +465,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         } else if (speedValue !== null) {
           speedValue *= 3.6;
           
-          // More aggressive speed filtering when stationary
           if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
             speedValue = 0;
           }
@@ -476,11 +472,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         if (speedValue !== null && speedValue >= 0) {
           setSpeed(prev => {
-            // Use more aggressive exponential moving average for smoother speed display
-            const alpha = 0.2; // Reduced from 0.3 for more smoothing
+            const alpha = 0.2;
             const newSpeed = speedValue * alpha + prev * (1 - alpha);
             
-            // Force zero speed when stationary or below threshold
             if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
               return 0;
             }
@@ -535,7 +529,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             pos: newPos,
             accuracy: pos.coords.accuracy,
             speed: pos.coords.speed ? pos.coords.speed * 3.6 : null,
-            cumulativeDistance: parseFloat(calculateDistance())
+            cumulativeDistance: parseFloat(calculateDistance()) // Convert string to number
           }];
           return newLog;
         });
@@ -543,12 +537,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Store position for offline sync
         if (lastStoredPosition === null || 
             haversineDistance(lastStoredPosition[0], lastStoredPosition[1], newPos[0], newPos[1]) > MIN_DISTANCE_KM ||
-            currentTime - (lastStoredTime || 0) > 30000) { // Store at least every 30 seconds
+            currentTime - (lastStoredTime || 0) > 30000) {
           setLastStoredPosition(newPos);
           setLastStoredTime(currentTime);
           saveLocationForOffline(newPos);
           
-          // Store track data for offline sync
           const trackData: OfflineData = {
             positions: positions,
             timestamp: currentTime,
@@ -583,7 +576,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, cumulativeDistances]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, calculateDistance]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
