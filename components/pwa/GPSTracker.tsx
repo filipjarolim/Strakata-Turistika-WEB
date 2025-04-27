@@ -376,6 +376,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setLastValidPosition(null);
     setPositionHistory([]);
     setCumulativeDistances([]);
+    setGpsLog([]); // Clear the log when starting new tracking
     
     // Register background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
@@ -534,9 +535,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             pos: newPos,
             accuracy: pos.coords.accuracy,
             speed: pos.coords.speed ? pos.coords.speed * 3.6 : null,
-            cumulativeDistance: cumulativeDistances[cumulativeDistances.length - 1] || 0
+            cumulativeDistance: cumulativeDistances.length > 0 ? cumulativeDistances[cumulativeDistances.length - 1] : 0
           }];
-          return newLog; // Don't limit the log size anymore
+          return newLog;
         });
         
         // Store position for offline sync
