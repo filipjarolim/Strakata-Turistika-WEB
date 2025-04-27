@@ -85,6 +85,7 @@ export interface ControlsComponentProps {
   onRecenterMap: () => void;
   onToggleMapType: () => void;
   onResetTracking: () => void;
+  onShowPath: () => void;
   className?: string;
 }
 

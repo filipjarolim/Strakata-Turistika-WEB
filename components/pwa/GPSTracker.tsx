@@ -783,6 +783,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                     onRecenterMap={recenterMap}
                     onToggleMapType={toggleMapType}
                     onResetTracking={resetTracking}
+                    onShowPath={() => {}}
                     className="flex flex-col space-y-4"
                   />
 
