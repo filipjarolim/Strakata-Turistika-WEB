@@ -119,6 +119,38 @@ export const storeDataForOfflineSync = async (data: OfflineData) => {
       }
     }
     
+    // Store in IndexedDB for better reliability
+    try {
+      const openRequest = indexedDB.open('gpsTrackerDB', 1);
+      
+      openRequest.onupgradeneeded = function() {
+        const db = openRequest.result;
+        if (!db.objectStoreNames.contains('tracks')) {
+          db.createObjectStore('tracks', { keyPath: 'timestamp' });
+        }
+      };
+      
+      openRequest.onsuccess = function() {
+        const db = openRequest.result;
+        const transaction = db.transaction('tracks', 'readwrite');
+        const store = transaction.objectStore('tracks');
+        
+        // Store each position separately with its timestamp
+        if (data.positions && data.positions.length > 0) {
+          data.positions.forEach((pos, index) => {
+            store.put({
+              timestamp: Number(data.timestamp) + index * 1000, // Add 1 second between positions
+              position: pos,
+              accuracy: data.accuracy,
+              speed: data.speed
+            });
+          });
+        }
+      };
+    } catch (err) {
+      console.error('Error storing positions in IndexedDB:', err);
+    }
+    
     storedData.push({
       ...data,
       timestamp: Date.now()
@@ -133,6 +165,51 @@ export const storeDataForOfflineSync = async (data: OfflineData) => {
     console.log('Data stored for offline sync');
   } catch (error) {
     console.error('Failed to store data for offline sync:', error);
+  }
+};
+
+export const getStoredPositions = async (): Promise<Array<{ position: [number, number], timestamp: number }>> => {
+  try {
+    const positions: Array<{ position: [number, number], timestamp: number }> = [];
+    
+    // Get from IndexedDB first
+    const openRequest = indexedDB.open('gpsTrackerDB', 1);
+    
+    openRequest.onsuccess = function() {
+      const db = openRequest.result;
+      const transaction = db.transaction('tracks', 'readonly');
+      const store = transaction.objectStore('tracks');
+      const request = store.getAll();
+      
+      request.onsuccess = function() {
+        if (request.result) {
+          const sortedPositions = request.result.sort((a, b) => a.timestamp - b.timestamp);
+          positions.push(...sortedPositions);
+        }
+      };
+    };
+    
+    // Also get from localStorage as backup
+    const storedDataStr = localStorage.getItem('offlineGpsData');
+    if (storedDataStr) {
+      const storedData = JSON.parse(storedDataStr);
+      storedData.forEach((track: OfflineData) => {
+        if (track.positions) {
+          track.positions.forEach((pos, index) => {
+            positions.push({
+              position: pos,
+              timestamp: Number(track.timestamp) + index * 1000
+            });
+          });
+        }
+      });
+    }
+    
+    // Sort all positions by timestamp
+    return positions.sort((a, b) => a.timestamp - b.timestamp);
+  } catch (error) {
+    console.error('Error retrieving stored positions:', error);
+    return [];
   }
 };
 

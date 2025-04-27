@@ -17,7 +17,7 @@ import ControlsComponent from './gps-tracker/ControlsComponent';
 import StatsComponent from './gps-tracker/StatsComponent';
 import ResultsModal from './gps-tracker/ResultsModal';
 import { haversineDistance, formatTime } from './gps-tracker/utils';
-import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync, syncOfflineData } from './gps-tracker/storage';
+import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync, syncOfflineData, getStoredPositions } from './gps-tracker/storage';
 import {
   Drawer,
   DrawerContent,
@@ -52,8 +52,10 @@ const ZOOM_LEVEL = 16;
 const MIN_DISTANCE_KM = 0.002;
 const MIN_UPDATE_INTERVAL = 1000;
 const MIN_ACCURACY = 35;
-const STATIONARY_THRESHOLD_KM = 0.005; // 5 meters
+const STATIONARY_THRESHOLD_KM = 0.002; // Reduced from 0.005 to 2 meters
 const STATIONARY_TIME_THRESHOLD = 10000; // 10 seconds
+const SPEED_FILTER_THRESHOLD = 0.5; // Consider speeds below 0.5 km/h as stationary
+const POSITION_HISTORY_SIZE = 20; // Increased from 10 to 20 positions
 const POSITION_OPTIONS = {
   enableHighAccuracy: true,
   maximumAge: 0,
@@ -134,6 +136,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [stationaryStartTime, setStationaryStartTime] = useState<number | null>(null);
   const [lastValidPosition, setLastValidPosition] = useState<[number, number] | null>(null);
   const [positionHistory, setPositionHistory] = useState<Array<{ pos: [number, number], time: number }>>([]);
+
+  // Add GPS log state
+  const [gpsLog, setGpsLog] = useState<Array<{ time: string, pos: [number, number], accuracy: number, speed: number | null }>>([]);
+  const [showGpsLog, setShowGpsLog] = useState<boolean>(false);
 
   const clearAllData = useCallback(() => {
     setPositions([]);
@@ -383,20 +389,37 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
         
+        // Add to GPS log
+        setGpsLog(prev => {
+          const newLog = [...prev, {
+            time: new Date().toLocaleTimeString(),
+            pos: newPos,
+            accuracy: pos.coords.accuracy,
+            speed: pos.coords.speed ? pos.coords.speed * 3.6 : null
+          }];
+          // Keep only last 50 entries
+          return newLog.slice(-50);
+        });
+        
         // Update position history
         setPositionHistory(prev => {
           const updated = [...prev, { pos: newPos, time: currentTime }];
-          // Keep only last 10 positions for drift detection
-          return updated.slice(-10);
+          // Keep only last POSITION_HISTORY_SIZE positions for drift detection
+          return updated.slice(-POSITION_HISTORY_SIZE);
         });
         
-        // Check if we're stationary
+        // Check if we're stationary with improved detection
         if (positionHistory.length > 0) {
           const avgDistance = positionHistory.reduce((sum, { pos }) => {
             return sum + haversineDistance(pos[0], pos[1], newPos[0], newPos[1]);
           }, 0) / positionHistory.length;
           
-          if (avgDistance < STATIONARY_THRESHOLD_KM) {
+          // Check if all recent positions are within the stationary threshold
+          const allPositionsStationary = positionHistory.every(({ pos }) => 
+            haversineDistance(pos[0], pos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
+          );
+          
+          if (avgDistance < STATIONARY_THRESHOLD_KM && allPositionsStationary) {
             if (!isStationary) {
               setIsStationary(true);
               setStationaryStartTime(currentTime);
@@ -424,7 +447,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           });
         }
         
-        // Calculate speed with drift filtering
+        // Calculate speed with improved drift filtering
         let speedValue = pos.coords.speed;
         if (speedValue === null && lastValidPosition && lastUpdateTime) {
           const timeDiff = (currentTime - lastUpdateTime) / 1000;
@@ -437,25 +460,30 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             );
             speedValue = dist / timeDiff * 3600;
             
-            // Filter out speeds that are likely due to GPS drift
-            if (speedValue < 1 && isStationary) {
+            // More aggressive speed filtering when stationary
+            if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
               speedValue = 0;
             }
           }
         } else if (speedValue !== null) {
           speedValue *= 3.6;
           
-          // Filter out speeds that are likely due to GPS drift
-          if (speedValue < 1 && isStationary) {
+          // More aggressive speed filtering when stationary
+          if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
             speedValue = 0;
           }
         }
         
         if (speedValue !== null && speedValue >= 0) {
           setSpeed(prev => {
-            // Use exponential moving average for smoother speed display
-            const alpha = 0.3;
+            // Use more aggressive exponential moving average for smoother speed display
+            const alpha = 0.2; // Reduced from 0.3 for more smoothing
             const newSpeed = speedValue * alpha + prev * (1 - alpha);
+            
+            // Force zero speed when stationary or below threshold
+            if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
+              return 0;
+            }
             return newSpeed;
           });
           
@@ -672,6 +700,50 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
   }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
+  // Add effect to load stored positions when component mounts
+  useEffect(() => {
+    const loadStoredPositions = async () => {
+      const storedPositions = await getStoredPositions();
+      if (storedPositions.length > 0) {
+        setPositions(storedPositions.map(p => p.position));
+        // Update last known position
+        const lastPosition = storedPositions[storedPositions.length - 1].position;
+        setLastValidPosition(lastPosition);
+        setMapCenter(lastPosition);
+      }
+    };
+    
+    loadStoredPositions();
+  }, []);
+
+  // Add effect to handle background sync
+  useEffect(() => {
+    const handleBackgroundSync = async () => {
+      if (tracking && !paused) {
+        const storedPositions = await getStoredPositions();
+        if (storedPositions.length > 0) {
+          const newPositions = storedPositions.map(p => p.position);
+          setPositions(prev => {
+            // Merge with existing positions, avoiding duplicates
+            const merged = [...prev];
+            newPositions.forEach(newPos => {
+              if (!merged.some(existing => 
+                existing[0] === newPos[0] && existing[1] === newPos[1]
+              )) {
+                merged.push(newPos);
+              }
+            });
+            return merged;
+          });
+        }
+      }
+    };
+    
+    // Check for new positions every 5 seconds
+    const interval = setInterval(handleBackgroundSync, 5000);
+    return () => clearInterval(interval);
+  }, [tracking, paused]);
+
   return (
     <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
       {/* iPhone notch simulation - only show on larger screens */}
@@ -748,6 +820,42 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                     onResetTracking={resetTracking}
                     className="flex flex-col space-y-4"
                   />
+
+                  {/* GPS Log Console */}
+                  <div className="mt-4">
+                    <Button
+                      onClick={() => setShowGpsLog(!showGpsLog)}
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg shadow-sm transition-colors"
+                    >
+                      {showGpsLog ? 'Hide GPS Log' : 'Show GPS Log'}
+                    </Button>
+                    
+                    {showGpsLog && (
+                      <div className="mt-2 bg-gray-900 text-gray-100 p-2 rounded-lg max-h-48 overflow-y-auto font-mono text-xs">
+                        {gpsLog.map((log, index) => (
+                          <div key={index} className="border-b border-gray-700 py-1">
+                            <span className="text-blue-400">{log.time}</span>
+                            <span className="text-gray-400"> | </span>
+                            <span className="text-green-400">
+                              {log.pos[0].toFixed(6)}, {log.pos[1].toFixed(6)}
+                            </span>
+                            <span className="text-gray-400"> | </span>
+                            <span className="text-yellow-400">
+                              Acc: {log.accuracy.toFixed(1)}m
+                            </span>
+                            {log.speed !== null && (
+                              <>
+                                <span className="text-gray-400"> | </span>
+                                <span className="text-purple-400">
+                                  Speed: {log.speed.toFixed(1)} km/h
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </DrawerContent>
             </DrawerPortal>
