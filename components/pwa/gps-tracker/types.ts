@@ -51,6 +51,15 @@ export interface TrackData {
   positions: [number, number][];
 }
 
+export interface LogEntry {
+  timestamp: number;
+  lat: number;
+  lon: number;
+  accuracy: number;
+  distance: number; // Cumulative distance at this point
+  source: 'live' | 'offline' | 'stop';
+}
+
 export interface PathSegment {
   positions: [number, number][];
   color: string;

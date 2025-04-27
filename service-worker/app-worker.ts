@@ -189,30 +189,22 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(
       (async () => {
         try {
-          const db = await initDB();
-          const transaction = db.transaction(['tracks'], 'readonly');
-          const store = transaction.objectStore('tracks');
-          const request = store.getAll();
-
-          const positions = await new Promise<any[]>((resolve) => {
-            request.onsuccess = () => resolve(request.result || []);
-            request.onerror = () => resolve([]);
-          });
-
-          if (positions.length > 0) {
-            const response = await fetch('/api/sync-gps-data', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(positions),
-            });
-            
-            if (response.ok) {
-              // Clear synced positions
-              const clearTransaction = db.transaction(['tracks'], 'readwrite');
-              const clearStore = clearTransaction.objectStore('tracks');
-              positions.forEach(pos => clearStore.delete(pos.timestamp));
+          const storedData = localStorage.getItem('offlineGpsData');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData && parsedData.length > 0) {
+              const response = await fetch('/api/sync-gps-data', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parsedData),
+              });
+              
+              if (response.ok) {
+                localStorage.removeItem('offlineGpsData');
+                console.log('Offline GPS data synced successfully');
+              }
             }
           }
         } catch (error) {
@@ -222,30 +214,6 @@ self.addEventListener('sync', (event) => {
     );
   }
 });
-
-// Initialize IndexedDB in service worker
-const initDB = () => {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open('gpsTrackerDB', 1);
-
-    request.onerror = () => {
-      console.error('Error opening IndexedDB:', request.error);
-      reject(request.error);
-    };
-
-    request.onsuccess = () => {
-      resolve(request.result);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      
-      if (!db.objectStoreNames.contains('tracks')) {
-        db.createObjectStore('tracks', { keyPath: 'timestamp' });
-      }
-    };
-  });
-};
 
 // Add message event listener for offline storage
 self.addEventListener('message', (event) => {
