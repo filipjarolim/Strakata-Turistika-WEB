@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, Map } from 'lucide-react';
+import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Activity, Menu, Clock, Gauge, ChevronUp, Route } from 'lucide-react';
 import { ControlsComponentProps } from './types';
 
 const ControlsComponent: React.FC<ControlsComponentProps> = ({
@@ -17,6 +17,7 @@ const ControlsComponent: React.FC<ControlsComponentProps> = ({
   onRecenterMap,
   onToggleMapType,
   onResetTracking,
+  onShowPath,
   className = ''
 }) => {
   return (
@@ -78,6 +79,14 @@ const ControlsComponent: React.FC<ControlsComponentProps> = ({
           Map Type
         </Button>
       </div>
+
+      <Button
+        onClick={onShowPath}
+        className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg shadow-sm transition-colors"
+      >
+        <Route className="w-5 h-5 mr-2" />
+        Show Complete Path
+      </Button>
 
       <Button
         onClick={onResetTracking}

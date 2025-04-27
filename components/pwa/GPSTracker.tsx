@@ -28,6 +28,7 @@ import {
   DrawerOverlay,
 } from "@/components/ui/drawer"
 import LogConsole from './gps-tracker/LogConsole';
+import PathDialog from './gps-tracker/PathDialog';
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -150,8 +151,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         speed,
         position
       };
-      // Keep only last 50 logs
-      return [...prev, newLog].slice(-50);
+      return [...prev, newLog];
     });
   }, []);
 
@@ -785,6 +785,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                     onResetTracking={resetTracking}
                     className="flex flex-col space-y-4"
                   />
+
+                  <PathDialog positions={positions} className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg shadow-sm transition-colors" />
                 </div>
               </DrawerContent>
             </DrawerPortal>
