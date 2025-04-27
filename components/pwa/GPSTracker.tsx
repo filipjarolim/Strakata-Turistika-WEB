@@ -147,7 +147,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setLogs(prev => {
       const newLog: LogEntry = {
         timestamp: Date.now(),
-        distance: parseFloat(currentDistance),
+        distance: currentDistance,
         speed,
         position
       };

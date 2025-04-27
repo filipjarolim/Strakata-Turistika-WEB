@@ -112,7 +112,7 @@ export interface ResultsModalProps {
 
 export interface LogEntry {
   timestamp: number;
-  distance: number;
+  distance: string;
   speed: number;
   position: [number, number];
 } 
