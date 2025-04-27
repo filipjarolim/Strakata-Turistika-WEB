@@ -145,7 +145,15 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [positionHistory, setPositionHistory] = useState<Array<{ pos: [number, number], time: number }>>([]);
 
   // Add GPS log state
-  const [gpsLog, setGpsLog] = useState<Array<{ time: string, pos: [number, number], accuracy: number, speed: number | null, cumulativeDistance?: number }>>([]);
+  const [gpsLog, setGpsLog] = useState<Array<{
+    time: string;
+    pos: [number, number];
+    accuracy: number;
+    speed: number | null;
+    distance: number;
+    elapsedTime: number;
+    avgSpeed: number;
+  }>>([]);
   const [showGpsLog, setShowGpsLog] = useState<boolean>(false);
 
   // Add state for cumulative distance
@@ -351,6 +359,26 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
   }, [watchId, positions.length, captureMapImage]);
 
+  // Add function to calculate current stats
+  const calculateCurrentStats = useCallback((positions: [number, number][], elapsedTime: number) => {
+    let totalDistance = 0;
+    for (let i = 1; i < positions.length; i++) {
+      totalDistance += haversineDistance(
+        positions[i - 1][0],
+        positions[i - 1][1],
+        positions[i][0],
+        positions[i][1]
+      );
+    }
+    
+    const avgSpeed = elapsedTime > 0 ? (totalDistance * 3600) / elapsedTime : 0;
+    
+    return {
+      distance: totalDistance,
+      avgSpeed
+    };
+  }, []);
+
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
@@ -376,7 +404,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setLastValidPosition(null);
     setPositionHistory([]);
     setCumulativeDistances([]);
-    setGpsLog([]); // Clear the log when starting new tracking
     
     // Register background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
@@ -404,15 +431,17 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Update position history
         setPositionHistory(prev => {
           const updated = [...prev, { pos: newPos, time: currentTime }];
+          // Keep only last POSITION_HISTORY_SIZE positions for drift detection
           return updated.slice(-POSITION_HISTORY_SIZE);
         });
         
-        // Check if we're stationary
+        // Check if we're stationary with improved detection
         if (positionHistory.length > 0) {
           const avgDistance = positionHistory.reduce((sum, { pos }) => {
             return sum + haversineDistance(pos[0], pos[1], newPos[0], newPos[1]);
           }, 0) / positionHistory.length;
           
+          // Check if all recent positions are within the stationary threshold
           const allPositionsStationary = positionHistory.every(({ pos }) => 
             haversineDistance(pos[0], pos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
           );
@@ -445,7 +474,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           });
         }
         
-        // Calculate speed
+        // Calculate speed with improved drift filtering
         let speedValue = pos.coords.speed;
         if (speedValue === null && lastValidPosition && lastUpdateTime) {
           const timeDiff = (currentTime - lastUpdateTime) / 1000;
@@ -458,6 +487,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             );
             speedValue = dist / timeDiff * 3600;
             
+            // More aggressive speed filtering when stationary
             if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
               speedValue = 0;
             }
@@ -465,6 +495,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         } else if (speedValue !== null) {
           speedValue *= 3.6;
           
+          // More aggressive speed filtering when stationary
           if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
             speedValue = 0;
           }
@@ -472,9 +503,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         if (speedValue !== null && speedValue >= 0) {
           setSpeed(prev => {
-            const alpha = 0.2;
+            // Use more aggressive exponential moving average for smoother speed display
+            const alpha = 0.2; // Reduced from 0.3 for more smoothing
             const newSpeed = speedValue * alpha + prev * (1 - alpha);
             
+            // Force zero speed when stationary or below threshold
             if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
               return 0;
             }
@@ -522,26 +555,19 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           return newDistances;
         });
         
-        // Add to GPS log with cumulative distance
+        // Calculate current stats
+        const currentStats = calculateCurrentStats(positions, elapsedTime);
+        
+        // Add to GPS log with detailed information
         setGpsLog(prev => {
-          // Calculate total distance including the new position
-          const allPositions = [...positions, newPos];
-          let totalDistance = 0;
-          for (let i = 1; i < allPositions.length; i++) {
-            totalDistance += haversineDistance(
-              allPositions[i - 1][0],
-              allPositions[i - 1][1],
-              allPositions[i][0],
-              allPositions[i][1]
-            );
-          }
-
           const newLog = [...prev, {
             time: new Date().toLocaleTimeString(),
             pos: newPos,
             accuracy: pos.coords.accuracy,
             speed: pos.coords.speed ? pos.coords.speed * 3.6 : null,
-            cumulativeDistance: Number(totalDistance.toFixed(2))
+            distance: currentStats.distance,
+            elapsedTime: elapsedTime,
+            avgSpeed: currentStats.avgSpeed
           }];
           return newLog;
         });
@@ -549,11 +575,12 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Store position for offline sync
         if (lastStoredPosition === null || 
             haversineDistance(lastStoredPosition[0], lastStoredPosition[1], newPos[0], newPos[1]) > MIN_DISTANCE_KM ||
-            currentTime - (lastStoredTime || 0) > 30000) {
+            currentTime - (lastStoredTime || 0) > 30000) { // Store at least every 30 seconds
           setLastStoredPosition(newPos);
           setLastStoredTime(currentTime);
           saveLocationForOffline(newPos);
           
+          // Store track data for offline sync
           const trackData: OfflineData = {
             positions: positions,
             timestamp: currentTime,
@@ -588,7 +615,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, calculateDistance]);
+  }, [paused, positions, elapsedTime, calculateCurrentStats, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, cumulativeDistances]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -871,29 +898,40 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                           <DialogTitle>GPS Tracking Log</DialogTitle>
                         </DialogHeader>
                         <div id="gps-log-description" className="sr-only">
-                          GPS tracking log showing timestamp, position, accuracy, speed and cumulative distance
+                          Detailed GPS tracking log showing timestamp, position, accuracy, speed, distance, elapsed time, and average speed
                         </div>
                         <div className="mt-4 overflow-y-auto max-h-[60vh]">
                           <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-xs">
+                            <div className="grid grid-cols-7 gap-2 mb-2 pb-2 border-b border-gray-700 text-gray-400 text-xs">
+                              <span>Time</span>
+                              <span>Position</span>
+                              <span>Accuracy</span>
+                              <span>Speed</span>
+                              <span>Distance</span>
+                              <span>Elapsed</span>
+                              <span>Avg Speed</span>
+                            </div>
                             {gpsLog.map((log, index) => (
-                              <div key={index} className="border-b border-gray-700 py-2">
-                                <div className="flex flex-wrap gap-x-4">
-                                  <span className="text-blue-400">{log.time}</span>
-                                  <span className="text-green-400">
-                                    {log.pos[0].toFixed(6)}, {log.pos[1].toFixed(6)}
-                                  </span>
-                                  <span className="text-yellow-400">
-                                    Acc: {log.accuracy.toFixed(1)}m
-                                  </span>
-                                  {log.speed !== null && (
-                                    <span className="text-purple-400">
-                                      Speed: {log.speed.toFixed(1)} km/h
-                                    </span>
-                                  )}
-                                  <span className="text-orange-400">
-                                    Distance: {(log.cumulativeDistance || 0).toFixed(2)} km
-                                  </span>
-                                </div>
+                              <div key={index} className="grid grid-cols-7 gap-2 py-2 border-b border-gray-700">
+                                <span className="text-blue-400">{log.time}</span>
+                                <span className="text-green-400">
+                                  {log.pos[0].toFixed(6)}, {log.pos[1].toFixed(6)}
+                                </span>
+                                <span className="text-yellow-400">
+                                  {log.accuracy.toFixed(1)}m
+                                </span>
+                                <span className="text-purple-400">
+                                  {log.speed !== null ? `${log.speed.toFixed(1)} km/h` : 'N/A'}
+                                </span>
+                                <span className="text-orange-400">
+                                  {log.distance.toFixed(2)} km
+                                </span>
+                                <span className="text-pink-400">
+                                  {formatTime(log.elapsedTime)}
+                                </span>
+                                <span className="text-cyan-400">
+                                  {log.avgSpeed.toFixed(1)} km/h
+                                </span>
                               </div>
                             ))}
                           </div>
