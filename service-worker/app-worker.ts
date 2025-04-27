@@ -189,39 +189,22 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(
       (async () => {
         try {
-          const db = await new Promise<IDBDatabase>((resolve, reject) => {
-            const request = indexedDB.open('gpsTrackerDB', 1);
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => resolve(request.result);
-          });
-
-          const transaction = db.transaction(['tracks'], 'readonly');
-          const trackStore = transaction.objectStore('tracks');
-          const tracks = await new Promise<any[]>((resolve, reject) => {
-            const request = trackStore.getAll();
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => resolve(request.result);
-          });
-
-          if (tracks && tracks.length > 0) {
-            const response = await fetch('/api/sync-gps-data', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(tracks),
-            });
-            
-            if (response.ok) {
-              // Clear the tracks after successful sync
-              const clearTransaction = db.transaction(['tracks'], 'readwrite');
-              const clearStore = clearTransaction.objectStore('tracks');
-              await new Promise<void>((resolve, reject) => {
-                const request = clearStore.clear();
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve();
+          const storedData = localStorage.getItem('offlineGpsData');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData && parsedData.length > 0) {
+              const response = await fetch('/api/sync-gps-data', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parsedData),
               });
-              console.log('Offline GPS data synced successfully');
+              
+              if (response.ok) {
+                localStorage.removeItem('offlineGpsData');
+                console.log('Offline GPS data synced successfully');
+              }
             }
           }
         } catch (error) {

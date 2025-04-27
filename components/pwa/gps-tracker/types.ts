@@ -14,17 +14,9 @@ export interface ExtendedServiceWorkerRegistration {
   unregister(): Promise<boolean>;
 }
 
-export interface Position {
-  lat: number;
-  lng: number;
-  timestamp: number;
-  accuracy: number;
-  speed: number | null;
-}
-
 export interface OfflineData {
   routeId?: string;
-  positions?: Position[] | [number, number][];
+  positions?: [number, number][];
   username?: string;
   mapImage?: string | null;
   elapsedTime?: number;
@@ -34,8 +26,6 @@ export interface OfflineData {
   avgSpeed?: number | string;
   distance?: string;
   timestamp: number | string;
-  photos?: string[];
-  comment?: string;
   [key: string]: unknown;
 }
 
@@ -58,9 +48,7 @@ export interface TrackData {
   totalAscent: string;
   totalDescent: string;
   timestamp: number;
-  positions: Position[] | [number, number][];
-  photos?: string[];
-  comment?: string;
+  positions: [number, number][];
 }
 
 export interface PathSegment {
@@ -71,7 +59,7 @@ export interface PathSegment {
 }
 
 export interface GPSTrackerProps {
-  username?: string;
+  username: string;
   className?: string;
 }
 
@@ -82,7 +70,6 @@ export interface MapComponentProps {
   recenterTrigger: number;
   mapContainerRef: React.RefObject<HTMLDivElement>;
   loading: boolean;
-  currentPosition: [number, number] | null;
   className?: string;
 }
 
@@ -118,7 +105,7 @@ export interface ResultsModalProps {
   isSaving: boolean;
   saveSuccess: boolean | null;
   onClose: () => void;
-  onFinish: (formData: FormData) => Promise<void>;
+  onFinish: () => void;
   onReset: () => void;
   className?: string;
 } 
