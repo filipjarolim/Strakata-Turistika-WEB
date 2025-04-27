@@ -51,15 +51,6 @@ export interface TrackData {
   positions: [number, number][];
 }
 
-export interface LogEntry {
-  timestamp: number;
-  lat: number;
-  lon: number;
-  accuracy: number;
-  distance: number; // Cumulative distance at this point
-  source: 'live' | 'offline' | 'stop';
-}
-
 export interface PathSegment {
   positions: [number, number][];
   color: string;
@@ -111,12 +102,17 @@ export interface ResultsModalProps {
   elapsedTime: number;
   avgSpeed: string;
   maxSpeed: number;
-  totalAscent: number;
-  totalDescent: number;
   isSaving: boolean;
   saveSuccess: boolean | null;
   onClose: () => void;
   onFinish: () => void;
   onReset: () => void;
   className?: string;
+}
+
+export interface LogEntry {
+  timestamp: number;
+  distance: number;
+  speed: number;
+  position: [number, number];
 } 

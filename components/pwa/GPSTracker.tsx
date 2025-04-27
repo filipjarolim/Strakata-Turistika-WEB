@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
-import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Activity, Menu, Clock, Gauge, ChevronUp, FileText } from 'lucide-react';
+import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Activity, Menu, Clock, Gauge, ChevronUp } from 'lucide-react';
 import { useMap } from 'react-leaflet';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import ControlsComponent from './gps-tracker/ControlsComponent';
 import StatsComponent from './gps-tracker/StatsComponent';
 import ResultsModal from './gps-tracker/ResultsModal';
 import { haversineDistance, formatTime } from './gps-tracker/utils';
-import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync } from './gps-tracker/storage';
+import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync, syncOfflineData } from './gps-tracker/storage';
 import {
   Drawer,
   DrawerContent,
@@ -27,14 +27,7 @@ import {
   DrawerPortal,
   DrawerOverlay,
 } from "@/components/ui/drawer"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import LogConsole from './gps-tracker/LogConsole';
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -145,9 +138,22 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [lastValidPosition, setLastValidPosition] = useState<[number, number] | null>(null);
   const [positionHistory, setPositionHistory] = useState<Array<{ pos: [number, number], time: number }>>([]);
 
-  // Add state for logging and progressive distance
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-  const [currentTotalDistance, setCurrentTotalDistance] = useState<number>(0);
+  // Add logging state with proper type
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  
+  // Add logging function with proper types
+  const addLog = useCallback((position: [number, number], speed: number, currentDistance: string) => {
+    setLogs(prev => {
+      const newLog: LogEntry = {
+        timestamp: Date.now(),
+        distance: parseFloat(currentDistance),
+        speed,
+        position
+      };
+      // Keep only last 50 logs
+      return [...prev, newLog].slice(-50);
+    });
+  }, []);
 
   const clearAllData = useCallback(() => {
     setPositions([]);
@@ -165,40 +171,26 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setShowResults(false);
     setMapImage(null);
     setSaveSuccess(null);
-    // Reset new state variables
-    setLogEntries([]);
-    setCurrentTotalDistance(0);
-    setIsStationary(false);
-    setStationaryStartTime(null);
-    setLastValidPosition(null);
-    setPositionHistory([]);
-    setLastStoredPosition(null);
-    setLastStoredTime(null);
   }, []);
 
-  // Recalculate total distance from positions array (useful after loading offline data)
-  const recalculateTotalDistance = (currentPositions: [number, number][]) => {
-    let total = 0;
-    for (let i = 1; i < currentPositions.length; i++) {
-      total += haversineDistance(
-        currentPositions[i - 1][0],
-        currentPositions[i - 1][1],
-        currentPositions[i][0],
-        currentPositions[i][1]
-      );
-    }
-    return total;
-  };
-
-  // Modified calculations to use currentTotalDistance state
   const calculations = useCallback((): Calculations => {
     const distance = (): string => {
-      return currentTotalDistance.toFixed(2);
+      let total = 0;
+      for (let i = 1; i < positions.length; i++) {
+        total += haversineDistance(
+          positions[i - 1][0],
+          positions[i - 1][1],
+          positions[i][0],
+          positions[i][1]
+        );
+      }
+      return total.toFixed(2);
     };
 
     const avgSpeed = (): string => {
       if (elapsedTime === 0 || positions.length <= 1) return '0.0';
-      const avg = (currentTotalDistance * 3600) / elapsedTime;
+      const dist = parseFloat(distance());
+      const avg = (dist * 3600) / elapsedTime;
       return avg.toFixed(1);
     };
 
@@ -209,7 +201,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       totalAscent,
       totalDescent
     };
-  }, [currentTotalDistance, elapsedTime, positions.length, maxSpeed, totalAscent, totalDescent]); // Added dependencies
+  }, [positions, elapsedTime, maxSpeed, totalAscent, totalDescent]);
 
   const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
 
@@ -233,104 +225,83 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
   }, []);
 
-  // Effect to load stored INITIAL location on mount
   useEffect(() => {
-    const handleInitialLocationFound = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail && customEvent.detail.location) {
-         const loc = customEvent.detail.location as [number, number];
-         console.log('Received initial location from IndexedDB:', loc);
-         // Set initial map center only if no positions exist (e.g., from previous state)
-         if (positions.length === 0) {
-            setMapCenter(loc);
-         }
-      }
-    };
-
-    const handleInitialLocationNotFound = () => {
-      console.log('Initial location not found in IndexedDB.');
-       // Only set default/show error if not already set by geolocation API
-      if (!mapCenter) { 
-          toast.error('Could not get location. Using default. Check permissions/GPS.');
-          const defaultLocation: [number, number] = [50.0755, 14.4378];
-          setMapCenter(defaultLocation);
-       }
-    };
-
-    window.addEventListener('indexeddb-location-found', handleInitialLocationFound);
-    window.addEventListener('indexeddb-location-not-found', handleInitialLocationNotFound);
-
     setLoading(true);
-    const checkPermissionAndGetLiveLocation = async () => {
-        try {
-          // Check permission silently first
-          const permStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-          if (permStatus.state === 'denied') {
-            toast.error('Location access denied. Please enable location services.');
-            getStoredLocation(); // Try getting stored location as fallback
-            setLoading(false);
-            return;
+    
+    const checkPermission = async () => {
+      try {
+        const permStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (permStatus.state === 'denied') {
+          toast.error('Location access denied. Please enable location services for this site.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!navigator.onLine) {
+          setIsOffline(true);
+          const cached = getStoredLocation();
+          if (cached) {
+            setMapCenter(cached);
+            toast.warning('You are offline. Using cached location data.');
+            saveLocationForOffline(cached);
+          } else {
+            toast.error('No cached location available. Using default location.');
+            const defaultLocation: [number, number] = [50.0755, 14.4378];
+            setMapCenter(defaultLocation);
           }
+          setLoading(false);
+          return;
+        }
+        
+        setIsOffline(false);
+        let timeoutId: NodeJS.Timeout;
+        
+        const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Location request timed out. Please check your GPS signal and try again.'));
+          }, 10000); // 10 second timeout
           
-          // Permission granted or prompt: Try getting live location
-          setIsOffline(!navigator.onLine);
-          let timeoutId: NodeJS.Timeout;
-          
-          const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
-            timeoutId = setTimeout(() => {
-              reject(new Error('Location request timed out.'));
-            }, 10000); 
-            
-          navigator.geolocation.getCurrentPosition(
-            (pos) => { clearTimeout(timeoutId); resolve(pos); },
-            (err) => { clearTimeout(timeoutId); reject(err); },
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+              clearTimeout(timeoutId);
+              resolve(pos);
+            },
+            (err) => {
+              clearTimeout(timeoutId);
+              reject(err);
+            },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
-          });
-  
-          // Live location success
-          const pos = await positionPromise;
-          const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          setMapCenter(loc);
-          localStorage.setItem('lastKnownLocation', JSON.stringify(loc)); // Keep localStorage for quick non-essential reload
-          saveLocationForOffline(loc); // Update IndexedDB
-          setLoading(false);
+        });
 
-        } catch (error: unknown) {
-          console.warn('Live location failed, checking stored location:', error);
-          getStoredLocation(); 
-          // Type check error before accessing properties
-          let errorCode: number | undefined;
-          if (error instanceof Error) {
-             // GeolocationPositionError might have a code property, but Error doesn't guarantee it.
-             // We might need a more specific check if error codes are critical.
-             // For now, check message for timeout.
-             if (error.message?.includes('timed out')) {
-                toast.warning('Could not get live location (Timeout). Checking stored data...');
-             } else {
-                // Handle other errors if needed
-             }
-          } else if (typeof error === 'object' && error !== null && 'code' in error) {
-             // Handle GeolocationPositionError-like objects
-             errorCode = (error as GeolocationPositionError).code;
-             if (errorCode === 2 /* POSITION_UNAVAILABLE */) {
-                toast.warning('Could not get live location (Unavailable). Checking stored data...');
-             }
-          } else {
-             // Handle other unknown error types
-             toast.warning('Could not get live location (Unknown Error). Checking stored data...');
-          }
-          setLoading(false);
+        const pos = await positionPromise;
+            const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+            setMapCenter(loc);
+            localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+            saveLocationForOffline(loc);
+            setLoading(false);
+      } catch (error) {
+        console.error('Permission check error:', error);
+        setLoading(false);
+        
+        const cached = getStoredLocation();
+        if (cached) {
+          setMapCenter(cached);
+          toast.warning('Using cached location due to error.');
+        } else {
+          toast.error('Could not get your location. Please check your GPS signal and try again.');
+          const defaultLocation: [number, number] = [50.0755, 14.4378];
+          setMapCenter(defaultLocation);
         }
-      };
-      
-      checkPermissionAndGetLiveLocation();
+      }
+    };
+    
+    checkPermission();
     
     return () => {
-      window.removeEventListener('indexeddb-location-found', handleInitialLocationFound);
-      window.removeEventListener('indexeddb-location-not-found', handleInitialLocationNotFound);
+      if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [mapCenter, positions.length]); // Added mapCenter and positions.length to dependencies
+  }, [watchId]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -377,61 +348,56 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setCompleted(true);
     
     if (positions.length > 1) {
-      // Log final point
-      if (lastValidPosition) {
-         const finalLog: LogEntry = {
-            timestamp: Date.now(),
-            lat: lastValidPosition[0],
-            lon: lastValidPosition[1],
-            accuracy: 0, // Accuracy might not be available here
-            distance: currentTotalDistance,
-            source: 'stop'
-         }
-         setLogEntries(prev => [...prev, finalLog]);
-      }
       setShowResults(true);
       captureMapImage();
     } else {
       toast.warning('No track data to save.');
     }
-  }, [watchId, positions.length, captureMapImage, lastValidPosition, currentTotalDistance]); // Added dependencies
+  }, [watchId, positions.length, captureMapImage]);
 
-  // Changed startTracking back to useCallback as it's triggered by user action
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
       return;
     }
 
-    clearAllData();
-
     setTracking(true);
     setCompleted(false);
     setShowResults(false);
     setMapImage(null);
     setStartTime(Date.now());
+    setPauseDuration(0);
+    setElapsedTime(0);
+    setMaxSpeed(0);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setLastElevation(null);
+    setElevations([]);
+    setLastStoredPosition(null);
+    setLastStoredTime(null);
+    setIsStationary(false);
+    setStationaryStartTime(null);
+    setLastValidPosition(null);
+    setPositionHistory([]);
+    setLogs([]); // Clear logs when starting new tracking
     
     // Register background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
       navigator.serviceWorker.ready.then(registration => {
-        if (registration.sync) {
-          registration.sync.register('gps-tracking').then(() => {
-            setBackgroundSyncRegistered(true);
-          }).catch(err => {
-            console.error('Background sync registration failed:', err);
-          });
-        } else {
-           console.warn('Background Sync not supported by this browser/registration.');
-        }
+        registration.sync.register('gps-tracking').then(() => {
+          setBackgroundSyncRegistered(true);
+        }).catch(err => {
+          console.error('Background sync registration failed:', err);
+        });
       });
     }
     
-    const positionCallback = (pos: GeolocationPosition) => {
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
         if (paused) return;
         
-        const accuracy = pos.coords.accuracy || 0;
-        if (accuracy > MIN_ACCURACY * 2) { // Check accuracy early
-          toast.warning(`Low GPS accuracy: ${accuracy.toFixed(1)}m. Try moving to a more open area.`);
+        if (pos.coords.accuracy > MIN_ACCURACY * 2) {
+          toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
           return;
         }
 
@@ -441,130 +407,95 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Update position history
         setPositionHistory(prev => {
           const updated = [...prev, { pos: newPos, time: currentTime }];
+          // Keep only last POSITION_HISTORY_SIZE positions for drift detection
           return updated.slice(-POSITION_HISTORY_SIZE);
         });
         
         // Check if we're stationary with improved detection
-        let currentlyStationary = false;
-        if (positionHistory.length >= POSITION_HISTORY_SIZE / 2) { // Require a few points before check
-          const avgDistance = positionHistory.reduce((sum, { pos: historyPos }) => {
-            return sum + haversineDistance(historyPos[0], historyPos[1], newPos[0], newPos[1]);
+        if (positionHistory.length > 0) {
+          const avgDistance = positionHistory.reduce((sum, { pos }) => {
+            return sum + haversineDistance(pos[0], pos[1], newPos[0], newPos[1]);
           }, 0) / positionHistory.length;
           
-          const allPositionsStationary = positionHistory.every(({ pos: historyPos }) => 
-            haversineDistance(historyPos[0], historyPos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
+          // Check if all recent positions are within the stationary threshold
+          const allPositionsStationary = positionHistory.every(({ pos }) => 
+            haversineDistance(pos[0], pos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
           );
           
-          currentlyStationary = avgDistance < STATIONARY_THRESHOLD_KM && allPositionsStationary;
-        }
-
-        if (currentlyStationary) {
-          if (!isStationary) {
-             setIsStationary(true);
-             setStationaryStartTime(currentTime);
-          }
-        } else {
-          if (isStationary) { // Reset only if state changes
-             setIsStationary(false);
-             setStationaryStartTime(null);
+          if (avgDistance < STATIONARY_THRESHOLD_KM && allPositionsStationary) {
+            if (!isStationary) {
+              setIsStationary(true);
+              setStationaryStartTime(currentTime);
+            }
+          } else {
+            setIsStationary(false);
+            setStationaryStartTime(null);
           }
         }
         
-        let segmentDistance = 0;
-        let isNewPositionAdded = false;
-
         // Only update position if we're moving or if we've been stationary for a while
-        const shouldUpdatePosition = !currentlyStationary || (stationaryStartTime && currentTime - stationaryStartTime > STATIONARY_TIME_THRESHOLD);
-
-        if (shouldUpdatePosition) {
+        if (!isStationary || (stationaryStartTime && currentTime - stationaryStartTime > STATIONARY_TIME_THRESHOLD)) {
+          setLastValidPosition(newPos);
           setPositions((prev) => {
-            let shouldAdd = true;
             if (prev.length > 0) {
               const [lastLat, lastLon] = prev[prev.length - 1];
-              segmentDistance = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]); // Calculate potential distance
-              if (segmentDistance < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-                shouldAdd = false;
+              const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
+              if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+                return prev;
               }
-            } else {
-              segmentDistance = 0; // First point
             }
-
-            if(shouldAdd) {
-              setLastUpdateTime(currentTime);
-              setMapCenter(newPos);
-              setLastValidPosition(newPos);
-              isNewPositionAdded = true;
-              return [...prev, newPos];
-            } else {
-              // Reset segment distance if not added
-              segmentDistance = 0;
-              return prev;
-            }
+            setLastUpdateTime(currentTime);
+            setMapCenter(newPos);
+            return [...prev, newPos];
           });
         }
-
-        // Update total distance only if a new position was actually added and not stationary
-        if (isNewPositionAdded && !currentlyStationary) {
-           setCurrentTotalDistance(prevDist => prevDist + segmentDistance);
+        
+        // Calculate speed with improved drift filtering
+        let speedValue = pos.coords.speed;
+        if (speedValue === null && lastValidPosition && lastUpdateTime) {
+          const timeDiff = (currentTime - lastUpdateTime) / 1000;
+          if (timeDiff > 0) {
+            const dist = haversineDistance(
+              lastValidPosition[0],
+              lastValidPosition[1],
+              newPos[0],
+              newPos[1]
+            );
+            speedValue = dist / timeDiff * 3600;
+            
+            // More aggressive speed filtering when stationary
+            if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
+              speedValue = 0;
+            }
+          }
+        } else if (speedValue !== null) {
+          speedValue *= 3.6;
+          
+          // More aggressive speed filtering when stationary
+          if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
+            speedValue = 0;
+          }
         }
         
-        // --- Speed Calculation --- 
-        let speedValue = pos.coords.speed; 
-         if (speedValue === null && lastValidPosition && lastUpdateTime) {
-            const timeDiff = (currentTime - lastUpdateTime) / 1000;
-            if (timeDiff > 0) {
-                const dist = haversineDistance(
-                  lastValidPosition[0],
-                  lastValidPosition[1],
-                  newPos[0], 
-                  newPos[1]
-                );
-                speedValue = dist / timeDiff * 3600;
-                if (currentlyStationary || speedValue < SPEED_FILTER_THRESHOLD) {
-                  speedValue = 0;
-                }
-            } else {
-                 speedValue = 0; 
+        if (speedValue !== null && speedValue >= 0) {
+          setSpeed(prev => {
+            const alpha = 0.2;
+            const newSpeed = speedValue * alpha + prev * (1 - alpha);
+            
+            if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
+              return 0;
             }
-            } else if (speedValue !== null) {
-              speedValue *= 3.6;
-              if (currentlyStationary || speedValue < SPEED_FILTER_THRESHOLD) {
-                  speedValue = 0;
-              }
-            } else {
-              speedValue = 0; 
-            }
-
-        // Set Speed State using the calculated speedValue
-        setSpeed(prev => {
-          const alpha = 0.2; 
-          const newSpeed = speedValue * alpha + prev * (1 - alpha);
-          // Use currentlyStationary for immediate zeroing
-          if (currentlyStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
-            return 0;
+            return newSpeed;
+          });
+          
+          if (speedValue > maxSpeed) {
+            setMaxSpeed(speedValue);
           }
-          return newSpeed;
-        });
-
-        // Update Max Speed
-        if (speedValue > maxSpeed && !currentlyStationary) {
-          setMaxSpeed(speedValue);
-        }
-
-        // Add Log Entry if position was added
-        if (isNewPositionAdded) {
-          const logEntry: LogEntry = {
-             timestamp: currentTime,
-             lat: newPos[0],
-             lon: newPos[1],
-             accuracy: accuracy,
-             distance: currentTotalDistance, // Log the distance *after* potential update
-             source: 'live'
-          }
-          setLogEntries(prev => [...prev, logEntry]);
+          
+          // Add log entry with current distance
+          addLog(newPos, speedValue, calculateDistance());
         }
         
-        // --- Elevation Calculation --- (Assuming this logic is correct)
         if (pos.coords.altitude !== null) {
           const currentElevation = pos.coords.altitude;
           setElevation(currentElevation);
@@ -583,78 +514,50 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
         }
         
-        // --- Store Offline Logic --- (Using lastValidPosition)
-        if (lastValidPosition && (lastStoredPosition === null || 
-            haversineDistance(lastStoredPosition[0], lastStoredPosition[1], lastValidPosition[0], lastValidPosition[1]) > MIN_DISTANCE_KM ||
-            currentTime - (lastStoredTime || 0) > 30000)) { 
-          setLastStoredPosition(lastValidPosition);
+        // Store position for offline sync
+        if (lastStoredPosition === null || 
+            haversineDistance(lastStoredPosition[0], lastStoredPosition[1], newPos[0], newPos[1]) > MIN_DISTANCE_KM ||
+            currentTime - (lastStoredTime || 0) > 30000) { // Store at least every 30 seconds
+          setLastStoredPosition(newPos);
           setLastStoredTime(currentTime);
+          saveLocationForOffline(newPos);
           
+          // Store track data for offline sync
           const trackData: OfflineData = {
-            positions: [lastValidPosition],
+            positions: positions,
             timestamp: currentTime,
-            elapsedTime: elapsedTime, 
+            elapsedTime: elapsedTime,
             maxSpeed: maxSpeed,
             totalAscent: totalAscent,
-            totalDescent: totalDescent,
-            avgSpeed: calculateAverageSpeed() // Calculate current avg speed
+            totalDescent: totalDescent
           };
-          storeDataForOfflineSync(trackData); 
+          storeDataForOfflineSync(trackData);
         }
-      };
-
-      const errorCallback = (err: GeolocationPositionError) => {
+      },
+      (err) => {
         console.error('Error watching position:', err);
         let errorMessage = 'Location error: ';
         switch (err.code) {
-          case 1: // PERMISSION_DENIED
+          case 1:
             errorMessage += 'Permission denied. Please enable location services.';
-            // Stop tracking
-            if (watchId) {
-               navigator.geolocation.clearWatch(watchId);
-               setWatchId(null);
-            }
-            setTracking(false);
-            setCompleted(true); 
+            stopTracking();
             break;
-          case 2: // POSITION_UNAVAILABLE
+          case 2:
             errorMessage += 'Position unavailable. Check your GPS signal.';
             break;
-          case 3: // TIMEOUT
+          case 3:
             errorMessage += 'Position request timed out. Try again.';
             break;
           default:
             errorMessage += err.message;
         }
         toast.error(errorMessage);
-      };
-
-    // Correct watchPosition call
-    const watchOptions = POSITION_OPTIONS;
-    const id = navigator.geolocation.watchPosition(positionCallback, errorCallback, watchOptions);
+      },
+      POSITION_OPTIONS
+    );
     setWatchId(id);
     toast.success('GPS tracking started!');
-
-  }, [
-    paused, 
-    lastUpdateTime, 
-    maxSpeed, 
-    lastElevation, 
-    isStationary,
-    stationaryStartTime, 
-    positionHistory, 
-    backgroundSyncRegistered, 
-    clearAllData,
-    currentTotalDistance,
-    lastValidPosition,
-    lastStoredPosition,
-    lastStoredTime,
-    watchId,
-    elapsedTime,
-    totalAscent,
-    totalDescent,
-    calculateAverageSpeed
-  ]); 
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, addLog, calculateDistance]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -678,11 +581,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
   const recenterMap = useCallback(() => {
     if (isOffline) {
-      if (mapCenter) {
+      const cached = getStoredLocation();
+      if (cached) {
+        setMapCenter(cached);
         setRecenterTrigger((prev) => prev + 1);
-        toast.info('Recentering on last known location (Offline)');
+        toast.info('Using cached location (offline mode)');
       } else {
-        toast.error('No location available to recenter (Offline)');
+        toast.error('No cached location available');
       }
       return;
     }
@@ -721,7 +626,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         toast.error(`Couldn't get location: ${err.message}`);
         setLoading(false);
       });
-  }, [isOffline, mapCenter]);
+  }, [isOffline]);
 
   const toggleMapType = useCallback(() => {
     setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
@@ -742,7 +647,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       const capturedImage = await captureMapImage();
       if (!capturedImage) {
         setIsSaving(false);
-        toast.error('Failed to capture map image for saving.');
         return;
       }
       imageData = capturedImage;
@@ -762,76 +666,43 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       positions: positions
     };
 
-    // Create OfflineData object separately
-    const offlineDataForSync: OfflineData = {
-       positions: trackData.positions,
-       timestamp: trackData.timestamp,
-       // Include other properties needed by the sync process/API
-       elapsedTime: trackData.elapsedTime,
-       maxSpeed: trackData.maxSpeed,
-       totalAscent: trackData.totalAscent,
-       totalDescent: trackData.totalDescent,
-       avgSpeed: trackData.averageSpeed,
-       distance: trackData.distance,
-       username: trackData.fullName, // Map fullName to username if needed
-       mapImage: trackData.image // Include image if needed for sync
-    };
-
     try {
-      let savedOffline = false; 
       if (isOffline) {
-         storeDataForOfflineSync(offlineDataForSync); // Use the correctly typed object
-         savedOffline = true;
+        await storeDataForOfflineSync(trackData as unknown as OfflineData);
+        toast.success('Track saved offline. It will be uploaded when you reconnect.');
+        setSaveSuccess(true);
       } else {
         const response = await fetch('/api/saveTrack', {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify(trackData) // Send original TrackData to this endpoint
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(trackData)
         });
         
         if (response.ok) {
           toast.success('Track saved successfully!');
           setSaveSuccess(true);
         } else {
-          toast.error('Failed to save track data online. Saving offline...');
-          storeDataForOfflineSync(offlineDataForSync); // Use the correctly typed object
-          savedOffline = true;
+          toast.error('Failed to save track data');
+          setSaveSuccess(false);
         }
       }
-
-      if (savedOffline) {
-         toast.info('Track saved for offline sync.');
-         setSaveSuccess(true); 
-      }
-
     } catch (error) {
       console.error('Error saving track:', error);
-      try {
-         storeDataForOfflineSync(offlineDataForSync); // Use the correctly typed object
-         toast.warning('Network/Save error. Track saved offline for later upload.');
-         setSaveSuccess(true); 
-      } catch (offlineError) {
-          console.error('Failed to save track offline after error:', offlineError);
-          toast.error('Failed to save track data completely.');
-          setSaveSuccess(false);
+      
+      if (!isOffline) {
+        await storeDataForOfflineSync(trackData as unknown as OfflineData);
+        toast.warning('Network error. Track saved offline for later upload.');
+        setSaveSuccess(true);
+      } else {
+        toast.error('Failed to save track data');
+        setSaveSuccess(false);
       }
     } finally {
       setIsSaving(false);
     }
-  }, [
-      positions, 
-      username, 
-      mapImage, 
-      elapsedTime, 
-      captureMapImage, 
-      maxSpeed, 
-      totalAscent, 
-      totalDescent, 
-      calculations, 
-      isOffline, 
-      // storeDataForOfflineSync // Removed unnecessary dependency
-      // trackData // trackData is defined inside, no need for dependency
-   ]);
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
   return (
     <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
@@ -884,45 +755,19 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             <DrawerPortal>
               <DrawerOverlay className="bg-black/50 transition-opacity duration-300" />
               <DrawerContent className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:w-[400px] h-[60vh] rounded-t-[40px] border-0 transition-transform duration-300 ease-out">
-                <DrawerHeader className="px-6 flex justify-between items-center">
+                <DrawerHeader className="px-6">
                   <DrawerTitle className="text-xl font-semibold">Tracking Controls</DrawerTitle>
-                   {/* Add Dialog Trigger for Logs */}
-                   <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="icon">
-                           <FileText className="h-5 w-5" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-[90vw] md:max-w-[400px] h-[70vh] flex flex-col">
-                        <DialogHeader>
-                          <DialogTitle>GPS Log</DialogTitle>
-                          <DialogDescription>
-                            Detailed log of recorded GPS positions.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex-grow overflow-y-auto text-xs space-y-1 pr-2">
-                          {logEntries.length === 0 ? (
-                             <p className="text-gray-500 text-center mt-4">No log entries yet.</p>
-                           ) : (
-                             logEntries.map((entry, index) => (
-                               <div key={index} className={`p-1.5 rounded ${entry.source === 'offline' ? 'bg-blue-50' : entry.source === 'stop' ? 'bg-red-50' : 'bg-green-50'}`}>
-                                 <span className="font-mono">{new Date(entry.timestamp).toLocaleTimeString()}</span> - 
-                                 <span className="font-semibold">Dist:</span> {entry.distance.toFixed(3)}km - 
-                                 <span className="text-gray-600">Acc: {entry.accuracy.toFixed(0)}m - </span>
-                                 <span className="text-gray-600">Src: {entry.source}</span> <br/>
-                                 <span className="text-gray-500">Lat: {entry.lat.toFixed(5)}, Lon: {entry.lon.toFixed(5)}</span>
-                               </div>
-                             ))
-                           )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
                 </DrawerHeader>
-                <div className="p-6 pt-2 space-y-6 overflow-y-auto">
+                <div className="p-6 space-y-6 overflow-y-auto">
                   <StatsComponent
                     distance={calculateDistance()}
                     elapsedTime={elapsedTime}
                     speed={speed}
+                    className="mb-4"
+                  />
+
+                  <LogConsole 
+                    logs={logs}
                     className="mb-4"
                   />
 
@@ -953,8 +798,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           elapsedTime={elapsedTime}
           avgSpeed={calculateAverageSpeed()}
           maxSpeed={maxSpeed}
-          totalAscent={totalAscent}
-          totalDescent={totalDescent}
           isSaving={isSaving}
           saveSuccess={saveSuccess}
           onClose={() => setShowResults(false)}

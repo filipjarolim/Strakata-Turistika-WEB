@@ -3,108 +3,10 @@ import { Serwist } from "serwist";
 import { CacheFirst, NetworkFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 
-// Declare necessary types for Service Worker context and IndexedDB
 declare const self: ServiceWorkerGlobalScope & {
   __SW_MANIFEST: Array<string>;
 };
 
-const DB_NAME = 'gpsTrackerDB';
-const DB_VERSION = 1; // Increment this if schema changes
-const OFFLINE_TRACKS_STORE = 'offlineTracks';
-const LOCATIONS_STORE = 'locations';
-
-// --- IndexedDB Helper Functions ---
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(LOCATIONS_STORE)) {
-        db.createObjectStore(LOCATIONS_STORE, { keyPath: 'id' });
-        console.log(`Created ${LOCATIONS_STORE} store`);
-      }
-      if (!db.objectStoreNames.contains(OFFLINE_TRACKS_STORE)) {
-        db.createObjectStore(OFFLINE_TRACKS_STORE, { keyPath: 'timestamp' });
-        console.log(`Created ${OFFLINE_TRACKS_STORE} store`);
-      }
-    };
-
-    request.onsuccess = (event) => {
-      resolve((event.target as IDBOpenDBRequest).result);
-    };
-
-    request.onerror = (event) => {
-      console.error('IndexedDB open error:', (event.target as IDBOpenDBRequest).error);
-      reject((event.target as IDBOpenDBRequest).error);
-    };
-  });
-}
-
-async function getAllFromStore(storeName: string): Promise<any[]> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-     if (!db.objectStoreNames.contains(storeName)) {
-        console.warn(`Store ${storeName} not found during getAll`);
-        return resolve([]); // Return empty if store doesn't exist
-     }
-    const transaction = db.transaction(storeName, 'readonly');
-    const store = transaction.objectStore(storeName);
-    const request = store.getAll();
-
-    request.onsuccess = () => {
-      resolve(request.result || []);
-    };
-    request.onerror = (event) => {
-      console.error(`Error getting all from ${storeName}:`, (event.target as IDBRequest).error);
-      reject((event.target as IDBRequest).error);
-    };
-  });
-}
-
-async function addToStore(storeName: string, data: any): Promise<void> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-     if (!db.objectStoreNames.contains(storeName)) {
-        console.error(`Store ${storeName} not found during add`);
-        return reject(`Store ${storeName} not found`);
-     }
-    const transaction = db.transaction(storeName, 'readwrite');
-    const store = transaction.objectStore(storeName);
-    const request = store.put(data); // Use put for add/update
-
-    request.onsuccess = () => {
-      resolve();
-    };
-    request.onerror = (event) => {
-      console.error(`Error adding to ${storeName}:`, (event.target as IDBRequest).error);
-      reject((event.target as IDBRequest).error);
-    };
-  });
-}
-
-async function clearStore(storeName: string): Promise<void> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-     if (!db.objectStoreNames.contains(storeName)) {
-        console.warn(`Store ${storeName} not found during clear`);
-        return resolve(); // Nothing to clear
-     }
-    const transaction = db.transaction(storeName, 'readwrite');
-    const store = transaction.objectStore(storeName);
-    const request = store.clear();
-
-    request.onsuccess = () => {
-      resolve();
-    };
-    request.onerror = (event) => {
-      console.error(`Error clearing ${storeName}:`, (event.target as IDBRequest).error);
-      reject((event.target as IDBRequest).error);
-    };
-  });
-}
-
-// --- Serwist Configuration ---
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
@@ -162,8 +64,6 @@ const serwist = new Serwist({
     ],
   },
 });
-
-// --- Event Listeners ---
 
 // Add fetch event listener to handle failed image requests with a fallback
 self.addEventListener('fetch', (event) => {
@@ -283,78 +183,81 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Background Sync: Upload offline tracks
+// Add background sync event listener
 self.addEventListener('sync', (event) => {
   if (event.tag === 'gps-tracking') {
-    console.log('Service Worker: Received sync event for gps-tracking');
     event.waitUntil(
       (async () => {
         try {
-          const offlineTracks = await getAllFromStore(OFFLINE_TRACKS_STORE);
-          
-          if (offlineTracks && offlineTracks.length > 0) {
-            console.log(`Service Worker: Found ${offlineTracks.length} tracks to sync.`);
-            const response = await fetch('/api/sync-gps-data', { // Ensure this endpoint exists and handles an array
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(offlineTracks),
-            });
-            
-            if (response.ok) {
-              console.log('Service Worker: Offline GPS data synced successfully via background sync.');
-              await clearStore(OFFLINE_TRACKS_STORE);
-              console.log(`Service Worker: Cleared ${OFFLINE_TRACKS_STORE} store.`);
-            } else {
-               console.error('Service Worker: Background sync failed. Server response not OK:', response.status, response.statusText);
-               // Optional: Check response body for details
-               // const errorBody = await response.text();
-               // console.error('Sync error body:', errorBody);
+          const storedData = localStorage.getItem('offlineGpsData');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData && parsedData.length > 0) {
+              const response = await fetch('/api/sync-gps-data', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parsedData),
+              });
+              
+              if (response.ok) {
+                localStorage.removeItem('offlineGpsData');
+                console.log('Offline GPS data synced successfully');
+              }
             }
-          } else {
-             console.log('Service Worker: No offline GPS tracks found to sync.');
           }
         } catch (error) {
-          console.error('Service Worker: Error during background sync process:', error);
+          console.error('Failed to sync GPS data:', error);
         }
       })()
     );
-  } else {
-     console.log(`Service Worker: Received sync event for tag: ${event.tag}`);
-     // Handle other sync tags if necessary
   }
 });
 
-// Message Listener: Store incoming offline tracks or last location
+// Add message event listener for offline storage
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type) {
-     console.log(`Service Worker: Received message type: ${event.data.type}`);
-     switch (event.data.type) {
-        case 'STORE_OFFLINE_TRACK':
-          const trackData = event.data.data;
-          if (trackData && trackData.timestamp) {
-             addToStore(OFFLINE_TRACKS_STORE, trackData)
-               .then(() => console.log(`Service Worker: Stored track data (ts: ${trackData.timestamp}) in IndexedDB.`))
-               .catch(err => console.error('Service Worker: Failed to store offline track data:', err));
-          } else {
-             console.warn('Service Worker: Received invalid track data for STORE_OFFLINE_TRACK.', trackData);
-          }
-          break;
-        case 'SAVE_LAST_LOCATION':
-           const locationData = event.data.data;
-           if (locationData && locationData.lat !== undefined && locationData.lng !== undefined) {
-              addToStore(LOCATIONS_STORE, { id: 'lastKnown', ...locationData })
-                .then(() => console.log(`Service Worker: Stored last location in IndexedDB.`))
-                .catch(err => console.error('Service Worker: Failed to store last location:', err));
-           } else {
-              console.warn('Service Worker: Received invalid data for SAVE_LAST_LOCATION.', locationData);
-           }
-           break;
-        // Add other message types if needed
-        default:
-           console.log('Service Worker: Received unhandled message type.');
-     }
+  if (event.data && event.data.type === 'SAVE_FOR_OFFLINE') {
+    const { url, data } = event.data;
+    
+    // Store in IndexedDB
+    const openRequest = indexedDB.open('gpsTrackerDB', 1);
+    
+    openRequest.onupgradeneeded = function() {
+      const db = openRequest.result;
+      if (!db.objectStoreNames.contains('locations')) {
+        db.createObjectStore('locations', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('tracks')) {
+        db.createObjectStore('tracks', { keyPath: 'timestamp' });
+      }
+    };
+    
+    openRequest.onsuccess = function() {
+      const db = openRequest.result;
+      const transaction = db.transaction(['locations', 'tracks'], 'readwrite');
+      const locationStore = transaction.objectStore('locations');
+      const trackStore = transaction.objectStore('tracks');
+      
+      // Store location
+      locationStore.put({
+        id: 'lastKnown',
+        ...data,
+        timestamp: Date.now()
+      });
+      
+      // Store track data if available
+      if (data.positions && data.positions.length > 0) {
+        trackStore.put({
+          timestamp: data.timestamp,
+          positions: data.positions,
+          elapsedTime: data.elapsedTime,
+          maxSpeed: data.maxSpeed,
+          totalAscent: data.totalAscent,
+          totalDescent: data.totalDescent
+        });
+      }
+    };
   }
 });
 
