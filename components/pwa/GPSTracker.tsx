@@ -17,7 +17,7 @@ import ControlsComponent from './gps-tracker/ControlsComponent';
 import StatsComponent from './gps-tracker/StatsComponent';
 import ResultsModal from './gps-tracker/ResultsModal';
 import { haversineDistance, formatTime } from './gps-tracker/utils';
-import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync, syncOfflineData } from './gps-tracker/storage';
+import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync } from './gps-tracker/storage';
 import {
   Drawer,
   DrawerContent,
@@ -233,130 +233,91 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
   }, []);
 
-  // Effect to load stored data on mount
+  // Effect to load stored INITIAL location on mount
   useEffect(() => {
-    const handleOfflineTracks = (event: Event) => {
+    const handleInitialLocationFound = (event: Event) => {
       const customEvent = event as CustomEvent;
-      if (customEvent.detail && customEvent.detail.tracks) {
-        const offlineTracks: OfflineData[] = customEvent.detail.tracks;
-        console.log('Loaded offline tracks:', offlineTracks);
-
-        const loadedPositions: [number, number][] = [];
-        let cumulativeDistance = 0;
-        const loadedLogs: LogEntry[] = [];
-
-        offlineTracks.forEach((track, index) => {
-          if (track.positions) {
-            track.positions.forEach((pos, posIndex) => {
-              const newPositionTuple: [number, number] = [pos[0], pos[1]];
-              let segmentDistance = 0;
-              if (loadedPositions.length > 0) {
-                segmentDistance = haversineDistance(
-                  loadedPositions[loadedPositions.length - 1][0],
-                  loadedPositions[loadedPositions.length - 1][1],
-                  newPositionTuple[0],
-                  newPositionTuple[1]
-                );
-              }
-              cumulativeDistance += segmentDistance;
-              loadedPositions.push(newPositionTuple);
-              loadedLogs.push({
-                timestamp: track.timestamp ? Number(track.timestamp) : Date.now(),
-                lat: newPositionTuple[0],
-                lon: newPositionTuple[1],
-                accuracy: 0, // Accuracy not stored in offline data currently
-                distance: cumulativeDistance,
-                source: 'offline'
-              });
-            });
-          }
-        });
-
-        // Merge with potentially existing live data if tracking was already started?
-        // For now, assume this runs before live tracking starts or replaces it.
-        if (loadedPositions.length > 0) {
-          setPositions(loadedPositions);
-          setCurrentTotalDistance(cumulativeDistance);
-          setLogEntries(prevLogs => [...loadedLogs, ...prevLogs]); // Prepend offline logs
-          setMapCenter(loadedPositions[loadedPositions.length - 1]);
-          toast.info(`Loaded ${loadedPositions.length} positions from offline storage.`);
-        }
+      if (customEvent.detail && customEvent.detail.location) {
+         const loc = customEvent.detail.location as [number, number];
+         console.log('Received initial location from IndexedDB:', loc);
+         // Set initial map center only if no positions exist (e.g., from previous state)
+         if (positions.length === 0) {
+            setMapCenter(loc);
+         }
       }
     };
 
-    window.addEventListener('indexeddb-tracks-found', handleOfflineTracks);
+    const handleInitialLocationNotFound = () => {
+      console.log('Initial location not found in IndexedDB.');
+       // Only set default/show error if not already set by geolocation API
+      if (!mapCenter) { 
+          toast.error('Could not get location. Using default. Check permissions/GPS.');
+          const defaultLocation: [number, number] = [50.0755, 14.4378];
+          setMapCenter(defaultLocation);
+       }
+    };
 
-    // Initial location check (slightly modified)
+    window.addEventListener('indexeddb-location-found', handleInitialLocationFound);
+    window.addEventListener('indexeddb-location-not-found', handleInitialLocationNotFound);
+
+    // Initial location check: Try permissions/live location first
     setLoading(true);
-    getStoredLocation(); // Trigger IndexedDB check
-
-    const checkPermission = async () => {
+    const checkPermissionAndGetLiveLocation = async () => {
         try {
+          // Check permission silently first
           const permStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
           if (permStatus.state === 'denied') {
-            toast.error('Location access denied. Please enable location services for this site.');
+            toast.error('Location access denied. Please enable location services.');
+            getStoredLocation(); // Try getting stored location as fallback
             setLoading(false);
             return;
           }
           
-          if (!navigator.onLine) {
-            setIsOffline(true);
-            // Rely on IndexedDB check via getStoredLocation()
-            toast.warning('You are offline. Checking for cached location data...');
-            setLoading(false); // Assume loading finishes after check starts
-            return;
-          }
-          
-          setIsOffline(false);
+          // Permission granted or prompt: Try getting live location
+          setIsOffline(!navigator.onLine);
           let timeoutId: NodeJS.Timeout;
           
           const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
             timeoutId = setTimeout(() => {
-              reject(new Error('Location request timed out. Please check your GPS signal and try again.'));
-            }, 10000); // 10 second timeout
+              reject(new Error('Location request timed out.'));
+            }, 10000); 
             
           navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                clearTimeout(timeoutId);
-                resolve(pos);
-              },
-              (err) => {
-                clearTimeout(timeoutId);
-                reject(err);
-              },
-              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
+            (pos) => { clearTimeout(timeoutId); resolve(pos); },
+            (err) => { clearTimeout(timeoutId); reject(err); },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
           });
   
+          // Live location success
           const pos = await positionPromise;
-              const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-              // Set initial map center only if no positions were loaded from offline
-              if (positions.length === 0) {
-                 setMapCenter(loc);
-              }
-              localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
-              saveLocationForOffline(loc); // Save initial location too
-              setLoading(false);
-        } catch (error) {
-          console.error('Permission check error:', error);
+          const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setMapCenter(loc);
+          localStorage.setItem('lastKnownLocation', JSON.stringify(loc)); // Keep localStorage for quick non-essential reload
+          saveLocationForOffline(loc); // Update IndexedDB
           setLoading(false);
-          
-          // Rely on IndexedDB check via getStoredLocation()
-          if (positions.length === 0) { // Only show error if no offline data found
-            toast.error('Could not get your location. Please check your GPS signal and try again.');
-            const defaultLocation: [number, number] = [50.0755, 14.4378];
-            setMapCenter(defaultLocation);
+
+        } catch (error: any) {
+          // Live location failed - rely on IndexedDB
+          console.warn('Live location failed, checking stored location:', error);
+          getStoredLocation(); // Trigger IndexedDB check
+          // If error was timeout/unavailable, show warning
+          if (error.message?.includes('timed out') || error.code === 2 /* POSITION_UNAVAILABLE */ ) {
+             toast.warning('Could not get live location. Checking stored data...');
           }
+          // If error was permission denied, already handled above
+          setLoading(false);
         }
       };
       
-      checkPermission();
+      checkPermissionAndGetLiveLocation();
     
+    // Cleanup listeners
     return () => {
-      // Removed watchId clear here as it belongs to startTracking
-      window.removeEventListener('indexeddb-tracks-found', handleOfflineTracks);
+      window.removeEventListener('indexeddb-location-found', handleInitialLocationFound);
+      window.removeEventListener('indexeddb-location-not-found', handleInitialLocationNotFound);
     };
-  }, [positions.length]); // Dependency ensures map center logic runs correctly after potential offline load
+  }, []); // Run only on mount
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -429,7 +390,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       return;
     }
 
-    clearAllData(); 
+    clearAllData();
 
     setTracking(true);
     setCompleted(false);
@@ -615,13 +576,17 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             currentTime - (lastStoredTime || 0) > 30000)) { 
           setLastStoredPosition(lastValidPosition);
           setLastStoredTime(currentTime);
-          saveLocationForOffline(lastValidPosition);
           
           const trackData: OfflineData = {
             positions: [lastValidPosition],
             timestamp: currentTime,
+            elapsedTime: elapsedTime, 
+            maxSpeed: maxSpeed,
+            totalAscent: totalAscent,
+            totalDescent: totalDescent,
+            avgSpeed: calculateAverageSpeed() // Calculate current avg speed
           };
-          storeDataForOfflineSync(trackData);
+          storeDataForOfflineSync(trackData); 
         }
       };
 
@@ -631,11 +596,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         switch (err.code) {
           case 1: // PERMISSION_DENIED
             errorMessage += 'Permission denied. Please enable location services.';
-            // Attempt to stop tracking gracefully
-            if (watchId) navigator.geolocation.clearWatch(watchId);
+            // Stop tracking
+            if (watchId) {
+               navigator.geolocation.clearWatch(watchId);
+               setWatchId(null);
+            }
             setTracking(false);
-            setWatchId(null);
-            setCompleted(true); // Mark as completed due to error
+            setCompleted(true); 
             break;
           case 2: // POSITION_UNAVAILABLE
             errorMessage += 'Position unavailable. Check your GPS signal.';
@@ -656,7 +623,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     toast.success('GPS tracking started!');
 
   }, [
-    // List all dependencies for useCallback
     paused, 
     lastUpdateTime, 
     maxSpeed, 
@@ -665,12 +631,16 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     stationaryStartTime, 
     positionHistory, 
     backgroundSyncRegistered, 
-    clearAllData, 
+    clearAllData,
     currentTotalDistance,
     lastValidPosition,
     lastStoredPosition,
     lastStoredTime,
     watchId,
+    elapsedTime,
+    totalAscent,
+    totalDescent,
+    calculateAverageSpeed
   ]); 
 
   const pauseTracking = useCallback(() => {
@@ -695,13 +665,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
   const recenterMap = useCallback(() => {
     if (isOffline) {
-      const cached = getStoredLocation();
-      if (cached) {
-        setMapCenter(cached);
+      if (mapCenter) {
         setRecenterTrigger((prev) => prev + 1);
-        toast.info('Using cached location (offline mode)');
+        toast.info('Recentering on last known location (Offline)');
       } else {
-        toast.error('No cached location available');
+        toast.error('No location available to recenter (Offline)');
       }
       return;
     }
@@ -740,7 +708,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         toast.error(`Couldn't get location: ${err.message}`);
         setLoading(false);
       });
-  }, [isOffline]);
+  }, [isOffline, mapCenter]);
 
   const toggleMapType = useCallback(() => {
     setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
@@ -761,6 +729,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       const capturedImage = await captureMapImage();
       if (!capturedImage) {
         setIsSaving(false);
+        toast.error('Failed to capture map image for saving.');
         return;
       }
       imageData = capturedImage;
@@ -780,43 +749,75 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       positions: positions
     };
 
+    // Create OfflineData object separately
+    const offlineDataForSync: OfflineData = {
+       positions: trackData.positions,
+       timestamp: trackData.timestamp,
+       // Include other properties needed by the sync process/API
+       elapsedTime: trackData.elapsedTime,
+       maxSpeed: trackData.maxSpeed,
+       totalAscent: trackData.totalAscent,
+       totalDescent: trackData.totalDescent,
+       avgSpeed: trackData.averageSpeed,
+       distance: trackData.distance,
+       username: trackData.fullName, // Map fullName to username if needed
+       mapImage: trackData.image // Include image if needed for sync
+    };
+
     try {
+      let savedOffline = false; 
       if (isOffline) {
-        await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        toast.success('Track saved offline. It will be uploaded when you reconnect.');
-        setSaveSuccess(true);
+         storeDataForOfflineSync(offlineDataForSync); // Use the correctly typed object
+         savedOffline = true;
       } else {
         const response = await fetch('/api/saveTrack', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(trackData)
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify(trackData) // Send original TrackData to this endpoint
         });
         
         if (response.ok) {
           toast.success('Track saved successfully!');
           setSaveSuccess(true);
         } else {
-          toast.error('Failed to save track data');
-          setSaveSuccess(false);
+          toast.error('Failed to save track data online. Saving offline...');
+          storeDataForOfflineSync(offlineDataForSync); // Use the correctly typed object
+          savedOffline = true;
         }
       }
+
+      if (savedOffline) {
+         toast.info('Track saved for offline sync.');
+         setSaveSuccess(true); 
+      }
+
     } catch (error) {
       console.error('Error saving track:', error);
-      
-      if (!isOffline) {
-        await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        toast.warning('Network error. Track saved offline for later upload.');
-        setSaveSuccess(true);
-      } else {
-        toast.error('Failed to save track data');
-        setSaveSuccess(false);
+      try {
+         storeDataForOfflineSync(offlineDataForSync); // Use the correctly typed object
+         toast.warning('Network/Save error. Track saved offline for later upload.');
+         setSaveSuccess(true); 
+      } catch (offlineError) {
+          console.error('Failed to save track offline after error:', offlineError);
+          toast.error('Failed to save track data completely.');
+          setSaveSuccess(false);
       }
     } finally {
       setIsSaving(false);
     }
-  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
+  }, [
+      positions, 
+      username, 
+      mapImage, 
+      elapsedTime, 
+      captureMapImage, 
+      maxSpeed, 
+      totalAscent, 
+      totalDescent, 
+      calculations, 
+      isOffline, 
+      storeDataForOfflineSync
+   ]);
 
   return (
     <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
@@ -938,6 +939,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           elapsedTime={elapsedTime}
           avgSpeed={calculateAverageSpeed()}
           maxSpeed={maxSpeed}
+          totalAscent={totalAscent}
+          totalDescent={totalDescent}
           isSaving={isSaving}
           saveSuccess={saveSuccess}
           onClose={() => setShowResults(false)}

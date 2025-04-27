@@ -111,6 +111,8 @@ export interface ResultsModalProps {
   elapsedTime: number;
   avgSpeed: string;
   maxSpeed: number;
+  totalAscent: number;
+  totalDescent: number;
   isSaving: boolean;
   saveSuccess: boolean | null;
   onClose: () => void;
