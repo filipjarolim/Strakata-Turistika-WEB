@@ -183,4 +183,82 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
+// Add background sync event listener
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'gps-tracking') {
+    event.waitUntil(
+      (async () => {
+        try {
+          const storedData = localStorage.getItem('offlineGpsData');
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            if (parsedData && parsedData.length > 0) {
+              const response = await fetch('/api/sync-gps-data', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(parsedData),
+              });
+              
+              if (response.ok) {
+                localStorage.removeItem('offlineGpsData');
+                console.log('Offline GPS data synced successfully');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to sync GPS data:', error);
+        }
+      })()
+    );
+  }
+});
+
+// Add message event listener for offline storage
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SAVE_FOR_OFFLINE') {
+    const { url, data } = event.data;
+    
+    // Store in IndexedDB
+    const openRequest = indexedDB.open('gpsTrackerDB', 1);
+    
+    openRequest.onupgradeneeded = function() {
+      const db = openRequest.result;
+      if (!db.objectStoreNames.contains('locations')) {
+        db.createObjectStore('locations', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('tracks')) {
+        db.createObjectStore('tracks', { keyPath: 'timestamp' });
+      }
+    };
+    
+    openRequest.onsuccess = function() {
+      const db = openRequest.result;
+      const transaction = db.transaction(['locations', 'tracks'], 'readwrite');
+      const locationStore = transaction.objectStore('locations');
+      const trackStore = transaction.objectStore('tracks');
+      
+      // Store location
+      locationStore.put({
+        id: 'lastKnown',
+        ...data,
+        timestamp: Date.now()
+      });
+      
+      // Store track data if available
+      if (data.positions && data.positions.length > 0) {
+        trackStore.put({
+          timestamp: data.timestamp,
+          positions: data.positions,
+          elapsedTime: data.elapsedTime,
+          maxSpeed: data.maxSpeed,
+          totalAscent: data.totalAscent,
+          totalDescent: data.totalDescent
+        });
+      }
+    };
+  }
+});
+
 serwist.addEventListeners(); 

@@ -19,16 +19,32 @@ export const getStoredLocation = () => {
       const db = openRequest.result;
       
       try {
-        const transaction = db.transaction('locations', 'readonly');
-        const store = transaction.objectStore('locations');
-        const request = store.get('lastKnown');
+        const transaction = db.transaction(['locations', 'tracks'], 'readonly');
+        const locationStore = transaction.objectStore('locations');
+        const trackStore = transaction.objectStore('tracks');
         
-        request.onsuccess = function() {
-          if (request.result) {
-            const { lat, lng } = request.result;
+        const locationRequest = locationStore.get('lastKnown');
+        const trackRequest = trackStore.getAll();
+        
+        locationRequest.onsuccess = function() {
+          if (locationRequest.result) {
+            const { lat, lng } = locationRequest.result;
             if (typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('indexeddb-location-found', { 
                 detail: { location: [lat, lng] }
+              }));
+            }
+          }
+        };
+        
+        trackRequest.onsuccess = function() {
+          if (trackRequest.result && trackRequest.result.length > 0) {
+            const tracks = trackRequest.result;
+            tracks.sort((a, b) => a.timestamp - b.timestamp);
+            
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('indexeddb-tracks-found', { 
+                detail: { tracks }
               }));
             }
           }
@@ -65,14 +81,18 @@ export const saveLocationForOffline = (locationData: [number, number]): void => 
       if (!db.objectStoreNames.contains('locations')) {
         db.createObjectStore('locations', { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains('tracks')) {
+        db.createObjectStore('tracks', { keyPath: 'timestamp' });
+      }
     };
     
     openRequest.onsuccess = function() {
       const db = openRequest.result;
-      const transaction = db.transaction('locations', 'readwrite');
-      const store = transaction.objectStore('locations');
+      const transaction = db.transaction(['locations', 'tracks'], 'readwrite');
+      const locationStore = transaction.objectStore('locations');
+      const trackStore = transaction.objectStore('tracks');
       
-      store.put({
+      locationStore.put({
         id: 'lastKnown',
         lat: locationData[0],
         lng: locationData[1],
@@ -88,6 +108,16 @@ export const storeDataForOfflineSync = async (data: OfflineData) => {
   try {
     const storedDataStr = localStorage.getItem('offlineGpsData') || '[]';
     const storedData = JSON.parse(storedDataStr);
+    
+    // Check if we have a gap in tracking
+    if (storedData.length > 0) {
+      const lastTrack = storedData[storedData.length - 1];
+      const timeDiff = Number(data.timestamp) - Number(lastTrack.timestamp);
+      
+      if (timeDiff > 300000) { // 5 minutes gap
+        console.warn(`Large gap detected in tracking: ${timeDiff}ms`);
+      }
+    }
     
     storedData.push({
       ...data,

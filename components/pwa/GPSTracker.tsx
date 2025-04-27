@@ -122,6 +122,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   // Add elevations state
   const [elevations, setElevations] = useState<number[]>([]);
 
+  // Add new state variables for background sync
+  const [lastStoredPosition, setLastStoredPosition] = useState<[number, number] | null>(null);
+  const [lastStoredTime, setLastStoredTime] = useState<number | null>(null);
+  const [backgroundSyncRegistered, setBackgroundSyncRegistered] = useState<boolean>(false);
+
   const clearAllData = useCallback(() => {
     setPositions([]);
     setStartTime(null);
@@ -340,6 +345,19 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setTotalDescent(0);
     setLastElevation(null);
     setElevations([]);
+    setLastStoredPosition(null);
+    setLastStoredTime(null);
+    
+    // Register background sync if available
+    if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.sync.register('gps-tracking').then(() => {
+          setBackgroundSyncRegistered(true);
+        }).catch(err => {
+          console.error('Background sync registration failed:', err);
+        });
+      });
+    }
     
     const id = navigator.geolocation.watchPosition(
       (pos) => {
@@ -352,6 +370,26 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
+        
+        // Store position for offline sync
+        if (lastStoredPosition === null || 
+            haversineDistance(lastStoredPosition[0], lastStoredPosition[1], newPos[0], newPos[1]) > MIN_DISTANCE_KM ||
+            currentTime - (lastStoredTime || 0) > 30000) { // Store at least every 30 seconds
+          setLastStoredPosition(newPos);
+          setLastStoredTime(currentTime);
+          saveLocationForOffline(newPos);
+          
+          // Store track data for offline sync
+          const trackData: OfflineData = {
+            positions: positions,
+            timestamp: currentTime,
+            elapsedTime: elapsedTime,
+            maxSpeed: maxSpeed,
+            totalAscent: totalAscent,
+            totalDescent: totalDescent
+          };
+          storeDataForOfflineSync(trackData);
+        }
         
         if (pos.coords.altitude !== null) {
           const currentElevation = pos.coords.altitude;
