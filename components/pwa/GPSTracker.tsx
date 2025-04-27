@@ -235,11 +235,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         if (!navigator.onLine) {
           setIsOffline(true);
-          const cached = getStoredLocation();
+          const cached = await getStoredLocation();
           if (cached) {
             setMapCenter(cached);
             toast.warning('You are offline. Using cached location data.');
-            saveLocationForOffline(cached);
+            await saveLocationForOffline(cached);
           } else {
             toast.error('No cached location available. Using default location.');
             const defaultLocation: [number, number] = [50.0755, 14.4378];
@@ -274,13 +274,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
             setMapCenter(loc);
             localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
-            saveLocationForOffline(loc);
+            await saveLocationForOffline(loc);
             setLoading(false);
       } catch (error) {
         console.error('Permission check error:', error);
         setLoading(false);
         
-        const cached = getStoredLocation();
+        const cached = await getStoredLocation();
         if (cached) {
           setMapCenter(cached);
           toast.warning('Using cached location due to error.');
@@ -604,9 +604,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     toast.info('Tracking reset');
   }, [clearAllData]);
 
-  const recenterMap = useCallback(() => {
+  const recenterMap = useCallback(async () => {
     if (isOffline) {
-      const cached = getStoredLocation();
+      const cached = await getStoredLocation();
       if (cached) {
         setMapCenter(cached);
         setRecenterTrigger((prev) => prev + 1);
