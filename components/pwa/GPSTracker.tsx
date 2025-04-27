@@ -514,7 +514,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           const newDistances = [...prev];
           if (newDistances.length === 0) {
             newDistances.push(0);
-          } else {
+          } else if (positions.length > 0) {
             const lastPos = positions[positions.length - 1];
             const distance = haversineDistance(
               lastPos[0],
@@ -860,10 +860,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                           Show GPS Log
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-[90vw] max-h-[80vh] overflow-hidden">
+                      <DialogContent className="max-w-[90vw] max-h-[80vh] overflow-hidden" aria-describedby="gps-log-description">
                         <DialogHeader>
                           <DialogTitle>GPS Tracking Log</DialogTitle>
                         </DialogHeader>
+                        <div id="gps-log-description" className="sr-only">
+                          GPS tracking log showing timestamp, position, accuracy, speed and cumulative distance
+                        </div>
                         <div className="mt-4 overflow-y-auto max-h-[60vh]">
                           <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-xs">
                             {gpsLog.map((log, index) => (
