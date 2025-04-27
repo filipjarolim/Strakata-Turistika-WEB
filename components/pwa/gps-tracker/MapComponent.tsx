@@ -66,10 +66,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
   mapCenter,
   positions,
   mapType,
+  recenterTrigger,
   mapContainerRef,
   loading,
-  className,
-  recenterTrigger = 0,
+  className = ''
 }) => {
   return (
     <div 

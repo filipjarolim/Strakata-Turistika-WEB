@@ -16,7 +16,6 @@ import MapComponent from './gps-tracker/MapComponent';
 import ControlsComponent from './gps-tracker/ControlsComponent';
 import StatsComponent from './gps-tracker/StatsComponent';
 import ResultsModal from './gps-tracker/ResultsModal';
-import TrackingDebug from './gps-tracker/TrackingDebug';
 import { haversineDistance, formatTime } from './gps-tracker/utils';
 import { getStoredLocation, saveLocationForOffline, storeDataForOfflineSync, syncOfflineData } from './gps-tracker/storage';
 import {
@@ -28,32 +27,75 @@ import {
   DrawerPortal,
   DrawerOverlay,
 } from "@/components/ui/drawer"
+import {
+  storeTrackingSession,
+  getStoredTrackingSession,
+  clearStoredTrackingSession,
+  initBackgroundTracking,
+  requestWakeLock,
+  releaseWakeLock,
+  BACKGROUND_TRACKING_INTERVAL
+} from './gps-tracker/backgroundTracking';
 
-// Constants
-const UPDATE_INTERVAL = 1000; // Update every second
-const MIN_ACCURACY = 35; // Minimum accuracy in meters
+// Define the extended interfaces for Background Sync
+interface SyncManager {
+  register(tag: string): Promise<void>;
+}
+
+// Use interface augmentation instead of extension
+interface ExtendedServiceWorkerRegistration {
+  readonly sync?: SyncManager;
+  // Include other standard ServiceWorkerRegistration properties
+  readonly active: ServiceWorker | null;
+  readonly installing: ServiceWorker | null;
+  readonly waiting: ServiceWorker | null;
+  readonly scope: string;
+  getNotifications(options?: GetNotificationOptions): Promise<Notification[]>;
+  showNotification(title: string, options?: NotificationOptions): Promise<void>;
+  update(): Promise<void>;
+  unregister(): Promise<boolean>;
+}
+
+// Constants & configurations
+const ZOOM_LEVEL = 16;
+const MIN_DISTANCE_KM = 0.002;
+const MIN_UPDATE_INTERVAL = 1000;
+const BACKGROUND_UPDATE_INTERVAL = 5000; // 5 seconds interval when in background
+const MIN_ACCURACY = 35;
 const POSITION_OPTIONS = {
   enableHighAccuracy: true,
   maximumAge: 0,
   timeout: 5000
 };
+const TILE_LAYER_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const SATELLITE_LAYER_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const SATELLITE_ATTRIBUTION = 'Tiles &copy; Esri';
 
-interface Position {
-  lat: number;
-  lng: number;
-  time: number;
-  speed: number;
-}
+// Marker Icon Configuration
+const currentPositionIcon = L.icon({
+  iconUrl: '/icons/dog_emoji.png',
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
+
+const startPositionIcon = L.icon({
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48cGF0aCBmaWxsPSIjNGFkZTgwIiBkPSJNMTkyIDk2YzE3LjcgMCAzMi0xNC4zIDMyLTMycy0xNC4zLTMyLTMyLTMyLTMyIDE0LjMtMzIgMzIgMTQuMyAzMiAzMiAzMnptMCA2NCAzMi0zMiA2NCA2NHY4NmMwIDE0LTkgMjYtMjAgMzRsLTUyLTUyaC0zMEwxMTIgNTAwYy0xMS4xLTcuOC0yMC01MC0yMC02NHYtODZsNjQtNjQgMzYgMzZ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xOTIgNDE0aDMydjMySDE5MnYtMzJ6Ii8+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0yMTQgMjI1YzQuMSAwIDcuOCAyLjYgOS4zIDYuNWwxNS44IDQwLjljLjUgMS4zLjggMi42LjggNGwuMiAzMy44YzAgOC44LTcuMiAxNi0xNiAxNmgtMzJjLTguOCAwLTE2LTcuMi0xNi0xNmwtLjItMzMuOGMwLTEuNC4zLTIuNy43LTRsMTUuOC00MC45YzEuNS0zLjkgNS4yLTYuNSA5LjMtNi41aDE4LjR6Ii8+PC9zdmc+',
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -42],
+});
 
 const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => {
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
   const [paused, setPaused] = useState<boolean>(false);
-  const [positions, setPositions] = useState<Position[]>([]);
+  const [positions, setPositions] = useState<[number, number][]>([]);
+  const [watchId, setWatchId] = useState<number | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [mapType, setMapType] = useState<'standard' | 'satellite'>('standard');
-  const [recenterTrigger, setRecenterTrigger] = useState(0);
   
   // Timing states
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -61,146 +103,40 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [lastPauseTime, setLastPauseTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   
-  // Results state
+  // Speed and stats state
+  const [speed, setSpeed] = useState<number>(0);
+  const [maxSpeed, setMaxSpeed] = useState<number>(0);
+  const [elevation, setElevation] = useState<number | null>(null);
+  const [totalAscent, setTotalAscent] = useState<number>(0);
+  const [totalDescent, setTotalDescent] = useState<number>(0);
+  const [lastElevation, setLastElevation] = useState<number | null>(null);
+  
+  // Fullscreen state
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  
+  // Results and finish image state
   const [showResults, setShowResults] = useState<boolean>(false);
   const [mapImage, setMapImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
   
-  // Reference for map container element
+  // Trigger for recentering the map
+  const [recenterTrigger, setRecenterTrigger] = useState<number>(0);
+  
+  // Reference for map container element for capturing
   const mapContainerRef = useRef<HTMLDivElement>(null as unknown as HTMLDivElement);
-  
-  // Speed state
-  const [speed, setSpeed] = useState<number>(0);
-  
-  // Update elapsed time
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (tracking && startTime && !paused) {
-      timer = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime - pauseDuration) / 1000));
-      }, 1000);
-    }
-    return () => timer && clearInterval(timer);
-  }, [tracking, startTime, pauseDuration, paused]);
 
-  // Periodic position updates
-  useEffect(() => {
-    let updateInterval: NodeJS.Timeout;
-    
-    if (tracking && !paused) {
-      updateInterval = setInterval(() => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            if (pos.coords.accuracy > MIN_ACCURACY * 2) {
-              toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
-              return;
-            }
+  // Add elevations state
+  const [elevations, setElevations] = useState<number[]>([]);
 
-            const newPos: Position = {
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-              time: Date.now(),
-              speed: (pos.coords.speed !== null && pos.coords.speed !== undefined) ? pos.coords.speed * 3.6 : 0
-            };
-
-            setPositions(prev => [...prev, newPos]);
-            setMapCenter([newPos.lat, newPos.lng]);
-          },
-          (err) => {
-            console.error('Error getting position:', err);
-            toast.error('Failed to get position. Please check your GPS signal.');
-          },
-          POSITION_OPTIONS
-        );
-      }, UPDATE_INTERVAL);
-    }
-
-    return () => {
-      if (updateInterval) clearInterval(updateInterval);
-    };
-  }, [tracking, paused]);
-
-  const startTracking = useCallback(() => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
-      return;
-    }
-
-    setTracking(true);
-    setCompleted(false);
-    setShowResults(false);
-    setMapImage(null);
-    setStartTime(Date.now());
-    setPauseDuration(0);
-    setElapsedTime(0);
-    setPositions([]);
-    
-    // Get initial position
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const initialPos: Position = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          time: Date.now(),
-          speed: (pos.coords.speed !== null && pos.coords.speed !== undefined) ? pos.coords.speed * 3.6 : 0
-        };
-        
-        setPositions([initialPos]);
-        setMapCenter([initialPos.lat, initialPos.lng]);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error getting initial position:', err);
-        toast.error('Failed to get initial position. Please check your GPS signal.');
-        setLoading(false);
-      },
-      POSITION_OPTIONS
-    );
-    
-    toast.success('GPS tracking started!');
-  }, []);
-
-  const stopTracking = useCallback(() => {
-    setTracking(false);
-    setCompleted(true);
-    
-    if (positions.length > 1) {
-      setShowResults(true);
-      captureMapImage();
-    } else {
-      toast.warning('No track data to save.');
-    }
-  }, [positions.length]);
-
-  const pauseTracking = useCallback(() => {
-    setPaused(true);
-    setLastPauseTime(Date.now());
-    toast.info('Tracking paused');
-  }, []);
-
-  const resumeTracking = useCallback(() => {
-    if (lastPauseTime) {
-      setPauseDuration((prev) => prev + (Date.now() - lastPauseTime));
-    }
-    setLastPauseTime(null);
-    setPaused(false);
-    toast.success('Tracking resumed');
-  }, [lastPauseTime]);
-
-  const resetTracking = useCallback(() => {
-    setPositions([]);
-    setStartTime(null);
-    setElapsedTime(0);
-    setPauseDuration(0);
-    setLastPauseTime(null);
-    setCompleted(false);
-    setShowResults(false);
-    setMapImage(null);
-    setSaveSuccess(null);
-    toast.info('Tracking reset');
-  }, []);
+  const [wakeLock, setWakeLock] = useState<any>(null);
+  const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
+  const backgroundTimerRef = useRef<number | null>(null);
+  const positionsRef = useRef<[number, number][]>([]);
+  const lastPositionRef = useRef<[number, number] | null>(null);
 
   const captureMapImage = useCallback(async () => {
     if (!mapContainerRef.current) return null;
@@ -222,6 +158,654 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
   }, []);
 
+  // Stop tracking
+  const stopTracking = useCallback(() => {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    
+    if (backgroundTimerRef.current) {
+      window.clearInterval(backgroundTimerRef.current);
+      backgroundTimerRef.current = null;
+    }
+    
+    if (wakeLock) {
+      releaseWakeLock(wakeLock);
+      setWakeLock(null);
+    }
+    
+    setTracking(false);
+    setWatchId(null);
+    setCompleted(true);
+    
+    // Clear stored session
+    clearStoredTrackingSession();
+    
+    if (positions.length > 1) {
+      setShowResults(true);
+      captureMapImage();
+    } else {
+      toast.warning('No track data to save.');
+    }
+  }, [watchId, positions.length, captureMapImage, wakeLock]);
+
+  const clearAllData = useCallback(() => {
+    setPositions([]);
+    setStartTime(null);
+    setElapsedTime(0);
+    setPauseDuration(0);
+    setLastPauseTime(null);
+    setCompleted(false);
+    setSpeed(0);
+    setMaxSpeed(0);
+    setElevation(null);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setLastElevation(null);
+    setShowResults(false);
+    setMapImage(null);
+    setSaveSuccess(null);
+  }, []);
+
+  const calculations = useCallback((): Calculations => {
+    const distance = (): string => {
+      let total = 0;
+      for (let i = 1; i < positions.length; i++) {
+        total += haversineDistance(
+          positions[i - 1][0],
+          positions[i - 1][1],
+          positions[i][0],
+          positions[i][1]
+        );
+      }
+      return total.toFixed(2);
+    };
+
+    const avgSpeed = (): string => {
+      if (elapsedTime === 0 || positions.length <= 1) return '0.0';
+      const dist = parseFloat(distance());
+      const avg = (dist * 3600) / elapsedTime;
+      return avg.toFixed(1);
+    };
+
+    return { 
+      distance, 
+      avgSpeed,
+      maxSpeed,
+      totalAscent,
+      totalDescent
+    };
+  }, [positions, elapsedTime, maxSpeed, totalAscent, totalDescent]);
+
+  const { distance: calculateDistance, avgSpeed: calculateAverageSpeed } = calculations();
+
+  useEffect(() => {
+    setLoading(true);
+    
+    const checkPermission = async () => {
+      try {
+        const permStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (permStatus.state === 'denied') {
+          toast.error('Location access denied. Please enable location services for this site.');
+          setLoading(false);
+          return;
+        }
+        
+        if (!navigator.onLine) {
+          setIsOffline(true);
+          const cached = getStoredLocation();
+          if (cached) {
+            setMapCenter(cached);
+            toast.warning('You are offline. Using cached location data.');
+            saveLocationForOffline(cached);
+          } else {
+            toast.error('No cached location available. Using default location.');
+            const defaultLocation: [number, number] = [50.0755, 14.4378];
+            setMapCenter(defaultLocation);
+          }
+          setLoading(false);
+          return;
+        }
+        
+        setIsOffline(false);
+        let timeoutId: NodeJS.Timeout;
+        
+        const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Location request timed out. Please check your GPS signal and try again.'));
+          }, 10000); // 10 second timeout
+          
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+              clearTimeout(timeoutId);
+              resolve(pos);
+            },
+            (err) => {
+              clearTimeout(timeoutId);
+              reject(err);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        });
+
+        const pos = await positionPromise;
+            const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+            setMapCenter(loc);
+            localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+            saveLocationForOffline(loc);
+            setLoading(false);
+      } catch (error) {
+        console.error('Permission check error:', error);
+        setLoading(false);
+        
+        const cached = getStoredLocation();
+        if (cached) {
+          setMapCenter(cached);
+          toast.warning('Using cached location due to error.');
+        } else {
+          toast.error('Could not get your location. Please check your GPS signal and try again.');
+          const defaultLocation: [number, number] = [50.0755, 14.4378];
+          setMapCenter(defaultLocation);
+        }
+      }
+    };
+    
+    checkPermission();
+    
+    return () => {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [watchId]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (tracking && startTime && !paused) {
+      timer = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime - pauseDuration) / 1000));
+      }, 1000);
+    }
+    return () => timer && clearInterval(timer);
+  }, [tracking, startTime, pauseDuration, paused]);
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (tracking && Notification.permission !== 'granted' && !isOffline) {
+      Notification.requestPermission();
+    }
+  }, [tracking, isOffline]);
+
+  useEffect(() => {
+    let notifyInterval: NodeJS.Timeout;
+    if (tracking && !paused && Notification.permission === 'granted' && !isOffline) {
+      notifyInterval = setInterval(() => {
+        new Notification('Tracking Active', {
+          body: `Distance: ${calculateDistance()} km | Time: ${formatTime(elapsedTime)}`,
+          icon: 'icons/dog_emoji.png',
+        });
+      }, 300000); // Reduced to 5 minutes to be less intrusive
+    }
+    return () => notifyInterval && clearInterval(notifyInterval);
+  }, [tracking, elapsedTime, paused, isOffline, calculateDistance]);
+
+  useEffect(() => {
+    // Update ref whenever positions change
+    positionsRef.current = positions;
+  }, [positions]);
+
+  // Initialize background tracking
+  useEffect(() => {
+    initBackgroundTracking((session) => {
+      // This callback is called when the app comes back to foreground
+      // and there might be new positions collected in the background
+      if (session.positions.length > positions.length) {
+        setPositions(session.positions);
+        setElapsedTime(session.elapsedTime);
+        setPauseDuration(session.pauseDuration);
+        
+        // Recenter map to the latest position
+        if (session.positions.length > 0) {
+          setMapCenter(session.positions[session.positions.length - 1]);
+          setRecenterTrigger(prev => prev + 1);
+        }
+        
+        toast.info('Updated with background tracking data');
+      }
+    });
+    
+    // Check for unfinished tracking sessions on startup
+    const storedSession = getStoredTrackingSession();
+    if (storedSession.isActive && storedSession.positions.length > 0 && !tracking) {
+      // Ask user if they want to resume tracking
+      const resumeSession = window.confirm('Found an unfinished tracking session. Would you like to resume it?');
+      
+      if (resumeSession) {
+        setPositions(storedSession.positions);
+        setStartTime(storedSession.startTime || Date.now());
+        setElapsedTime(storedSession.elapsedTime || 0);
+        setPauseDuration(storedSession.pauseDuration || 0);
+        setPaused(storedSession.isPaused || false);
+        setTracking(true);
+        
+        if (!storedSession.isPaused) {
+          // Start tracking again
+          const id = navigator.geolocation.watchPosition(
+            handlePosition,
+            handlePositionError,
+            POSITION_OPTIONS
+          );
+          setWatchId(id);
+        }
+        
+        toast.success('Resumed previous tracking session');
+    } else {
+        // Clear the unfinished session
+        clearStoredTrackingSession();
+      }
+    }
+    
+    return () => {
+      if (backgroundTimerRef.current) {
+        window.clearInterval(backgroundTimerRef.current);
+        backgroundTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle visibility change (phone locked/unlocked)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isHidden = document.hidden;
+      setBackgroundMode(isHidden);
+      
+      if (tracking && !paused) {
+        if (isHidden) {
+          // Phone screen turned off - start background tracking
+          console.log('App went to background, switching to background tracking');
+          
+          // Store current tracking state
+          storeTrackingSession({
+            positions: positionsRef.current,
+            startTime,
+            elapsedTime,
+            pauseDuration,
+            isActive: true,
+            isPaused: false
+          });
+          
+          // Clear watch and start interval-based polling
+          if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            setWatchId(null);
+          }
+          
+          // Start background tracking using intervals
+          if (!backgroundTimerRef.current) {
+            backgroundTimerRef.current = window.setInterval(() => {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+                  
+                  // Only add position if it's significantly different from last position
+                  if (positionsRef.current.length > 0) {
+                    const lastPos = positionsRef.current[positionsRef.current.length - 1];
+                    const dist = haversineDistance(lastPos[0], lastPos[1], newPos[0], newPos[1]);
+                    
+                    if (dist >= MIN_DISTANCE_KM) {
+                      // Update stored positions
+                      const updatedPositions = [...positionsRef.current, newPos];
+                      positionsRef.current = updatedPositions;
+                      
+                      // Update storage
+                      storeTrackingSession({
+                        positions: updatedPositions,
+                        elapsedTime: elapsedTime + Math.floor((Date.now() - (startTime || 0) - pauseDuration) / 1000)
+                      });
+                    }
+                  }
+                },
+                (err) => {
+                  console.error('Background position error:', err);
+                },
+                POSITION_OPTIONS
+              );
+            }, BACKGROUND_TRACKING_INTERVAL);
+          }
+        } else {
+          // Phone screen turned on - switch back to watchPosition
+          console.log('App returned to foreground, switching to foreground tracking');
+          
+          // Clear background interval
+          if (backgroundTimerRef.current) {
+            window.clearInterval(backgroundTimerRef.current);
+            backgroundTimerRef.current = null;
+          }
+          
+          // Load any positions collected in background
+          const storedSession = getStoredTrackingSession();
+          if (storedSession.positions.length > positions.length) {
+            setPositions(storedSession.positions);
+          }
+          
+          // Restart normal tracking
+          if (!watchId) {
+            const id = navigator.geolocation.watchPosition(
+              handlePosition,
+              handlePositionError,
+              POSITION_OPTIONS
+            );
+            setWatchId(id);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [tracking, paused, watchId, startTime, elapsedTime, pauseDuration, positions]);
+
+  // Request wake lock when tracking starts
+  useEffect(() => {
+    const setupWakeLock = async () => {
+      if (tracking && !paused) {
+        const lock = await requestWakeLock();
+        if (lock) {
+          setWakeLock(lock);
+          
+          lock.addEventListener('release', () => {
+            console.log('Wake Lock released');
+            setWakeLock(null);
+          });
+        }
+      } else if (wakeLock) {
+        releaseWakeLock(wakeLock);
+        setWakeLock(null);
+      }
+    };
+    
+    setupWakeLock();
+    
+    return () => {
+      if (wakeLock) {
+        releaseWakeLock(wakeLock);
+      }
+    };
+  }, [tracking, paused, wakeLock]);
+
+  // Error handler for geolocation
+  const handlePositionError = useCallback((err: GeolocationPositionError) => {
+    console.error('Error watching position:', err);
+    let errorMessage = 'Location error: ';
+    switch (err.code) {
+      case 1:
+        errorMessage += 'Permission denied. Please enable location services.';
+        stopTracking();
+        break;
+      case 2:
+        errorMessage += 'Position unavailable. Check your GPS signal.';
+        break;
+      case 3:
+        errorMessage += 'Position request timed out. Try again.';
+        break;
+      default:
+        errorMessage += err.message;
+    }
+    
+    if (!backgroundMode) {
+      toast.error(errorMessage);
+    }
+  }, [backgroundMode, stopTracking]);
+
+  // Handler for position updates
+  const handlePosition = useCallback((pos: GeolocationPosition) => {
+        if (paused) return;
+        
+        if (pos.coords.accuracy > MIN_ACCURACY * 2) {
+          toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
+          return;
+        }
+
+        const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        const currentTime = Date.now();
+        
+    // Handle elevation data
+        if (pos.coords.altitude !== null) {
+          const currentElevation = pos.coords.altitude;
+          setElevation(currentElevation);
+          setElevations(prev => [...prev, currentElevation]);
+          
+          if (lastElevation !== null && pos.coords.altitudeAccuracy && pos.coords.altitudeAccuracy < 10) {
+            const elevationDiff = currentElevation - lastElevation;
+            if (elevationDiff > 0.5) {
+              setTotalAscent(prev => prev + elevationDiff);
+            } else if (elevationDiff < -0.5) {
+              setTotalDescent(prev => prev + Math.abs(elevationDiff));
+            }
+          }
+          setLastElevation(currentElevation);
+        } else {
+          setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
+        }
+        
+    // Calculate speed
+        let computedSpeed = pos.coords.speed;
+        if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
+          const [lastLat, lastLon] = positions[positions.length - 1];
+          const timeDiff = (currentTime - lastUpdateTime) / 1000;
+          if (timeDiff > 0) {
+            computedSpeed = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) / timeDiff * 3600;
+          }
+        } else if (computedSpeed !== null) {
+          computedSpeed *= 3.6;
+        }
+        
+        if (computedSpeed !== null && computedSpeed >= 0) {
+          setSpeed(prev => computedSpeed * 0.3 + prev * 0.7);
+          if (computedSpeed > maxSpeed) {
+            setMaxSpeed(computedSpeed);
+          }
+        }
+        
+    // Update positions array
+        setPositions((prev) => {
+          if (prev.length > 0) {
+            const [lastLat, lastLon] = prev[prev.length - 1];
+            const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
+            if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+              return prev;
+            }
+          }
+      
+          setLastUpdateTime(currentTime);
+          setMapCenter(newPos);
+      
+      const updatedPositions = [...prev, newPos];
+      
+      // Store tracking data for background access
+      storeTrackingSession({
+        positions: updatedPositions,
+        startTime,
+        elapsedTime,
+        pauseDuration,
+        isActive: true,
+        isPaused: false
+      });
+      
+      return updatedPositions;
+    });
+  }, [paused, positions, lastUpdateTime, lastElevation, maxSpeed, startTime, elapsedTime, pauseDuration]);
+
+  // Start tracking
+  const startTracking = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    const startTimeValue = Date.now();
+    
+    setTracking(true);
+    setCompleted(false);
+    setShowResults(false);
+    setMapImage(null);
+    setStartTime(startTimeValue);
+    setPauseDuration(0);
+    setElapsedTime(0);
+    setMaxSpeed(0);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setLastElevation(null);
+    setElevations([]);
+    
+    const id = navigator.geolocation.watchPosition(
+      handlePosition,
+      handlePositionError,
+      POSITION_OPTIONS
+    );
+    setWatchId(id);
+    
+    // Store initial tracking state
+    storeTrackingSession({
+      positions: [],
+      startTime: startTimeValue,
+      elapsedTime: 0,
+      pauseDuration: 0,
+      isActive: true,
+      isPaused: false
+    });
+    
+    toast.success('GPS tracking started!');
+    
+    // Register for background sync if available
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready
+        .then((registration) => {
+          const sw = registration as unknown as ExtendedServiceWorkerRegistration;
+          if (sw.sync) {
+            sw.sync.register('gps-tracking-sync')
+              .then(() => {
+                console.log('Background sync registered');
+              })
+              .catch((err) => {
+                console.error('Background sync registration failed:', err);
+              });
+          }
+        })
+        .catch((err) => {
+          console.error('Service worker registration failed:', err);
+        });
+    }
+  }, [handlePosition, handlePositionError]);
+
+  // Pause tracking
+  const pauseTracking = useCallback(() => {
+    setPaused(true);
+    setLastPauseTime(Date.now());
+    
+    // Update stored state
+    storeTrackingSession({
+      positions,
+      startTime,
+      elapsedTime,
+      pauseDuration,
+      isActive: true,
+      isPaused: true
+    });
+    
+    toast.info('Tracking paused');
+  }, [positions, startTime, elapsedTime, pauseDuration]);
+
+  // Resume tracking
+  const resumeTracking = useCallback(() => {
+    if (lastPauseTime) {
+      const updatedPauseDuration = pauseDuration + (Date.now() - lastPauseTime);
+      setPauseDuration(updatedPauseDuration);
+      
+      // Update stored state
+      storeTrackingSession({
+        positions,
+        startTime,
+        elapsedTime,
+        pauseDuration: updatedPauseDuration,
+        isActive: true,
+        isPaused: false
+      });
+    }
+    
+    setLastPauseTime(null);
+    setPaused(false);
+    toast.success('Tracking resumed');
+  }, [lastPauseTime, pauseDuration, positions, startTime, elapsedTime]);
+
+  // Reset tracking
+  const resetTracking = useCallback(() => {
+    clearAllData();
+    clearStoredTrackingSession();
+    toast.info('Tracking reset');
+  }, [clearAllData]);
+
+  const recenterMap = useCallback(() => {
+    if (isOffline) {
+      const cached = getStoredLocation();
+      if (cached) {
+        setMapCenter(cached);
+        setRecenterTrigger((prev) => prev + 1);
+        toast.info('Using cached location (offline mode)');
+      } else {
+        toast.error('No cached location available');
+      }
+      return;
+    }
+    
+    setLoading(true);
+    let timeoutId: NodeJS.Timeout;
+    
+    const positionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('Location request timed out. Please check your GPS signal and try again.'));
+      }, 10000);
+      
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+          clearTimeout(timeoutId);
+          resolve(pos);
+        },
+        (err) => {
+          clearTimeout(timeoutId);
+          reject(err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+
+    positionPromise
+      .then((pos) => {
+        const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setMapCenter(loc);
+        setRecenterTrigger((prev) => prev + 1);
+        localStorage.setItem('lastKnownLocation', JSON.stringify(loc));
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Error recentering map:', err);
+        toast.error(`Couldn't get location: ${err.message}`);
+        setLoading(false);
+      });
+  }, [isOffline]);
+
+  const toggleMapType = useCallback(() => {
+    setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
+    toast.info(`Switched to ${mapType === 'standard' ? 'satellite' : 'standard'} map`);
+  }, [mapType]);
+
   const handleFinish = useCallback(async () => {
     if (positions.length <= 1) {
       toast.error('Not enough tracking data to save');
@@ -229,102 +813,73 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }
     
     setIsSaving(true);
+    const { distance, avgSpeed } = calculations();
+    let imageData: string | null = mapImage;
     
-    const distance = positions.reduce((total, pos, index) => {
-      if (index === 0) return 0;
-      const prevPos = positions[index - 1];
-      return total + haversineDistance(prevPos.lat, prevPos.lng, pos.lat, pos.lng);
-    }, 0).toFixed(2);
-    
-    const avgSpeed = positions.length > 1 
-      ? ((parseFloat(distance) * 3600) / elapsedTime).toFixed(1)
-      : '0.0';
-    
-    const maxSpeed = Math.max(...positions.map(pos => pos.speed || 0)).toFixed(1);
-    
+    if (!imageData) {
+      const capturedImage = await captureMapImage();
+      if (!capturedImage) {
+        setIsSaving(false);
+        return;
+      }
+      imageData = capturedImage;
+    }
+
     const trackData: TrackData = {
       season: new Date().getFullYear(),
-      image: mapImage || '',
-      distance,
+      image: imageData,
+      distance: distance(),
       elapsedTime,
-      averageSpeed: avgSpeed,
+      averageSpeed: avgSpeed(),
       fullName: username || 'Unknown User',
-      maxSpeed,
-      totalAscent: '0',
-      totalDescent: '0',
+      maxSpeed: maxSpeed.toFixed(1),
+      totalAscent: totalAscent.toFixed(0),
+      totalDescent: totalDescent.toFixed(0),
       timestamp: Date.now(),
-      positions: positions.map(pos => [pos.lat, pos.lng])
+      positions: positions
     };
 
     try {
-      const response = await fetch('/api/saveTrack', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(trackData)
-      });
+      if (isOffline) {
+        await storeDataForOfflineSync(trackData as unknown as OfflineData);
+        toast.success('Track saved offline. It will be uploaded when you reconnect.');
+        setSaveSuccess(true);
+      } else {
+        const response = await fetch('/api/saveTrack', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(trackData)
+        });
+        
+        if (response.ok) {
+          toast.success('Track saved successfully!');
+          setSaveSuccess(true);
+        } else {
+          toast.error('Failed to save track data');
+          setSaveSuccess(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving track:', error);
       
-      if (response.ok) {
-        toast.success('Track saved successfully!');
+      if (!isOffline) {
+        await storeDataForOfflineSync(trackData as unknown as OfflineData);
+        toast.warning('Network error. Track saved offline for later upload.');
         setSaveSuccess(true);
       } else {
         toast.error('Failed to save track data');
         setSaveSuccess(false);
       }
-    } catch (error) {
-      console.error('Error saving track:', error);
-      toast.error('Failed to save track data');
-      setSaveSuccess(false);
     } finally {
       setIsSaving(false);
     }
-  }, [positions, username, mapImage, elapsedTime]);
-
-  const handlePositionUpdate = (position: GeolocationPosition) => {
-    const { latitude, longitude, speed: gpsSpeed } = position.coords;
-    const currentTime = new Date().getTime();
-    
-    const newPosition: Position = {
-      lat: latitude,
-      lng: longitude,
-      time: currentTime,
-      speed: (gpsSpeed !== null && gpsSpeed !== undefined) ? gpsSpeed * 3.6 : 0
-    };
-    
-    setPositions(prev => [...prev, newPosition]);
-    setMapCenter([latitude, longitude]);
-    setRecenterTrigger(prev => prev + 1);
-  };
-
-  const handlePauseResume = () => {
-    if (paused) {
-      // Resume tracking
-      setPaused(false);
-      setPositions(prev => {
-        if (prev.length === 0) return prev;
-        const lastPos = prev[prev.length - 1];
-        const newPosition: Position = {
-          lat: lastPos.lat,
-          lng: lastPos.lng,
-          time: new Date().getTime(),
-          speed: 0
-        };
-        return [...prev, newPosition];
-      });
-    } else {
-      // Pause tracking
-      setPaused(true);
-    }
-  };
-
-  const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const numericValue = e.target.value === '' ? 0 : Number(e.target.value);
-    setSpeed(isNaN(numericValue) ? 0 : numericValue);
-  };
+  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
 
   return (
-    <div className={`relative bg-gray-100 w-full md:w-[400px] h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
+    <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
+      {/* iPhone notch simulation - only show on larger screens */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-[20px] z-50 hidden md:block" />
       
       <div className="absolute inset-0">
@@ -338,13 +893,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         )}
 
         <MapComponent
-          mapCenter={mapCenter || [0, 0]}
-          positions={positions.map(p => [p.lat, p.lng])}
+          mapCenter={mapCenter}
+          positions={positions}
           mapType={mapType}
+          recenterTrigger={recenterTrigger}
           mapContainerRef={mapContainerRef}
           loading={loading}
           className="w-full h-full"
-          recenterTrigger={recenterTrigger}
         />
 
         <div className="absolute bottom-0 left-0 right-0 z-10">
@@ -354,13 +909,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-full">
                     <Activity className="h-5 w-5 text-blue-500" />
-                    <span className="text-sm font-medium text-blue-700">
-                      {positions.reduce((total, pos, index) => {
-                        if (index === 0) return 0;
-                        const prevPos = positions[index - 1];
-                        return total + haversineDistance(prevPos.lat, prevPos.lng, pos.lat, pos.lng);
-                      }, 0).toFixed(2)} km
-                    </span>
+                    <span className="text-sm font-medium text-blue-700">{calculateDistance()} km</span>
                   </div>
                   <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-full">
                     <Clock className="h-5 w-5 text-green-500" />
@@ -368,9 +917,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                   </div>
                   <div className="flex items-center space-x-2 bg-orange-50 px-3 py-1.5 rounded-full">
                     <Gauge className="h-5 w-5 text-orange-500" />
-                    <span className="text-sm font-medium text-orange-700">
-                      {positions.length > 0 ? (positions[positions.length - 1].speed || 0).toFixed(1) : '0.0'} km/h
-                    </span>
+                    <span className="text-sm font-medium text-orange-700">{speed.toFixed(1)} km/h</span>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -386,32 +933,23 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                 </DrawerHeader>
                 <div className="p-6 space-y-6 overflow-y-auto">
                   <StatsComponent
-                    distance={positions.reduce((total, pos, index) => {
-                      if (index === 0) return 0;
-                      const prevPos = positions[index - 1];
-                      return total + haversineDistance(prevPos.lat, prevPos.lng, pos.lat, pos.lng);
-                    }, 0).toFixed(2)}
+                    distance={calculateDistance()}
                     elapsedTime={elapsedTime}
-                    speed={positions.length > 0 ? positions[positions.length - 1].speed || 0 : 0}
+                    speed={speed}
                     className="mb-4"
                   />
 
                   <ControlsComponent
                     tracking={tracking}
                     paused={paused}
-                    isOffline={false}
+                    isOffline={isOffline}
                     loading={loading}
                     onStartTracking={startTracking}
                     onStopTracking={stopTracking}
                     onPauseTracking={pauseTracking}
                     onResumeTracking={resumeTracking}
-                    onRecenterMap={() => {
-                      if (positions.length > 0) {
-                        const lastPos = positions[positions.length - 1];
-                        setMapCenter([lastPos.lat, lastPos.lng]);
-                      }
-                    }}
-                    onToggleMapType={() => setMapType(prev => prev === 'standard' ? 'satellite' : 'standard')}
+                    onRecenterMap={recenterMap}
+                    onToggleMapType={toggleMapType}
                     onResetTracking={resetTracking}
                     className="flex flex-col space-y-4"
                   />
@@ -424,20 +962,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         <ResultsModal
           showResults={showResults}
           mapImage={mapImage}
-          distance={positions.reduce((total, pos, index) => {
-            if (index === 0) return 0;
-            const prevPos = positions[index - 1];
-            return total + haversineDistance(prevPos.lat, prevPos.lng, pos.lat, pos.lng);
-          }, 0).toFixed(2)}
+          distance={calculateDistance()}
           elapsedTime={elapsedTime}
-          avgSpeed={positions.length > 1 
-            ? ((positions.reduce((total, pos, index) => {
-                if (index === 0) return 0;
-                const prevPos = positions[index - 1];
-                return total + haversineDistance(prevPos.lat, prevPos.lng, pos.lat, pos.lng);
-              }, 0) * 3600) / elapsedTime).toFixed(1)
-            : '0.0'}
-          maxSpeed={Math.max(...positions.map(pos => pos.speed || 0))}
+          avgSpeed={calculateAverageSpeed()}
+          maxSpeed={maxSpeed}
           isSaving={isSaving}
           saveSuccess={saveSuccess}
           onClose={() => setShowResults(false)}
@@ -445,9 +973,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           onReset={resetTracking}
           className="bg-white rounded-lg shadow-xl"
         />
-
-        {/* Development debug panel */}
-        <TrackingDebug positions={positions} />
       </div>
     </div>
   );
