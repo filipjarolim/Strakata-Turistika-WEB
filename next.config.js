@@ -15,6 +15,11 @@ const nextConfig = {
         hostname: 'lh3.googleusercontent.com',
         pathname: '**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ovhahxzjnqazjhdcgmqc.supabase.co',
+        pathname: '/storage/v1/object/public/images/**',
+      },
     ],
   },
   // Add other Next.js config options here

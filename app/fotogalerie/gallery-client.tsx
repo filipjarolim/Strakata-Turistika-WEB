@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Card, 
     CardContent 
@@ -9,78 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { Camera, Images, Search, X, Info, Calendar, MapPin, Filter } from "lucide-react";
-import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogClose, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { UploadForm } from './upload-form';
+import { supabase } from '@/lib/supabase';
 
-// Enhanced sample gallery data with more metadata
-const SAMPLE_GALLERY = [
-    {
-        id: 1,
-        title: "Horská turistika",
-        category: "mountains",
-        description: "Výlet do hor s českým strakatým psem",
-        location: "Krkonoše",
-        date: "15.6.2023",
-        imageUrl: "https://lh3.googleusercontent.com/placeholder1", // Placeholder
-        aspectRatio: "square", // square, portrait, landscape
-    },
-    {
-        id: 2,
-        title: "U jezera",
-        category: "water",
-        description: "Letní den u jezera s našimi čtyřnohými přáteli",
-        location: "Máchovo jezero",
-        date: "23.7.2023",
-        imageUrl: "https://lh3.googleusercontent.com/placeholder2", // Placeholder
-        aspectRatio: "landscape",
-    },
-    {
-        id: 3,
-        title: "Lesní cesta",
-        category: "forest",
-        description: "Procházka lesem plná dobrodružství a objevování",
-        location: "Český les",
-        date: "5.8.2023",
-        imageUrl: "https://lh3.googleusercontent.com/placeholder3", // Placeholder
-        aspectRatio: "portrait",
-    },
-    {
-        id: 4,
-        title: "Zimní radovánky",
-        category: "winter",
-        description: "Zimní výlet na sněhu s našimi strakatými kamarády",
-        location: "Šumava",
-        date: "12.1.2023",
-        imageUrl: "https://lh3.googleusercontent.com/placeholder4", // Placeholder
-        aspectRatio: "square",
-    },
-    {
-        id: 5,
-        title: "Městský výlet",
-        category: "city",
-        description: "Návštěva města s českým strakatým psem",
-        location: "Praha",
-        date: "3.5.2023",
-        imageUrl: "https://lh3.googleusercontent.com/placeholder5", // Placeholder
-        aspectRatio: "landscape",
-    },
-    {
-        id: 6,
-        title: "Podzimní toulky",
-        category: "forest",
-        description: "Podzimní atmosféra v lese plném barev",
-        location: "Blanský les",
-        date: "10.10.2023",
-        imageUrl: "https://lh3.googleusercontent.com/placeholder6", // Placeholder
-        aspectRatio: "portrait",
-    },
-];
+export interface Category {
+    id: string;
+    label: string;
+    icon: React.ReactNode;
+}
 
 // Categories for tabs with icons
-const CATEGORIES = [
+export const CATEGORIES: Category[] = [
     { id: "all", label: "Vše", icon: <Filter className="h-4 w-4 mr-1" /> },
     { id: "mountains", label: "Hory", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg> },
     { id: "water", label: "Voda", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1"><path d="M2 22h20"></path><path d="M15 10h5v8h-5"></path><path d="M4 10h5v8H4"></path><path d="M9 10h5v8H9"></path><path d="M5 2v8"></path><path d="M19 2v8"></path><path d="M12 2v8"></path></svg> },
@@ -89,14 +33,52 @@ const CATEGORIES = [
     { id: "city", label: "Město", icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg> },
 ];
 
+interface GalleryImage {
+  id: string;
+  url: string;
+  title: string;
+  description: string;
+  location: string;
+  category: string;
+  created_at: string;
+  aspectRatio?: string;
+}
+
+interface GalleryData {
+  images: GalleryImage[];
+  total: number;
+}
+
 export const GalleryClient = () => {
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("all");
-    const [selectedImage, setSelectedImage] = useState<null | typeof SAMPLE_GALLERY[0]>(null);
+    const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
     const [loading, setLoading] = useState(false);
+    const [images, setImages] = useState<GalleryImage[]>([]);
+
+    useEffect(() => {
+        fetchImages();
+    }, []);
+
+    const fetchImages = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('gallery_images')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setImages(data || []);
+        } catch (error) {
+            console.error('Error fetching images:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Filter images based on search and category
-    const filteredImages = SAMPLE_GALLERY.filter(img => {
+    const filteredImages = images.filter(img => {
         const matchesSearch = 
             img.title.toLowerCase().includes(search.toLowerCase()) || 
             img.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -155,15 +137,18 @@ export const GalleryClient = () => {
                             Nalezeno {filteredImages.length} fotografií
                         </p>
                     </div>
-                    <div className="relative w-full md:w-auto">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                            type="text"
-                            placeholder="Hledat fotky..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-8 w-full md:w-64 rounded-full bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                        />
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                            <Input
+                                type="text"
+                                placeholder="Hledat fotky..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-8 w-full md:w-64 rounded-full bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                            />
+                        </div>
+                        <UploadForm />
                     </div>
                 </div>
             </div>
@@ -228,7 +213,7 @@ export const GalleryClient = () => {
                                     className="overflow-hidden group cursor-pointer hover:shadow-md transition-all duration-300"
                                     onClick={() => setSelectedImage(image)}
                                 >
-                                    <CardContent className={cn("p-0 relative", getAspectRatioClass(image.aspectRatio))}>
+                                    <CardContent className={cn("p-0 relative", getAspectRatioClass(image.aspectRatio || ''))}>
                                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
                                             <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 flex flex-col items-center gap-2">
                                                 <Button size="sm" className="rounded-full" variant="secondary">
@@ -237,10 +222,12 @@ export const GalleryClient = () => {
                                                 </Button>
                                             </div>
                                         </div>
-                                        {/* Replace this div with real Image component when photos are available */}
-                                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                            <p className="text-xs text-gray-500">Náhled fotky</p>
-                                        </div>
+                                        <Image
+                                            src={image.url}
+                                            alt={image.title}
+                                            fill
+                                            className="object-cover"
+                                        />
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Badge className={cn("text-xs font-normal", getCategoryColor(image.category))}>
@@ -248,7 +235,6 @@ export const GalleryClient = () => {
                                                 </Badge>
                                             </div>
                                             <h3 className="font-medium">{image.title}</h3>
-                                            <p className="text-sm text-gray-200 line-clamp-1">{image.description}</p>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -258,49 +244,47 @@ export const GalleryClient = () => {
                 </TabsContent>
             </Tabs>
 
-            {/* Lightbox Dialog */}
-            <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
-                <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-black/95 text-white border-none">
-                    <DialogTitle className="sr-only">
-                        {selectedImage ? `Fotografie: ${selectedImage.title}` : 'Zobrazení fotografie'}
-                    </DialogTitle>
-                    <DialogClose className="absolute right-4 top-4 z-10 text-white rounded-full p-2 bg-black/20 hover:bg-black/40 transition-colors">
-                        <X className="h-4 w-4" />
-                    </DialogClose>
-
+            {/* Image detail dialog */}
+            <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+                <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {selectedImage ? `Detail fotky: ${selectedImage.title}` : 'Detail fotky'}
+                        </DialogTitle>
+                    </DialogHeader>
                     {selectedImage && (
-                        <div className="grid md:grid-cols-[3fr_1fr]">
-                            {/* Image */}
-                            <div className="flex items-center justify-center p-4 h-[50vh] md:h-[80vh]">
-                                <div className="bg-gradient-to-br from-gray-700 to-gray-900 w-full h-full flex items-center justify-center rounded-lg">
-                                    <p className="text-gray-400">Náhled fotky: {selectedImage.title}</p>
+                        <>
+                            <div className="relative aspect-video w-full">
+                                <Image
+                                    src={selectedImage.url}
+                                    alt={selectedImage.title}
+                                    fill
+                                    className="object-contain rounded-lg"
+                                />
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold">{selectedImage.title}</h2>
+                                    <p className="text-muted-foreground mt-1">{selectedImage.description}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        {selectedImage.location}
+                                    </Badge>
+                                    <Badge variant="outline" className="gap-1">
+                                        <Calendar className="h-3 w-3" />
+                                        {selectedImage.created_at}
+                                    </Badge>
+                                    <Badge className={cn("gap-1", getCategoryColor(selectedImage.category))}>
+                                        {CATEGORIES.find(cat => cat.id === selectedImage.category)?.label || selectedImage.category}
+                                    </Badge>
                                 </div>
                             </div>
-
-                            {/* Details */}
-                            <div className="p-6 bg-black/30 overflow-y-auto max-h-[30vh] md:max-h-[80vh]">
-                                <Badge className={cn("mb-3", getCategoryColor(selectedImage.category))}>
-                                    {CATEGORIES.find(cat => cat.id === selectedImage.category)?.label || selectedImage.category}
-                                </Badge>
-                                
-                                <h2 className="text-2xl font-semibold mb-3">{selectedImage.title}</h2>
-                                <p className="text-gray-300 mb-6">{selectedImage.description}</p>
-                                
-                                <div className="space-y-3 text-sm text-gray-300">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>{selectedImage.date}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        <span>{selectedImage.location}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        </>
                     )}
                 </DialogContent>
             </Dialog>
         </div>
     );
-}; 
+};

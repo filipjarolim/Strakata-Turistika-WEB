@@ -61,12 +61,12 @@ interface ExtendedServiceWorkerRegistration {
 
 // Constants & configurations
 const ZOOM_LEVEL = 16;
-const MIN_DISTANCE_KM = 0.002;
+const MIN_DISTANCE_KM = 0.0005; // Reduced from 0.002 to 0.5 meters
 const MIN_UPDATE_INTERVAL = 1000;
 const MIN_ACCURACY = 35;
-const STATIONARY_THRESHOLD_KM = 0.002; // Reduced from 0.005 to 2 meters
+const STATIONARY_THRESHOLD_KM = 0.0005; // Reduced from 0.002 to 0.5 meters
 const STATIONARY_TIME_THRESHOLD = 10000; // 10 seconds
-const SPEED_FILTER_THRESHOLD = 0.5; // Consider speeds below 0.5 km/h as stationary
+const SPEED_FILTER_THRESHOLD = 0.1; // Reduced from 0.5 to 0.1 km/h
 const POSITION_HISTORY_SIZE = 20; // Increased from 10 to 20 positions
 const POSITION_OPTIONS = {
   enableHighAccuracy: true,
@@ -360,17 +360,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setLastValidPosition(null);
     setPositionHistory([]);
     
-    // Register background sync if available
-    if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.sync.register('gps-tracking').then(() => {
-          setBackgroundSyncRegistered(true);
-        }).catch(err => {
-          console.error('Background sync registration failed:', err);
-        });
-      });
-    }
-    
     const id = navigator.geolocation.watchPosition(
       (pos) => {
         if (paused) return;
@@ -383,86 +372,35 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
         
-        // Update positions and log based on full path + UI values
-        const newPositions = [...positions, newPos];
-        setLastValidPosition(newPos);
-        setPositions(newPositions);
-        // Compute total distance over the new path
-        const totalDist = newPositions.reduce((sum, _, index, arr) => {
-          if (index === 0) return sum;
-          const [lat1, lon1] = arr[index - 1];
-          const [lat2, lon2] = arr[index];
-          return sum + haversineDistance(lat1, lon1, lat2, lon2);
-        }, 0);
-        // Use UI-calculated distance and stored speed state
-        setGpsLog(prev => [
-          ...prev,
-          {
-            time: new Date().toLocaleTimeString(),
-            elapsed: formatTime(elapsedTime),
-            distance: parseFloat(totalDist.toFixed(2)),
-            speed: parseFloat(speed.toFixed(1)),
-            accuracy: pos.coords.accuracy,
-            pos: newPos,
-          },
-        ]);
-        setLastUpdateTime(currentTime);
-        setMapCenter(newPos);
-        
-        // Check if we're stationary with improved detection
-        if (positionHistory.length > 0) {
-          const avgDistance = positionHistory.reduce((sum, { pos }) => {
-            return sum + haversineDistance(pos[0], pos[1], newPos[0], newPos[1]);
-          }, 0) / positionHistory.length;
-          
-          // Check if all recent positions are within the stationary threshold
-          const allPositionsStationary = positionHistory.every(({ pos }) => 
-            haversineDistance(pos[0], pos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
+        // Update position history for better movement detection
+        setPositionHistory(prev => {
+          const updated = [...prev, { pos: newPos, time: currentTime }];
+          return updated.slice(-10); // Keep last 10 positions
+        });
+
+        // Calculate distance from last position
+        if (lastValidPosition) {
+          const distance = haversineDistance(
+            lastValidPosition[0],
+            lastValidPosition[1],
+            newPos[0],
+            newPos[1]
           );
-          
-          if (avgDistance < STATIONARY_THRESHOLD_KM && allPositionsStationary) {
-            if (!isStationary) {
-              setIsStationary(true);
-              setStationaryStartTime(currentTime);
-            }
-          } else {
-            setIsStationary(false);
-            setStationaryStartTime(null);
-          }
-        }
-        
-        // Only update position if we're moving or if we've been stationary for a while
-        if (!isStationary || (stationaryStartTime && currentTime - stationaryStartTime > STATIONARY_TIME_THRESHOLD)) {
-          setPositions((prev) => {
-            const updated = [...prev, newPos];
-            // Compute total distance along updated path
-            const totalDistance = updated.reduce((sum, _, idx, arr) => {
-              if (idx === 0) return sum;
-              const [p1lat, p1lng] = arr[idx - 1];
-              const [p2lat, p2lng] = arr[idx];
-              return sum + haversineDistance(p1lat, p1lng, p2lat, p2lng);
-            }, 0);
-            // Compute raw speed in km/h
-            const speedRaw = pos.coords.speed !== null ? pos.coords.speed * 3.6 : 0;
-            // Append to GPS log
-            setGpsLog(logs => [
-              ...logs,
-              {
-                time: new Date().toLocaleTimeString(),
-                elapsed: formatTime(elapsedTime),
-                distance: parseFloat(totalDistance.toFixed(2)),
-                speed: parseFloat(speedRaw.toFixed(1)),
-                accuracy: pos.coords.accuracy,
-                pos: newPos,
-              },
-            ]);
+
+          // Update positions if we've moved enough or it's been a while
+          if (distance > MIN_DISTANCE_KM || 
+              (currentTime - (lastUpdateTime || 0) > 5000)) { // Update every 5 seconds even if stationary
+            setPositions(prev => [...prev, newPos]);
+            setLastValidPosition(newPos);
             setLastUpdateTime(currentTime);
-            setMapCenter(newPos);
-            return updated;
-          });
+          }
+        } else {
+          setPositions([newPos]);
+          setLastValidPosition(newPos);
+          setLastUpdateTime(currentTime);
         }
-        
-        // Calculate speed with improved drift filtering
+
+        // Calculate speed
         let speedValue = pos.coords.speed;
         if (speedValue === null && lastValidPosition && lastUpdateTime) {
           const timeDiff = (currentTime - lastUpdateTime) / 1000;
@@ -474,32 +412,16 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
               newPos[1]
             );
             speedValue = dist / timeDiff * 3600;
-            
-            // More aggressive speed filtering when stationary
-            if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
-              speedValue = 0;
-            }
           }
         } else if (speedValue !== null) {
           speedValue *= 3.6;
-          
-          // More aggressive speed filtering when stationary
-          if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
-            speedValue = 0;
-          }
         }
-        
+
         if (speedValue !== null && speedValue >= 0) {
           setSpeed(prev => {
-            // Use more aggressive exponential moving average for smoother speed display
-            const alpha = 0.2; // Reduced from 0.3 for more smoothing
+            const alpha = 0.3;
             const newSpeed = speedValue * alpha + prev * (1 - alpha);
-            
-            // Force zero speed when stationary or below threshold
-            if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
-              return 0;
-            }
-            return newSpeed;
+            return newSpeed < SPEED_FILTER_THRESHOLD ? 0 : newSpeed;
           });
           
           if (speedValue > maxSpeed) {
@@ -788,6 +710,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     link.download = `gps-log-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   }, [gpsLog]);
+
+  const handleSave = useCallback(async () => {
+    // ... existing code ...
+  }, [elapsedTime, lastStoredPosition, lastStoredTime, lastValidPosition, totalAscent, totalDescent]);
 
   return (
     <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>

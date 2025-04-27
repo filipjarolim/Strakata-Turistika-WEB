@@ -121,3 +121,9 @@ model VisitData {
   userId   String?
   user     User?   @relation("UserVisitData", fields: [userId], references: [id], onDelete: SetNull)
 }
+
+model Rules {
+  id      String @id @map("_id")
+  content String
+  updatedAt DateTime @updatedAt
+}

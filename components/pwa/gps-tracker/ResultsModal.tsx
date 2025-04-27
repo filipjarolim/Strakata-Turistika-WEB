@@ -61,10 +61,12 @@ const ResultsModal: React.FC<ResultsModalProps> = ({
 
             {mapImage && (
               <div className="mb-6">
-                <img
+                <Image
                   src={mapImage}
-                  alt="Track Map"
-                  className="w-full h-auto rounded-lg shadow-sm"
+                  alt="Mapa trasy"
+                  width={800}
+                  height={600}
+                  className="w-full h-auto rounded-lg"
                 />
               </div>
             )}
