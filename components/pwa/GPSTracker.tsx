@@ -535,7 +535,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             pos: newPos,
             accuracy: pos.coords.accuracy,
             speed: pos.coords.speed ? pos.coords.speed * 3.6 : null,
-            cumulativeDistance: cumulativeDistances.length > 0 ? cumulativeDistances[cumulativeDistances.length - 1] : 0
+            cumulativeDistance: parseFloat(calculateDistance())
           }];
           return newLog;
         });
