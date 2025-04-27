@@ -34,6 +34,8 @@ export interface OfflineData {
   avgSpeed?: number | string;
   distance?: string;
   timestamp: number | string;
+  photos?: string[];
+  comment?: string;
   [key: string]: unknown;
 }
 
@@ -57,6 +59,8 @@ export interface TrackData {
   totalDescent: string;
   timestamp: number;
   positions: Position[] | [number, number][];
+  photos?: string[];
+  comment?: string;
 }
 
 export interface PathSegment {
@@ -67,7 +71,7 @@ export interface PathSegment {
 }
 
 export interface GPSTrackerProps {
-  username: string;
+  username?: string;
   className?: string;
 }
 
@@ -113,7 +117,7 @@ export interface ResultsModalProps {
   isSaving: boolean;
   saveSuccess: boolean | null;
   onClose: () => void;
-  onFinish: () => void;
+  onFinish: (formData: FormData) => Promise<void>;
   onReset: () => void;
   className?: string;
 } 

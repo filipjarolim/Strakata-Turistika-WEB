@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
-import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Activity, Menu, Clock, Gauge, ChevronUp } from 'lucide-react';
+import { Play, StopCircle, Pause, PlayCircle, RefreshCcw, Target, DownloadCloud, Map, Award, Loader2, Activity, Menu, Clock, Gauge, ChevronUp, X } from 'lucide-react';
 import { useMap } from 'react-leaflet';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -84,6 +84,20 @@ const startPositionIcon = L.icon({
   popupAnchor: [0, -42],
 });
 
+// Update constants with Czech translations
+const TRACKING_STARTED = 'Sledování zahájeno';
+const TRACKING_STOPPED = 'Sledování ukončeno';
+const TRACKING_PAUSED = 'Sledování pozastaveno';
+const TRACKING_RESUMED = 'Sledování obnoveno';
+const LOW_ACCURACY = 'Nízká přesnost GPS';
+const STATIONARY = 'Detekován stacionární stav';
+const NEW_MAX_SPEED = 'Nová maximální rychlost';
+const NO_TRACK_DATA = 'Není dostatek dat pro uložení';
+const TRACK_SAVED = 'Trasa byla úspěšně uložena';
+const TRACK_SAVE_ERROR = 'Nepodařilo se uložit trasu';
+const TRACK_SAVED_OFFLINE = 'Trasa uložena offline. Bude nahrána po připojení.';
+const NETWORK_ERROR = 'Chyba sítě. Trasa uložena offline pro pozdější nahrání.';
+
 const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => {
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
@@ -156,7 +170,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
   // Add log entry to console
   const addLog = useCallback((type: 'info' | 'error' | 'position', message: string) => {
-    setConsoleLog(prev => [...prev, { type, message, timestamp: Date.now() }]);
+    const timestamp = Date.now();
+    const logEntry = { type, message, timestamp };
+    setConsoleLog(prev => [...prev, logEntry]);
+    console.log(`[${type}] ${message}`); // Also log to browser console
   }, []);
 
   // Clear all data
@@ -353,6 +370,16 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setTracking(false);
     setWatchId(null);
     setCompleted(true);
+    addLog('info', TRACKING_STOPPED);
+    
+    // Close the notification
+    if (Notification.permission === 'granted') {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        registration?.getNotifications({ tag: 'tracking-notification' }).then(notifications => {
+          notifications.forEach(notification => notification.close());
+        });
+      });
+    }
     
     if (positions.length > 1) {
       setShowResults(true);
@@ -360,7 +387,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     } else {
       toast.warning('No track data to save.');
     }
-  }, [watchId, positions.length, captureMapImage]);
+  }, [watchId, positions.length, captureMapImage, addLog]);
 
   // Function to interpolate positions between two points
   const interpolatePositions = useCallback((startPos: [number, number], endPos: [number, number], 
@@ -457,7 +484,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
+      addLog('error', 'Geolokace není podporována vaším prohlížečem');
       return;
     }
 
@@ -479,6 +506,17 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setStationaryStartTime(null);
     setLastValidPosition(null);
     setPositionHistory([]);
+    addLog('info', TRACKING_STARTED);
+
+    // Create persistent notification
+    if (Notification.permission === 'granted') {
+      const notification = new Notification('Sledování trasy', {
+        body: 'Sledování trasy je aktivní',
+        icon: '/icons/dog_emoji.png',
+        requireInteraction: true,
+        tag: 'tracking-notification'
+      });
+    }
     
     // Register background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
@@ -496,7 +534,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         if (paused) return;
         
         if (pos.coords.accuracy > MIN_ACCURACY * 2) {
-          toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
+          addLog('error', LOW_ACCURACY);
           return;
         }
 
@@ -510,17 +548,15 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         // Update position history
         setPositionHistory(prev => {
           const updated = [...prev, { pos: newPos, time: currentTime }];
-          // Keep only last POSITION_HISTORY_SIZE positions for drift detection
           return updated.slice(-POSITION_HISTORY_SIZE);
         });
         
-        // Check if we're stationary with improved detection
+        // Check if we're stationary
         if (positionHistory.length > 0) {
           const avgDistance = positionHistory.reduce((sum, { pos }) => {
             return sum + haversineDistance(pos[0], pos[1], newPos[0], newPos[1]);
           }, 0) / positionHistory.length;
           
-          // Check if all recent positions are within the stationary threshold
           const allPositionsStationary = positionHistory.every(({ pos }) => 
             haversineDistance(pos[0], pos[1], newPos[0], newPos[1]) < STATIONARY_THRESHOLD_KM
           );
@@ -529,6 +565,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             if (!isStationary) {
               setIsStationary(true);
               setStationaryStartTime(currentTime);
+              addLog('info', STATIONARY);
             }
           } else {
             setIsStationary(false);
@@ -549,6 +586,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             }
             setLastUpdateTime(currentTime);
             setMapCenter(newPos);
+            addLog('position', `New position: ${newPos[0].toFixed(6)}, ${newPos[1].toFixed(6)} (Accuracy: ${pos.coords.accuracy.toFixed(1)}m)`);
             return [...prev, {
               lat: newPos[0],
               lng: newPos[1],
@@ -572,7 +610,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
             );
             speedValue = dist / timeDiff * 3600;
             
-            // More aggressive speed filtering when stationary
             if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
               speedValue = 0;
             }
@@ -580,7 +617,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         } else if (speedValue !== null) {
           speedValue *= 3.6;
           
-          // More aggressive speed filtering when stationary
           if (isStationary || speedValue < SPEED_FILTER_THRESHOLD) {
             speedValue = 0;
           }
@@ -588,11 +624,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         if (speedValue !== null && speedValue >= 0) {
           setSpeed(prev => {
-            // Use more aggressive exponential moving average for smoother speed display
-            const alpha = 0.2; // Reduced from 0.3 for more smoothing
+            const alpha = 0.2;
             const newSpeed = speedValue * alpha + prev * (1 - alpha);
             
-            // Force zero speed when stationary or below threshold
             if (isStationary || newSpeed < SPEED_FILTER_THRESHOLD) {
               return 0;
             }
@@ -601,6 +635,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           
           if (speedValue > maxSpeed) {
             setMaxSpeed(speedValue);
+            addLog('info', NEW_MAX_SPEED);
           }
         }
         
@@ -643,44 +678,28 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         }
       },
       (err) => {
-        console.error('Error watching position:', err);
-        let errorMessage = 'Location error: ';
-        switch (err.code) {
-          case 1:
-            errorMessage += 'Permission denied. Please enable location services.';
-            stopTracking();
-            break;
-          case 2:
-            errorMessage += 'Position unavailable. Check your GPS signal.';
-            break;
-          case 3:
-            errorMessage += 'Position request timed out. Try again.';
-            break;
-          default:
-            errorMessage += err.message;
-        }
-        toast.error(errorMessage);
+        addLog('error', `Position error: ${err.message}`);
       },
       POSITION_OPTIONS
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, addLog]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
     setLastPauseTime(Date.now());
-    toast.info('Tracking paused');
-  }, []);
+    addLog('info', TRACKING_PAUSED);
+  }, [addLog]);
 
   const resumeTracking = useCallback(() => {
     if (lastPauseTime) {
-      setPauseDuration((prev) => prev + (Date.now() - lastPauseTime));
+      setPauseDuration(prev => prev + (Date.now() - lastPauseTime));
     }
     setLastPauseTime(null);
     setPaused(false);
-    toast.success('Tracking resumed');
-  }, [lastPauseTime]);
+    addLog('info', TRACKING_RESUMED);
+  }, [lastPauseTime, addLog]);
 
   const resetTracking = useCallback(() => {
     clearAllData();
@@ -743,7 +762,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
   const handleFinish = useCallback(async () => {
     if (positions.length <= 1) {
-      toast.error('Not enough tracking data to save');
+      toast.error(NO_TRACK_DATA);
       return;
     }
     
@@ -766,7 +785,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       distance: distance(),
       elapsedTime: elapsedTime,
       averageSpeed: avgSpeed(),
-      fullName: username || 'Unknown User',
+      fullName: username || 'Neznámý uživatel',
       maxSpeed: maxSpeed.toFixed(1),
       totalAscent: totalAscent.toFixed(0),
       totalDescent: totalDescent.toFixed(0),
@@ -777,7 +796,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     try {
       if (isOffline) {
         await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        toast.success('Track saved offline. It will be uploaded when you reconnect.');
+        toast.success(TRACK_SAVED_OFFLINE);
         setSaveSuccess(true);
       } else {
         const response = await fetch('/api/saveTrack', {
@@ -789,10 +808,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         });
         
         if (response.ok) {
-          toast.success('Track saved successfully!');
+          toast.success(TRACK_SAVED);
           setSaveSuccess(true);
         } else {
-          toast.error('Failed to save track data');
+          toast.error(TRACK_SAVE_ERROR);
           setSaveSuccess(false);
         }
       }
@@ -801,10 +820,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       
       if (!isOffline) {
         await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        toast.warning('Network error. Track saved offline for later upload.');
+        toast.warning(NETWORK_ERROR);
         setSaveSuccess(true);
       } else {
-        toast.error('Failed to save track data');
+        toast.error(TRACK_SAVE_ERROR);
         setSaveSuccess(false);
       }
     } finally {
@@ -822,7 +841,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="flex flex-col items-center space-y-4">
               <Loader2 className="animate-spin text-gray-800 h-9 w-9" />
-              <p className="text-lg font-medium text-gray-800">Loading map...</p>
+              <p className="text-lg font-medium text-gray-800">Načítání mapy...</p>
             </div>
           </div>
         )}
@@ -864,7 +883,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
               <DrawerOverlay className="bg-black/50 transition-opacity duration-300" />
               <DrawerContent className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:w-[400px] h-[60vh] rounded-t-[40px] border-0 transition-transform duration-300 ease-out">
                 <DrawerHeader className="px-6">
-                  <DrawerTitle className="text-xl font-semibold">Tracking Controls</DrawerTitle>
+                  <DrawerTitle className="text-xl font-semibold">Ovládání sledování</DrawerTitle>
                 </DrawerHeader>
                 <div className="p-6 space-y-6 overflow-y-auto">
                   <StatsComponent
@@ -922,14 +941,18 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Tracking Console</DialogTitle>
+            <DialogTitle>Konzole sledování</DialogTitle>
           </DialogHeader>
           <div className="mt-4 h-[60vh] overflow-y-auto bg-black text-green-400 font-mono p-4 rounded-lg">
-            {consoleLog.map((log, index) => (
-              <div key={index} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : ''}`}>
-                [{new Date(log.timestamp).toLocaleTimeString()}] {log.message}
-              </div>
-            ))}
+            {consoleLog.length === 0 ? (
+              <div className="text-gray-500">Zatím nejsou žádné záznamy. Spusťte sledování pro zobrazení aktualizací polohy.</div>
+            ) : (
+              consoleLog.map((log, index) => (
+                <div key={index} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : ''}`}>
+                  [{new Date(log.timestamp).toLocaleTimeString()}] {log.message}
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>
