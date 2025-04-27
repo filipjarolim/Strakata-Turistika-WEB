@@ -241,7 +241,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         const offlineTracks: OfflineData[] = customEvent.detail.tracks;
         console.log('Loaded offline tracks:', offlineTracks);
 
-        let loadedPositions: [number, number][] = [];
+        const loadedPositions: [number, number][] = [];
         let cumulativeDistance = 0;
         const loadedLogs: LogEntry[] = [];
 
@@ -658,20 +658,19 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   }, [
     // List all dependencies for useCallback
     paused, 
-    positions, 
     lastUpdateTime, 
     maxSpeed, 
     lastElevation, 
-    isStationary, // Added isStationary here
+    isStationary,
     stationaryStartTime, 
     positionHistory, 
     backgroundSyncRegistered, 
     clearAllData, 
     currentTotalDistance,
-    lastValidPosition, // Added lastValidPosition
-    lastStoredPosition, // Added lastStoredPosition
-    lastStoredTime, // Added lastStoredTime
-    watchId // Need watchId to stop tracking in error callback
+    lastValidPosition,
+    lastStoredPosition,
+    lastStoredTime,
+    watchId,
   ]); 
 
   const pauseTracking = useCallback(() => {
