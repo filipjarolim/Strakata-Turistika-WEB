@@ -27,6 +27,13 @@ import {
   DrawerPortal,
   DrawerOverlay,
 } from "@/components/ui/drawer"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -138,8 +145,11 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [positionHistory, setPositionHistory] = useState<Array<{ pos: [number, number], time: number }>>([]);
 
   // Add GPS log state
-  const [gpsLog, setGpsLog] = useState<Array<{ time: string, pos: [number, number], accuracy: number, speed: number | null }>>([]);
+  const [gpsLog, setGpsLog] = useState<Array<{ time: string, pos: [number, number], accuracy: number, speed: number | null, cumulativeDistance?: number }>>([]);
   const [showGpsLog, setShowGpsLog] = useState<boolean>(false);
+
+  // Add state for cumulative distance
+  const [cumulativeDistances, setCumulativeDistances] = useState<number[]>([]);
 
   const clearAllData = useCallback(() => {
     setPositions([]);
@@ -365,6 +375,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setStationaryStartTime(null);
     setLastValidPosition(null);
     setPositionHistory([]);
+    setCumulativeDistances([]);
     
     // Register background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window && !backgroundSyncRegistered) {
@@ -388,18 +399,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
-        
-        // Add to GPS log
-        setGpsLog(prev => {
-          const newLog = [...prev, {
-            time: new Date().toLocaleTimeString(),
-            pos: newPos,
-            accuracy: pos.coords.accuracy,
-            speed: pos.coords.speed ? pos.coords.speed * 3.6 : null
-          }];
-          // Keep only last 50 entries
-          return newLog.slice(-50);
-        });
         
         // Update position history
         setPositionHistory(prev => {
@@ -510,6 +509,36 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
         }
         
+        // Calculate cumulative distance
+        setCumulativeDistances(prev => {
+          const newDistances = [...prev];
+          if (newDistances.length === 0) {
+            newDistances.push(0);
+          } else {
+            const lastPos = positions[positions.length - 1];
+            const distance = haversineDistance(
+              lastPos[0],
+              lastPos[1],
+              newPos[0],
+              newPos[1]
+            );
+            newDistances.push(newDistances[newDistances.length - 1] + distance);
+          }
+          return newDistances;
+        });
+        
+        // Add to GPS log with cumulative distance
+        setGpsLog(prev => {
+          const newLog = [...prev, {
+            time: new Date().toLocaleTimeString(),
+            pos: newPos,
+            accuracy: pos.coords.accuracy,
+            speed: pos.coords.speed ? pos.coords.speed * 3.6 : null,
+            cumulativeDistance: cumulativeDistances[cumulativeDistances.length - 1] || 0
+          }];
+          return newLog; // Don't limit the log size anymore
+        });
+        
         // Store position for offline sync
         if (lastStoredPosition === null || 
             haversineDistance(lastStoredPosition[0], lastStoredPosition[1], newPos[0], newPos[1]) > MIN_DISTANCE_KM ||
@@ -553,7 +582,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     );
     setWatchId(id);
     toast.success('GPS tracking started!');
-  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory]);
+  }, [paused, positions, lastUpdateTime, maxSpeed, lastElevation, stopTracking, isStationary, stationaryStartTime, positionHistory, cumulativeDistances]);
 
   const pauseTracking = useCallback(() => {
     setPaused(true);
@@ -823,38 +852,45 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
 
                   {/* GPS Log Console */}
                   <div className="mt-4">
-                    <Button
-                      onClick={() => setShowGpsLog(!showGpsLog)}
-                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg shadow-sm transition-colors"
-                    >
-                      {showGpsLog ? 'Hide GPS Log' : 'Show GPS Log'}
-                    </Button>
-                    
-                    {showGpsLog && (
-                      <div className="mt-2 bg-gray-900 text-gray-100 p-2 rounded-lg max-h-48 overflow-y-auto font-mono text-xs">
-                        {gpsLog.map((log, index) => (
-                          <div key={index} className="border-b border-gray-700 py-1">
-                            <span className="text-blue-400">{log.time}</span>
-                            <span className="text-gray-400"> | </span>
-                            <span className="text-green-400">
-                              {log.pos[0].toFixed(6)}, {log.pos[1].toFixed(6)}
-                            </span>
-                            <span className="text-gray-400"> | </span>
-                            <span className="text-yellow-400">
-                              Acc: {log.accuracy.toFixed(1)}m
-                            </span>
-                            {log.speed !== null && (
-                              <>
-                                <span className="text-gray-400"> | </span>
-                                <span className="text-purple-400">
-                                  Speed: {log.speed.toFixed(1)} km/h
-                                </span>
-                              </>
-                            )}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg shadow-sm transition-colors"
+                        >
+                          Show GPS Log
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[90vw] max-h-[80vh] overflow-hidden">
+                        <DialogHeader>
+                          <DialogTitle>GPS Tracking Log</DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-4 overflow-y-auto max-h-[60vh]">
+                          <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-xs">
+                            {gpsLog.map((log, index) => (
+                              <div key={index} className="border-b border-gray-700 py-2">
+                                <div className="flex flex-wrap gap-x-4">
+                                  <span className="text-blue-400">{log.time}</span>
+                                  <span className="text-green-400">
+                                    {log.pos[0].toFixed(6)}, {log.pos[1].toFixed(6)}
+                                  </span>
+                                  <span className="text-yellow-400">
+                                    Acc: {log.accuracy.toFixed(1)}m
+                                  </span>
+                                  {log.speed !== null && (
+                                    <span className="text-purple-400">
+                                      Speed: {log.speed.toFixed(1)} km/h
+                                    </span>
+                                  )}
+                                  <span className="text-orange-400">
+                                    Distance: {(log.cumulativeDistance || 0).toFixed(2)} km
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
               </DrawerContent>
