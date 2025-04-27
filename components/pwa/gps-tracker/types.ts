@@ -82,6 +82,7 @@ export interface MapComponentProps {
   recenterTrigger: number;
   mapContainerRef: React.RefObject<HTMLDivElement>;
   loading: boolean;
+  currentPosition: [number, number] | null;
   className?: string;
 }
 

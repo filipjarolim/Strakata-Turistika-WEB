@@ -372,10 +372,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setCompleted(true);
     addLog('info', TRACKING_STOPPED);
     
-    // Close the notification
-    if (Notification.permission === 'granted') {
-      navigator.serviceWorker.getRegistration().then(registration => {
-        registration?.getNotifications({ tag: 'tracking-notification' }).then(notifications => {
+    // Close the notification using Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.getNotifications({ tag: 'tracking-notification' }).then(notifications => {
           notifications.forEach(notification => notification.close());
         });
       });
@@ -508,13 +508,16 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setPositionHistory([]);
     addLog('info', TRACKING_STARTED);
 
-    // Create persistent notification
-    if (Notification.permission === 'granted') {
-      const notification = new Notification('Sledování trasy', {
-        body: 'Sledování trasy je aktivní',
-        icon: '/icons/dog_emoji.png',
-        requireInteraction: true,
-        tag: 'tracking-notification'
+    // Create persistent notification using Service Worker
+    if ('serviceWorker' in navigator && 'Notification' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification('Sledování trasy', {
+          body: 'Sledování trasy je aktivní',
+          icon: '/icons/dog_emoji.png',
+          requireInteraction: true,
+          tag: 'tracking-notification',
+          badge: '/icons/dog_emoji.png'
+        });
       });
     }
     
@@ -853,6 +856,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           recenterTrigger={recenterTrigger}
           mapContainerRef={mapContainerRef}
           loading={loading}
+          currentPosition={positions.length > 0 ? [positions[positions.length - 1].lat, positions[positions.length - 1].lng] : null}
           className="w-full h-full"
         />
 
