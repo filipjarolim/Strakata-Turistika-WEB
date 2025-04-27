@@ -150,40 +150,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [positionHistory, setPositionHistory] = useState<Array<{ pos: [number, number], time: number }>>([]);
 
   // Add GPS log state
-  const [gpsLog, setGpsLog] = useState<Array<{ time: string; distance: string; speed: string; accuracy: number; pos: [number, number] }>>([]);
+  const [gpsLog, setGpsLog] = useState<Array<{ time: string; elapsed: string; distance: number; speed: number; accuracy: number; pos: [number, number] }>>([]);
   const [showGpsLog, setShowGpsLog] = useState<boolean>(false);
-
-  // Export GPS log as CSV
-  const exportLogCsv = () => {
-    const header = ['Time','Distance (km)','Speed (km/h)','Accuracy (m)','Latitude','Longitude'];
-    const rows = gpsLog.map(l => [l.time, l.distance, l.speed, l.accuracy.toFixed(1), l.pos[0].toFixed(6), l.pos[1].toFixed(6)]);
-    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `gps_log_${new Date().toISOString()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const clearAllData = useCallback(() => {
-    setPositions([]);
-    setStartTime(null);
-    setElapsedTime(0);
-    setPauseDuration(0);
-    setLastPauseTime(null);
-    setCompleted(false);
-    setSpeed(0);
-    setMaxSpeed(0);
-    setElevation(null);
-    setTotalAscent(0);
-    setTotalDescent(0);
-    setLastElevation(null);
-    setShowResults(false);
-    setMapImage(null);
-    setSaveSuccess(null);
-  }, []);
 
   const calculations = useCallback((): Calculations => {
     const distance = (): string => {
@@ -415,11 +383,31 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         const currentTime = Date.now();
         
-        // Update position history
-        setPositionHistory(prev => {
-          const updated = [...prev, { pos: newPos, time: currentTime }];
-          return updated.slice(-POSITION_HISTORY_SIZE);
-        });
+        // Update positions and log based on full path + UI values
+        const newPositions = [...positions, newPos];
+        setLastValidPosition(newPos);
+        setPositions(newPositions);
+        // Compute total distance over the new path
+        const totalDist = newPositions.reduce((sum, _, index, arr) => {
+          if (index === 0) return sum;
+          const [lat1, lon1] = arr[index - 1];
+          const [lat2, lon2] = arr[index];
+          return sum + haversineDistance(lat1, lon1, lat2, lon2);
+        }, 0);
+        // Use UI-calculated distance and stored speed state
+        setGpsLog(prev => [
+          ...prev,
+          {
+            time: new Date().toLocaleTimeString(),
+            elapsed: formatTime(elapsedTime),
+            distance: parseFloat(totalDist.toFixed(2)),
+            speed: parseFloat(speed.toFixed(1)),
+            accuracy: pos.coords.accuracy,
+            pos: newPos,
+          },
+        ]);
+        setLastUpdateTime(currentTime);
+        setMapCenter(newPos);
         
         // Check if we're stationary with improved detection
         if (positionHistory.length > 0) {
@@ -445,18 +433,32 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         
         // Only update position if we're moving or if we've been stationary for a while
         if (!isStationary || (stationaryStartTime && currentTime - stationaryStartTime > STATIONARY_TIME_THRESHOLD)) {
-          setLastValidPosition(newPos);
           setPositions((prev) => {
-            if (prev.length > 0) {
-              const [lastLat, lastLon] = prev[prev.length - 1];
-              const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
-              if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-                return prev;
-              }
-            }
+            const updated = [...prev, newPos];
+            // Compute total distance along updated path
+            const totalDistance = updated.reduce((sum, _, idx, arr) => {
+              if (idx === 0) return sum;
+              const [p1lat, p1lng] = arr[idx - 1];
+              const [p2lat, p2lng] = arr[idx];
+              return sum + haversineDistance(p1lat, p1lng, p2lat, p2lng);
+            }, 0);
+            // Compute raw speed in km/h
+            const speedRaw = pos.coords.speed !== null ? pos.coords.speed * 3.6 : 0;
+            // Append to GPS log
+            setGpsLog(logs => [
+              ...logs,
+              {
+                time: new Date().toLocaleTimeString(),
+                elapsed: formatTime(elapsedTime),
+                distance: parseFloat(totalDistance.toFixed(2)),
+                speed: parseFloat(speedRaw.toFixed(1)),
+                accuracy: pos.coords.accuracy,
+                pos: newPos,
+              },
+            ]);
             setLastUpdateTime(currentTime);
             setMapCenter(newPos);
-            return [...prev, newPos];
+            return updated;
           });
         }
         
@@ -523,15 +525,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
         }
         
-        // Add to GPS log: compute cumulative distance based on last log
-        setGpsLog(prev => [...prev, {
-          time: new Date().toLocaleTimeString(),
-          distance: calculateDistance(),
-          speed: speed.toFixed(1),
-          accuracy: pos.coords.accuracy,
-          pos: newPos,
-        }]);
-        
         // Store position for offline sync
         if (lastStoredPosition === null || 
             haversineDistance(lastStoredPosition[0], lastStoredPosition[1], newPos[0], newPos[1]) > MIN_DISTANCE_KM ||
@@ -591,6 +584,17 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     setPaused(false);
     toast.success('Tracking resumed');
   }, [lastPauseTime]);
+
+  const clearAllData = useCallback(() => {
+    setPositions([]);
+    setGpsLog([]);
+    setSpeed(0);
+    setMaxSpeed(0);
+    setElapsedTime(0);
+    setTotalAscent(0);
+    setTotalDescent(0);
+    setElevations([]);
+  }, []);
 
   const resetTracking = useCallback(() => {
     clearAllData();
@@ -766,6 +770,25 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     return () => clearInterval(interval);
   }, [tracking, paused]);
 
+  const exportLogCsv = useCallback(() => {
+    const headers = ['Time', 'Elapsed', 'Distance (km)', 'Speed (km/h)', 'Accuracy (m)', 'Latitude', 'Longitude'];
+    const rows = gpsLog.map(log => [
+      log.time,
+      log.elapsed,
+      log.distance.toFixed(2),
+      log.speed.toFixed(1),
+      log.accuracy.toFixed(1),
+      log.pos[0].toFixed(6),
+      log.pos[1].toFixed(6)
+    ]);
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `gps-log-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  }, [gpsLog]);
+
   return (
     <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
       {/* iPhone notch simulation - only show on larger screens */}
@@ -867,6 +890,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                             <thead className="bg-gray-50">
                               <tr>
                                 <th className="px-4 py-2 text-left">Time</th>
+                                <th className="px-4 py-2 text-left">Elapsed</th>
                                 <th className="px-4 py-2 text-left">Distance (km)</th>
                                 <th className="px-4 py-2 text-left">Speed (km/h)</th>
                                 <th className="px-4 py-2 text-left">Accuracy (m)</th>
@@ -877,8 +901,9 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
                               {gpsLog.map((log, i) => (
                                 <tr key={i} className="hover:bg-gray-50">
                                   <td className="px-4 py-2">{log.time}</td>
-                                  <td className="px-4 py-2">{log.distance}</td>
-                                  <td className="px-4 py-2">{log.speed}</td>
+                                  <td className="px-4 py-2">{log.elapsed}</td>
+                                  <td className="px-4 py-2">{log.distance.toFixed(2)}</td>
+                                  <td className="px-4 py-2">{log.speed.toFixed(1)}</td>
                                   <td className="px-4 py-2">{log.accuracy.toFixed(1)}</td>
                                   <td className="px-4 py-2">{log.pos[0].toFixed(6)}, {log.pos[1].toFixed(6)}</td>
                                 </tr>
