@@ -5,9 +5,9 @@ import { UserRole } from "@prisma/client";
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const id = await params.id;
+    const { id } = await params;
     if (!id) {
         return new NextResponse(
             JSON.stringify({ error: "Missing ID" }),
@@ -63,7 +63,7 @@ export async function GET(
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const role = await currentRole();
@@ -78,7 +78,7 @@ export async function PUT(
             );
         }
 
-        const id = await params.id;
+        const { id } = await params;
         if (!id) {
             return new NextResponse(
                 JSON.stringify({ error: "Missing ID" }),
@@ -133,7 +133,7 @@ export async function PUT(
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const role = await currentRole();
@@ -148,7 +148,7 @@ export async function DELETE(
             );
         }
 
-        const id = await params.id;
+        const { id } = await params;
         if (!id) {
             return new NextResponse(
                 JSON.stringify({ error: "Missing ID" }),
