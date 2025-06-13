@@ -16,7 +16,7 @@ interface RejectRequest {
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const role = await currentRole();
@@ -28,7 +28,7 @@ export async function PUT(
     }
 
     const body: RejectRequest = await req.json();
-    const { id } = params;
+    const { id } = await params;
     const route = await db.visitData.findUnique({
       where: { id }
     });
