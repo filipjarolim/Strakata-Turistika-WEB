@@ -14,9 +14,15 @@ interface ApproveRequest {
   };
 }
 
+interface RouteContext {
+  params: {
+    id: string;
+  };
+}
+
 export async function PUT(
   req: Request,
-  context: any
+  context: RouteContext
 ) {
   try {
     const role = await currentRole();
