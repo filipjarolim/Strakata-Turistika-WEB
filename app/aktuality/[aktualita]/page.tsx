@@ -13,12 +13,7 @@ import { useCurrentRole } from "@/hooks/use-current-role";
 import { AdminRestrictedContent } from "@/components/structure/AdminRestrictedContent";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import { Card } from "@/components/ui/card";
-
-type User = {
-    id: string;
-    name?: string;
-    email?: string;
-} | null;
+import { ExtendedUser } from "@/next-auth";
 
 type NewsItem = {
     id: string;
@@ -34,7 +29,7 @@ export default function NewsDetail() {
     const role = useCurrentRole();
     const isEditMode = searchParams.get("edit") === "true";
 
-    const [userData, setUserData] = useState<{ user: User; role: string | null }>({ 
+    const [userData, setUserData] = useState<{ user: ExtendedUser | null; role: string | null }>({ 
         user: null, 
         role: null 
     });
@@ -119,7 +114,7 @@ export default function NewsDetail() {
         <CommonPageTemplate 
             contents={{complete: true}} 
             currentUser={userData.user}
-            currentRole={userData.role}
+            currentRole={userData.role ?? undefined}
         >
             <div className="max-w-4xl mx-auto px-4 py-8 animate-fadeIn">
                 <Button

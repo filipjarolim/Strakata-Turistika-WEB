@@ -7,7 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 interface UserInfoProps {
-    user?: ExtendedUser;
+    user?: ExtendedUser | null;
     label: string;
 };
 

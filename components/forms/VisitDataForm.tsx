@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExtendedUser } from "@/next-auth";
 
 interface FormData {
+  fullName: string;
   visitDate: Date;
   points: number;
   visitedPlaces: string;
@@ -20,6 +21,7 @@ interface FormData {
   year: number;
   extraPoints: {
     description: string;
+    dogName?: string;
     distance?: number;
     totalAscent?: number;
     elapsedTime?: number;

@@ -225,6 +225,7 @@ export default function EditRoutePage() {
             <CardContent className="space-y-6 pt-6">
               <VisitDataForm
                 initialData={{
+                  fullName: route.name || "",
                   visitDate: new Date(),
                   points: 0,
                   visitedPlaces: '',
