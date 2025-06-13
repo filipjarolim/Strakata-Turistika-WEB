@@ -99,11 +99,6 @@ interface Position {
   timestamp: number;
 }
 
-interface GPSTrackerProps {
-  username: string;
-  className?: string;
-}
-
 const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => {
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
@@ -334,16 +329,16 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   }, [watchId]);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!tracking) return;
 
     const interval = setInterval(() => {
-      if (!isPaused) {
+      if (!paused) {
         setElapsedTime(prev => prev + 1);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [tracking, paused, storeTrackingSession]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -447,6 +442,106 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     };
   }, []);
 
+  // Error handler for geolocation
+  const handlePositionError = useCallback((err: GeolocationPositionError) => {
+    console.error('Error watching position:', err);
+    let errorMessage = 'Location error: ';
+    switch (err.code) {
+      case 1:
+        errorMessage += 'Permission denied. Please enable location services.';
+        stopTracking();
+        break;
+      case 2:
+        errorMessage += 'Position unavailable. Check your GPS signal.';
+        break;
+      case 3:
+        errorMessage += 'Position request timed out. Try again.';
+        break;
+      default:
+        errorMessage += err.message;
+    }
+    if (!backgroundMode) {
+      toast.error(errorMessage);
+    }
+  }, [backgroundMode, stopTracking]);
+
+  // Handler for position updates
+  const handlePosition = useCallback((position: Position) => {
+    if (paused) return;
+    if (position.coords.accuracy > MIN_ACCURACY * 2) {
+      toast.warning(`Low GPS accuracy: ${position.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
+      return;
+    }
+    const newPos: [number, number] = [position.coords.latitude, position.coords.longitude];
+    const currentTime = Date.now();
+    
+    // Handle elevation data
+    if (position.coords.altitude !== null) {
+      const currentElevation = position.coords.altitude;
+      setElevation(currentElevation);
+      setElevations(prev => [...prev, currentElevation]);
+      
+      if (lastElevation !== null && position.coords.altitudeAccuracy && position.coords.altitudeAccuracy < 10) {
+        const elevationDiff = currentElevation - lastElevation;
+        if (elevationDiff > 0.5) {
+          setTotalAscent(prev => prev + elevationDiff);
+        } else if (elevationDiff < -0.5) {
+          setTotalDescent(prev => prev + Math.abs(elevationDiff));
+        }
+      }
+      setLastElevation(currentElevation);
+    } else {
+      setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
+    }
+    
+    // Calculate speed
+    let computedSpeed = position.coords.speed;
+    if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
+      const [lastLat, lastLon] = positions[positions.length - 1];
+      const timeDiff = (currentTime - lastUpdateTime) / 1000;
+      if (timeDiff > 0) {
+        computedSpeed = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) / timeDiff * 3600;
+      }
+    } else if (computedSpeed !== null) {
+      computedSpeed *= 3.6;
+    }
+    
+    if (computedSpeed !== null && computedSpeed >= 0) {
+      setSpeed(prev => computedSpeed * 0.3 + prev * 0.7);
+      if (computedSpeed > maxSpeed) {
+        setMaxSpeed(computedSpeed);
+      }
+    }
+    
+    // Update positions array
+    setPositions((prev) => {
+      if (prev.length > 0) {
+        const [lastLat, lastLon] = prev[prev.length - 1];
+        const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
+        if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+          return prev;
+        }
+      }
+  
+      setLastUpdateTime(currentTime);
+      setMapCenter(newPos);
+  
+      const updatedPositions = [...prev, newPos];
+      
+      // Store tracking data for background access
+      storeTrackingSession({
+        positions: updatedPositions,
+        startTime,
+        elapsedTime,
+        pauseDuration,
+        isActive: true,
+        isPaused: false
+      });
+      
+      return updatedPositions;
+    });
+  }, [paused, positions, lastUpdateTime, lastElevation, maxSpeed, startTime, elapsedTime, pauseDuration]);
+
   // Handle visibility change (phone locked/unlocked)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -547,109 +642,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       }
     };
   }, [tracking, paused, wakeLock]);
-
-  // Error handler for geolocation
-  const handlePositionError = useCallback((err: GeolocationPositionError) => {
-    console.error('Error watching position:', err);
-    let errorMessage = 'Location error: ';
-    switch (err.code) {
-      case 1:
-        errorMessage += 'Permission denied. Please enable location services.';
-        stopTracking();
-        break;
-      case 2:
-        errorMessage += 'Position unavailable. Check your GPS signal.';
-        break;
-      case 3:
-        errorMessage += 'Position request timed out. Try again.';
-        break;
-      default:
-        errorMessage += err.message;
-    }
-    
-    if (!backgroundMode) {
-      toast.error(errorMessage);
-    }
-  }, [backgroundMode, stopTracking]);
-
-  // Handler for position updates
-  const handlePosition = useCallback((position: Position) => {
-        if (paused) return;
-        
-        if (position.coords.accuracy > MIN_ACCURACY * 2) {
-          toast.warning(`Low GPS accuracy: ${position.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
-          return;
-        }
-
-        const newPos: [number, number] = [position.coords.latitude, position.coords.longitude];
-        const currentTime = Date.now();
-        
-    // Handle elevation data
-        if (position.coords.altitude !== null) {
-          const currentElevation = position.coords.altitude;
-          setElevation(currentElevation);
-          setElevations(prev => [...prev, currentElevation]);
-          
-          if (lastElevation !== null && position.coords.altitudeAccuracy && position.coords.altitudeAccuracy < 10) {
-            const elevationDiff = currentElevation - lastElevation;
-            if (elevationDiff > 0.5) {
-              setTotalAscent(prev => prev + elevationDiff);
-            } else if (elevationDiff < -0.5) {
-              setTotalDescent(prev => prev + Math.abs(elevationDiff));
-            }
-          }
-          setLastElevation(currentElevation);
-        } else {
-          setElevations(prev => [...prev, prev.length > 0 ? prev[prev.length - 1] : 0]);
-        }
-        
-    // Calculate speed
-        let computedSpeed = position.coords.speed;
-        if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
-          const [lastLat, lastLon] = positions[positions.length - 1];
-          const timeDiff = (currentTime - lastUpdateTime) / 1000;
-          if (timeDiff > 0) {
-            computedSpeed = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) / timeDiff * 3600;
-          }
-        } else if (computedSpeed !== null) {
-          computedSpeed *= 3.6;
-        }
-        
-        if (computedSpeed !== null && computedSpeed >= 0) {
-          setSpeed(prev => computedSpeed * 0.3 + prev * 0.7);
-          if (computedSpeed > maxSpeed) {
-            setMaxSpeed(computedSpeed);
-          }
-        }
-        
-    // Update positions array
-        setPositions((prev) => {
-          if (prev.length > 0) {
-            const [lastLat, lastLon] = prev[prev.length - 1];
-            const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
-            if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-              return prev;
-            }
-          }
-      
-          setLastUpdateTime(currentTime);
-          setMapCenter(newPos);
-      
-      const updatedPositions = [...prev, newPos];
-      
-      // Store tracking data for background access
-      storeTrackingSession({
-        positions: updatedPositions,
-        startTime,
-        elapsedTime,
-        pauseDuration,
-        isActive: true,
-        isPaused: false
-      });
-      
-      return updatedPositions;
-    });
-  }, [paused, positions, lastUpdateTime, lastElevation, maxSpeed, startTime, elapsedTime, pauseDuration]);
 
   // Start tracking
   const startTracking = useCallback(() => {

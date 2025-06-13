@@ -1,5 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 
+interface WakeLockSentinel {
+  release(): Promise<void>;
+}
+
 interface TrackingSession {
   positions: [number, number][];
   startTime: number;
@@ -16,7 +20,7 @@ const GPSTracker: React.FC = () => {
   const [startTime, setStartTime] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [pauseDuration, setPauseDuration] = useState(0);
-  const [wakeLock, setWakeLock] = useState<WakeLock | null>(null);
+  const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
 
   const updateElapsedTime = useCallback(() => {
     if (isActive && !isPaused) {
@@ -54,7 +58,7 @@ const GPSTracker: React.FC = () => {
     }
   }, []);
 
-  const releaseWakeLock = useCallback((lock: WakeLock | null) => {
+  const releaseWakeLock = useCallback((lock: WakeLockSentinel | null) => {
     if (lock) {
       lock.release().catch(console.error);
     }

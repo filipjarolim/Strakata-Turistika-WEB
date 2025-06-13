@@ -68,94 +68,77 @@ const serwist = new Serwist({
   },
 });
 
+// Define a type for the tracking data
+interface TrackingData {
+  tracking: boolean;
+  positions: Array<[number, number]>;
+  startTime: number;
+  elapsedTime: number;
+  pauseDuration: number;
+  isActive: boolean;
+  isPaused: boolean;
+}
+
 // Add background sync support for GPS tracking
-self.addEventListener('sync', (event) => {
+self.addEventListener('sync', (event: any) => {
   if (event.tag === 'gps-tracking-sync') {
     event.waitUntil(
-      self.clients.matchAll().then(clients => {
-        // If there are any active clients, don't run background tracking
-        if (clients.length > 0) {
+      (async () => {
+        try {
+          const cache = await caches.open('gps-tracking-cache');
+          const response = await cache.match('tracking-data');
+          if (!response) {
+            console.log('No tracking data found in cache');
+            return Promise.resolve();
+          }
+          
+          // Simplified data handling without complex types
+          const data = await response.json();
+          console.log('Syncing tracking data:', data);
+          
+          // Here you can add code to send the data to your server
+          // For example:
+          // await fetch('/api/saveTrack', {
+          //   method: 'POST',
+          //   headers: { 'Content-Type': 'application/json' },
+          //   body: JSON.stringify(data)
+          // });
+          
           return Promise.resolve();
+        } catch (error) {
+          console.error('Error syncing tracking data:', error);
+          return Promise.reject(error);
         }
-        
-        // Setup background location tracking
-        return setupBackgroundTracking();
-      })
+      })()
     );
   }
 });
 
 // Function to set up background location tracking
 async function setupBackgroundTracking() {
-  // Get the tracking state from IndexedDB or localStorage
-  const data = await self.clients.matchAll({ type: 'window' })
-    .then(async clients => {
-      if (clients.length > 0) {
-        // Try to get data from an active client
-        const activeClient = clients[0];
-        return activeClient.postMessage({ type: 'GET_TRACKING_DATA' });
-      }
-      
-      // If no active clients, try to get from storage
-      try {
-        // We can only use localStorage from clients, not from service workers
-        // This is just a placeholder - we'll need to implement using IndexedDB
+  try {
+    // Get the tracking state from IndexedDB or localStorage
+    const data = await self.clients.matchAll({ type: 'window' })
+      .then(async clients => {
+        if (clients.length > 0) {
+          // Try to get data from an active client
+          const activeClient = clients[0];
+          return activeClient.postMessage({ type: 'GET_TRACKING_DATA' });
+        }
         return null;
-      } catch (err) {
-        console.error('Error retrieving tracking data:', err);
-        return null;
-      }
-    });
-  
-  // If no tracking data or not tracking, don't do anything
-  if (!data || !data.tracking) {
+      });
+    
+    // Simplified check without complex types
+    if (!data) {
+      return Promise.resolve();
+    }
+    
+    console.log('Background tracking data:', data);
+    return Promise.resolve();
+  } catch (error) {
+    console.error('Error in background tracking:', error);
     return Promise.resolve();
   }
-  
-  // Set up periodic geolocation polling if browser is in background
-  let trackingInterval = null;
-  
-  if ('geolocation' in self) {
-    trackingInterval = setInterval(() => {
-      try {
-        // This won't actually work in a service worker, but showing the concept
-        // In reality, we'd need to use a different approach like periodic sync or
-        // periodic background fetch from the main thread
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const newPosition = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              timestamp: Date.now()
-            };
-            
-            // Store the position (would use IndexedDB in a real implementation)
-            console.log('Background position update:', newPosition);
-          },
-          (error) => {
-            console.error('Background geolocation error:', error);
-          },
-          {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 5000
-          }
-        );
-      } catch (err) {
-        console.error('Error in background tracking:', err);
-      }
-    }, BACKGROUND_SYNC_INTERVAL);
-  }
-  
-  // Clean up interval when sync is done
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-      }
-      resolve(undefined);
-    }, 25000); // Run for 25 seconds max per sync event
-  });
 }
 
 // Add fetch event listener to handle failed image requests with a fallback
