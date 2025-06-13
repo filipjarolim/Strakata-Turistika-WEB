@@ -14,15 +14,9 @@ interface ApproveRequest {
   };
 }
 
-interface RouteContext {
-  params: {
-    id: string;
-  };
-}
-
 export async function PUT(
   req: Request,
-  context: RouteContext
+  { params }: { params: { id: string } }
 ) {
   try {
     const role = await currentRole();
@@ -31,7 +25,7 @@ export async function PUT(
     }
 
     const body: ApproveRequest = await req.json();
-    const { id } = context.params;
+    const { id } = params;
     const route = await db.visitData.findUnique({
       where: { id }
     });
