@@ -7,8 +7,10 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import basicInfo from "@/lib/settings/basicInfo";
 import { ExternalLink, ArrowUp, MessageSquare } from "lucide-react";
+import { ExtendedUser } from "@/next-auth";
 
-const Footer: React.FC<{ user?: { email?: string }; role?: string }> = ({ user }) => {
+
+const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user }) => {
     const [showBackToTop, setShowBackToTop] = useState(false);
     
     // Handle scroll detection for back-to-top button
@@ -39,9 +41,7 @@ const Footer: React.FC<{ user?: { email?: string }; role?: string }> = ({ user }
     ];
     
     const socialLinks = [
-        { name: "Instagram", href: "https://instagram.com" },
-        { name: "Facebook", href: "https://facebook.com" },
-        { name: "YouTube", href: "https://youtube.com" }
+        { name: "Facebook", href: "https://www.facebook.com/strakata.turistika.7" },
     ];
 
     return (
@@ -158,7 +158,9 @@ const Footer: React.FC<{ user?: { email?: string }; role?: string }> = ({ user }
                         </HoverCard>
                     </div>
                 </div>
+                
             </footer>
+
         </>
     );
 };

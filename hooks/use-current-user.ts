@@ -4,5 +4,5 @@ export const useCurrentUser = () => {
     const session = useSession()
     console.log(session)
 
-    return session.data?.user
+    return session.data?.user || null
 }

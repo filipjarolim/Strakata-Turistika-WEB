@@ -13,8 +13,12 @@ import { currentUser } from "@/lib/auth";
 import { currentRole } from "@/lib/auth";
 import DogEmoji from "@/assets/img/dog_emoji.png";
 import PinEmoji from "@/assets/img/pin_emoji.png";
+import Showcase1 from "@/assets/img/showcase/1.png";
+import Showcase2 from "@/assets/img/showcase/3.png";
+import Showcase3 from "@/assets/img/showcase/2.png";
 import News from "@/components/blocks/News";
 import { MapPin, Calendar, Award, ArrowRight } from "lucide-react";
+
 
 const featuredLocations = [
     {
@@ -137,32 +141,52 @@ const Home = async () => {
             
             <Separator className="my-8" />
             
-            {/* Featured Locations Section */}
+            {/* Showcase Section */}
             <div className="p-8 animate-fadeIn animation-delay-600">
-                <h2 className="text-4xl font-bold mb-6">Objevte zajímavá místa</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {featuredLocations.map((location) => (
-                        <Card key={location.id} className="overflow-hidden group hover:shadow-xl transition-all duration-300">
-                            <div className="relative h-48">
-                                <Image 
-                                    src={location.image} 
-                                    alt={location.title}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, 33vw"
-                                    priority={location.id === 1}
-                                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                />
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold mb-2">{location.title}</h3>
-                                <p className="text-gray-500 mb-4">{location.description}</p>
-                                <Button variant="ghost" className="group">
-                                    Více informací
-                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                </Button>
-                            </div>
-                        </Card>
-                    ))}
+                <h2 className="text-4xl font-bold mb-6 text-center">Prozkoumejte krásy přírody</h2>
+                <p className="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
+                    Od hustých lesů přes majestátní hory až po křišťálová jezera - objevte nejkrásnější místa České republiky se svým čtyřnohým společníkem.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+                    <div className="group relative overflow-hidden rounded-2xl aspect-[3/4] transform hover:-translate-y-2 transition-all duration-300">
+                        <Image
+                            src={Showcase1}
+                            alt="Majestátní hory"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70"></div>
+                        <div className="absolute bottom-0 left-0 p-6 text-white">
+                            <h3 className="text-2xl font-bold mb-2">Křišťálová jezera</h3>
+                            <p className="text-sm text-gray-200">Osvěžte se u průzračných horských jezer</p>
+                        </div>
+                    </div>
+                    <div className="group relative overflow-hidden rounded-2xl aspect-[3/4] transform hover:-translate-y-2 transition-all duration-300 md:translate-y-12">
+                        <Image
+                            src={Showcase2}
+                            alt="Husté lesy"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70"></div>
+                        <div className="absolute bottom-0 left-0 p-6 text-white">
+                            <h3 className="text-2xl font-bold mb-2">Husté lesy</h3>
+                            <p className="text-sm text-gray-200">Prozkoumejte tajemná zákoutí našich lesů</p>
+                        </div>
+                    </div>
+                    <div className="group relative overflow-hidden rounded-2xl aspect-[3/4] transform hover:-translate-y-2 transition-all duration-300">
+                        <Image
+                            src={Showcase3}
+                            alt="Křišťálová jezera"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70"></div>
+                        <div className="absolute bottom-0 left-0 p-6 text-white">
+                            <h3 className="text-2xl font-bold mb-2">Majestátní hory</h3>
+                            <p className="text-sm text-gray-200">Zdolejte vrcholy a užijte si dechberoucí výhledy do krajiny</p>
+                        </div>
+                    </div>
                 </div>
             </div>
             

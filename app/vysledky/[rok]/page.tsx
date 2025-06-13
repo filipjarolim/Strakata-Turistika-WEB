@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchWithCache, prefetchApiData } from '@/lib/api-utils';
+import { DogRestrictionsView } from '@/components/blocks/vysledky/DogRestrictionsView';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const YearSelector: React.FC<{ 
     year: number | null; 
@@ -125,7 +127,7 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
         totalItems: 0,
         totalPages: 1,
         currentPage: 1,
-        pageSize: 100,
+        pageSize: 1000, // Increased from 100 to load more data at once
     });
     
     // Add state for lazy loading
@@ -147,33 +149,24 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
             setError(null);
             
             try {
-                // Fetch all available years using cached API
-                const years = await fetchWithCache<number[]>('/api/seasons');
-                setAllYears(years);
+                // Parallel fetch for optimization
+                const [years, responseData] = await Promise.all([
+                    fetchWithCache<number[]>('/api/seasons'),
+                    fetchWithCache<{
+                        data: VisitData[],
+                        pagination: {
+                            totalItems: number,
+                            totalPages: number,
+                            currentPage: number,
+                            pageSize: number
+                        }
+                    }>(`/api/results/${(await params).rok}?page=1&pageSize=1000&sort=points&order=desc`)
+                ]);
 
-                // Fetch data for the specified year
-                const { rok } = await params;
-                const yearNum = parseInt(rok);
-                setYear(yearNum);
-                
-                // Use cached API for fetching year data
-                const responseData = await fetchWithCache<{
-                    data: VisitData[],
-                    pagination: {
-                        totalItems: number,
-                        totalPages: number,
-                        currentPage: number,
-                        pageSize: number
-                    }
-                }>(`/api/results/${rok}?page=1&pageSize=100`);
-                
+                setAllYears(years);
+                setYear(parseInt((await params).rok));
                 setVisitData(responseData.data || []);
-                setPagination(responseData.pagination || {
-                    totalItems: 0,
-                    totalPages: 1,
-                    currentPage: 1,
-                    pageSize: 100,
-                });
+                setPagination(responseData.pagination);
             } catch (error) {
                 console.error(error);
                 setError(error instanceof Error ? error.message : 'Došlo k chybě při načítání dat.');
@@ -185,7 +178,6 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
         fetchData();
     }, [params]);
     
-    // Update loadMoreData to use cached fetch
     const loadMoreData = useCallback(async () => {
         if (loadingMore || pagination.currentPage >= pagination.totalPages) return;
         
@@ -195,6 +187,7 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
             const nextPage = pagination.currentPage + 1;
             const { rok } = await params;
             
+            // Add sorting and priority loading parameters
             const responseData = await fetchWithCache<{
                 data: VisitData[],
                 pagination: {
@@ -203,12 +196,16 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                     currentPage: number,
                     pageSize: number
                 }
-            }>(`/api/results/${rok}?page=${nextPage}&pageSize=${pagination.pageSize}`);
+            }>(`/api/results/${rok}?page=${nextPage}&pageSize=${pagination.pageSize}&sort=points&order=desc`);
             
-            // Append the new data to existing data
-            setVisitData(prevData => [...prevData, ...(responseData.data || [])]);
+            // Process and merge data with prioritization
+            const newData = responseData.data || [];
+            setVisitData(prevData => {
+                const merged = [...prevData, ...newData];
+                // Sort by points to prioritize higher scores
+                return merged.sort((a, b) => b.points - a.points);
+            });
             
-            // Update pagination information
             setPagination(responseData.pagination);
         } catch (error) {
             console.error('Error loading more data:', error);
@@ -227,7 +224,10 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                     loadMoreData();
                 }
             },
-            { threshold: 0.1 }
+            { 
+                threshold: 0.25, // Increased threshold for earlier loading
+                rootMargin: '100px' // Start loading before element is fully visible
+            }
         );
         
         observerRef.current.observe(loadMoreRef.current);
@@ -272,52 +272,65 @@ const Page = ({ params }: { params: Promise<{ rok: string }> }) => {
                     )}
                 </div>
 
-                <TooltipProvider>
-                    <div className="bg-card rounded-lg border shadow-sm p-4">
-                        <DataTable 
-                            data={visitData} 
-                            columns={columns}
-                            year={year || new Date().getFullYear()} 
-                            primarySortColumn="points"
-                            primarySortDesc={true}
-                            transformToAggregatedView={transformDataToAggregated}
-                            filterConfig={{ 
-                                dateField: 'visitDate',
-                                numberField: 'points'
-                            }}
-                            filename={`strakataturistika_vysledky_${year}`}
-                            enableDownload={true}
-                            enableAggregatedView={true}
-                            aggregatedViewLabel="Souhrnný přehled"
-                            detailedViewLabel="Detailní pohled"
-                            enableColumnVisibility={true}
-                            enableSearch={true}
-                            excludedColumnsInAggregatedView={['visitDate', 'dogNotAllowed', 'routeLink']}
-                            mainSheetName="Detailní Data"
-                            summarySheetName="Souhrnná Data"
-                            generateSummarySheet={true}
-                            loading={loading}
-                            emptyStateMessage="Pro tento rok nejsou k dispozici žádné výsledky"
-                        />
-                        
-                        {/* Add a load more trigger element that will be observed */}
-                        {!loading && pagination.currentPage < pagination.totalPages && (
-                            <div 
-                                ref={loadMoreRef} 
-                                className="w-full mt-4 py-4 flex justify-center"
-                            >
-                                {loadingMore ? (
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <p className="text-muted-foreground text-sm">Načítání dalších výsledků...</p>
+                <Tabs defaultValue="table" className="space-y-4">
+                    <TabsList>
+                        <TabsTrigger value="table">Tabulka výsledků</TabsTrigger>
+                        <TabsTrigger value="restrictions">Informace o omezeních</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="table" className="space-y-4">
+                        <TooltipProvider>
+                            <div className="bg-card rounded-lg border shadow-sm p-4">
+                                <DataTable 
+                                    data={visitData} 
+                                    columns={columns}
+                                    year={year || new Date().getFullYear()} 
+                                    primarySortColumn="points"
+                                    primarySortDesc={true}
+                                    transformToAggregatedView={transformDataToAggregated}
+                                    filterConfig={{ 
+                                        dateField: 'visitDate',
+                                        numberField: 'points'
+                                    }}
+                                    filename={`strakataturistika_vysledky_${year}`}
+                                    enableDownload={true}
+                                    enableAggregatedView={true}
+                                    aggregatedViewLabel="Souhrnný přehled"
+                                    detailedViewLabel="Detailní pohled"
+                                    enableColumnVisibility={true}
+                                    enableSearch={true}
+                                    excludedColumnsInAggregatedView={['visitDate', 'routeLink']}
+                                    mainSheetName="Detailní Data"
+                                    summarySheetName="Souhrnná Data"
+                                    generateSummarySheet={true}
+                                    loading={loading}
+                                    emptyStateMessage="Pro tento rok nejsou k dispozici žádné výsledky"
+                                />
+                                
+                                {/* Add a load more trigger element that will be observed */}
+                                {!loading && pagination.currentPage < pagination.totalPages && (
+                                    <div 
+                                        ref={loadMoreRef} 
+                                        className="w-full mt-4 py-4 flex justify-center"
+                                    >
+                                        {loadingMore ? (
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <p className="text-muted-foreground text-sm">Načítání dalších výsledků...</p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground text-sm">Rolujte pro načtení dalších výsledků</p>
+                                        )}
                                     </div>
-                                ) : (
-                                    <p className="text-muted-foreground text-sm">Rolujte pro načtení dalších výsledků</p>
                                 )}
                             </div>
-                        )}
-                    </div>
-                </TooltipProvider>
+                        </TooltipProvider>
+                    </TabsContent>
+
+                    <TabsContent value="restrictions">
+                        <DogRestrictionsView data={visitData} />
+                    </TabsContent>
+                </Tabs>
             </div>
         </CommonPageTemplate>
     );

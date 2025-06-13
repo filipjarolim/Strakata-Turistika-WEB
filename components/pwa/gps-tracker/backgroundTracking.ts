@@ -20,6 +20,12 @@ export interface StoredTrackingSession {
   isPaused: boolean;
 }
 
+// Define WakeLock type
+interface WakeLock {
+  release(): Promise<void>;
+  addEventListener(type: string, listener: () => void): void;
+}
+
 /**
  * Store current tracking session in localStorage for recovery
  */
@@ -135,10 +141,10 @@ export const initBackgroundTracking = (
 /**
  * Request wake lock to keep screen on during tracking
  */
-export const requestWakeLock = async (): Promise<any> => {
+export const requestWakeLock = async (): Promise<WakeLock | null> => {
   if ('wakeLock' in navigator) {
     try {
-      // @ts-ignore - TypeScript may not recognize WakeLock API yet
+      // @ts-expect-error - TypeScript doesn't recognize WakeLock API yet
       const wakeLock = await navigator.wakeLock.request('screen');
       console.log('Wake Lock acquired');
       
@@ -153,7 +159,7 @@ export const requestWakeLock = async (): Promise<any> => {
 /**
  * Release wake lock
  */
-export const releaseWakeLock = (wakeLock: any): void => {
+export const releaseWakeLock = (wakeLock: WakeLock | null): void => {
   if (wakeLock) {
     try {
       wakeLock.release();

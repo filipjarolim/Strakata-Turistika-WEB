@@ -12,20 +12,11 @@ import { cs } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type FilterButtonProps = {
-    // Date filter handlers
-    onDateFilterChange?: (
-        filterType: "before" | "after" | "between",
-        dates: [Date | undefined, Date | undefined]
-    ) => void;
-    // Number range filter handlers
-    onNumberFilterChange?: (min?: number, max?: number) => void;
-    // Custom filter handler
-    onCustomFilterChange?: (filterParams: Record<string, unknown>) => void;
-    // Clear filters
-    onClearDateFilters?: () => void;
-    onClearAllFilters?: () => void;
-    // Config
+export type FilterButtonProps = {
+    onDateFilterChange: (filterType: 'before' | 'after' | 'between', dates: [Date | undefined, Date | undefined]) => void;
+    onNumberFilterChange: (min?: number, max?: number) => void;
+    onCustomFilterChange: (filterParams: Record<string, unknown>) => void;
+    onClearAllFilters: () => void;
     year?: number;
     dateFieldLabel?: string;
     numberFieldLabel?: string;
@@ -33,18 +24,21 @@ type FilterButtonProps = {
         label: string;
         options: { value: string; label: string }[];
     };
+    showDateFilter?: boolean;  // Add this prop
+    showNumberFilter?: boolean;  // Add this prop
 };
 
 export const FilterButton: React.FC<FilterButtonProps> = ({ 
     onDateFilterChange, 
     onNumberFilterChange,
     onCustomFilterChange,
-    onClearDateFilters, 
     onClearAllFilters,
     year = new Date().getFullYear(),
     dateFieldLabel = "Date",
     numberFieldLabel = "Value",
-    customFilterOptions
+    customFilterOptions,
+    showDateFilter = true,
+    showNumberFilter = true,
 }) => {
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>("date");
@@ -102,9 +96,7 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
         setSelectedCustomValues([]);
 
         // Call parent's callback to clear filters
-        if (activeTab === "date" && onClearDateFilters) {
-            onClearDateFilters();
-        } else if (onClearAllFilters) {
+        if (onClearAllFilters) {
             onClearAllFilters();
         }
 
@@ -120,8 +112,8 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
     };
 
     // Determine which tabs to show based on provided handlers
-    const showDateTab = !!onDateFilterChange;
-    const showNumberTab = !!onNumberFilterChange;
+    const showDateTab = !!onDateFilterChange && showDateFilter;
+    const showNumberTab = !!onNumberFilterChange && showNumberFilter;
     const showCustomTab = !!onCustomFilterChange && !!customFilterOptions;
 
     // If no tabs would be shown, don't render the component
@@ -144,8 +136,12 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
                 </div>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList className="w-full grid grid-cols-3 p-1 m-1">
-                        <TabsTrigger value="date" className="text-xs">Datum</TabsTrigger>
-                        <TabsTrigger value="number" className="text-xs">Body</TabsTrigger>
+                        {showDateTab && (
+                            <TabsTrigger value="date" className="text-xs">Datum</TabsTrigger>
+                        )}
+                        {showNumberTab && (
+                            <TabsTrigger value="number" className="text-xs">Body</TabsTrigger>
+                        )}
                         {customFilterOptions && (
                             <TabsTrigger value="custom" className="text-xs">
                                 {customFilterOptions.label || "Kategorie"}
@@ -153,77 +149,81 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
                         )}
                     </TabsList>
                     
-                    <TabsContent value="date" className="p-4 space-y-4">
-                        <div className="space-y-2">
-                            <h4 className="text-sm font-medium">{dateFieldLabel}</h4>
-                            <Select
-                                value={filterType}
-                                onValueChange={(value: "before" | "after" | "between") => 
-                                    setFilterType(value)
-                                }
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Vyberte typ filtru" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="before">Před datem</SelectItem>
-                                    <SelectItem value="after">Po datu</SelectItem>
-                                    <SelectItem value="between">Mezi daty</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            
-                            {filterType === "between" ? (
-                                <div className="rounded-md border p-2">
-                                    <Calendar
-                                        mode="range"
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        initialFocus
-                                        locale={cs}
-                                        fromYear={year - 10}
-                                        toYear={year + 1}
-                                        defaultMonth={new Date(year, 0)}
-                                    />
-                                </div>
-                            ) : (
-                                <div className="rounded-md border p-2">
-                                    <Calendar
-                                        mode="single"
-                                        selected={selectedSingleDate}
-                                        onSelect={setSelectedSingleDate}
-                                        initialFocus
-                                        locale={cs}
-                                        fromYear={year - 10}
-                                        toYear={year + 1}
-                                        defaultMonth={new Date(year, 0)}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="number" className="p-4 space-y-4">
-                        <div className="space-y-2">
-                            <h4 className="text-sm font-medium">{numberFieldLabel}</h4>
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    type="number"
-                                    placeholder="Minimum"
-                                    value={minValue}
-                                    onChange={(e) => setMinValue(e.target.value)}
-                                    className="w-1/2"
-                                />
-                                <span className="text-muted-foreground">–</span>
-                                <Input
-                                    type="number"
-                                    placeholder="Maximum"
-                                    value={maxValue}
-                                    onChange={(e) => setMaxValue(e.target.value)}
-                                    className="w-1/2"
-                                />
+                    {showDateTab && (
+                        <TabsContent value="date" className="p-4 space-y-4">
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">{dateFieldLabel}</h4>
+                                <Select
+                                    value={filterType}
+                                    onValueChange={(value: "before" | "after" | "between") => 
+                                        setFilterType(value)
+                                    }
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Vyberte typ filtru" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="before">Před datem</SelectItem>
+                                        <SelectItem value="after">Po datu</SelectItem>
+                                        <SelectItem value="between">Mezi daty</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                
+                                {filterType === "between" ? (
+                                    <div className="rounded-md border p-2">
+                                        <Calendar
+                                            mode="range"
+                                            selected={dateRange}
+                                            onSelect={setDateRange}
+                                            initialFocus
+                                            locale={cs}
+                                            fromYear={year - 10}
+                                            toYear={year + 1}
+                                            defaultMonth={new Date(year, 0)}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="rounded-md border p-2">
+                                        <Calendar
+                                            mode="single"
+                                            selected={selectedSingleDate}
+                                            onSelect={setSelectedSingleDate}
+                                            initialFocus
+                                            locale={cs}
+                                            fromYear={year - 10}
+                                            toYear={year + 1}
+                                            defaultMonth={new Date(year, 0)}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    </TabsContent>
+                        </TabsContent>
+                    )}
+                    
+                    {showNumberTab && (
+                        <TabsContent value="number" className="p-4 space-y-4">
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium">{numberFieldLabel}</h4>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        placeholder="Minimum"
+                                        value={minValue}
+                                        onChange={(e) => setMinValue(e.target.value)}
+                                        className="w-1/2"
+                                    />
+                                    <span className="text-muted-foreground">–</span>
+                                    <Input
+                                        type="number"
+                                        placeholder="Maximum"
+                                        value={maxValue}
+                                        onChange={(e) => setMaxValue(e.target.value)}
+                                        className="w-1/2"
+                                    />
+                                </div>
+                            </div>
+                        </TabsContent>
+                    )}
                     
                     {customFilterOptions && (
                         <TabsContent value="custom" className="p-4 space-y-4">

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import CommonPageTemplate from '@/components/structure/CommonPageTemplate';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -12,6 +13,8 @@ import { motion } from 'framer-motion';
 import { CalendarDays, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import VysledkyImage from '@/assets/img/vysledkyimage.png';
 
 export default function SeasonsPage() {
     const [years, setYears] = useState<number[]>([]);
@@ -87,7 +90,7 @@ export default function SeasonsPage() {
     };
 
     return (
-        <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
+        <CommonPageTemplate contents={{ header: true }} currentUser={user} currentRole={role} className='h-screen overflow-hidden'>
             <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
@@ -102,6 +105,7 @@ export default function SeasonsPage() {
                             onChange={handleSearch}
                             className="pl-10 w-full"
                         />
+                  
                     </div>
                 </div>
 
@@ -112,59 +116,68 @@ export default function SeasonsPage() {
                     </Alert>
                 )}
 
-                {isLoading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
-                        {Array.from({ length: 8 }).map((_, index) => (
-                            <div key={index} className="h-36">
-                                <Skeleton className="w-full h-full rounded-lg" />
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <motion.div 
-                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6"
-                        variants={container}
-                        initial="hidden"
-                        animate="show"
-                    >
-                        {filteredYears.length > 0 ? (
-                            filteredYears.map((year, index) => (
-                                <motion.div
-                                    key={year}
-                                    variants={item}
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="transition-all duration-300"
-                                >
-                                    <Link href={`/vysledky/${year}`} className="h-full">
-                                        <Card className="h-full border border-border hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                                <div className="flex items-center space-x-2">
-                                                    <CalendarDays className="w-5 h-5 text-primary" />
-                                                    <h2 className="text-xl font-bold">{year}</h2>
-                                                </div>
-                                                {year === new Date().getFullYear() && (
-                                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Aktuální</Badge>
-                                                )}
-                                            </CardHeader>
-                                            <CardContent>
-                                                <p className="text-muted-foreground">
-                                                    Výsledky turistické sezóny {year}
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    </Link>
-                                </motion.div>
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-10">
-                                <h3 className="text-lg font-medium">Žádné výsledky</h3>
-                                <p className="text-muted-foreground mt-1">Pro zadaný rok nebyly nalezeny žádné výsledky</p>
-                            </div>
-                        )}
-                    </motion.div>
-                )}
+                <ScrollArea className="h-[400px]">
+                    {isLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+                            {Array.from({ length: 8 }).map((_, index) => (
+                                <div key={index} className="h-36">
+                                    <Skeleton className="w-full h-full rounded-lg" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <motion.div 
+                            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6"
+                            variants={container}
+                            initial="hidden"
+                            animate="show"
+                        >
+                            {filteredYears.length > 0 ? (
+                                filteredYears.map((year, index) => (
+                                    <motion.div
+                                        key={year}
+                                        variants={item}
+                                        whileHover={{ scale: 1.03 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="transition-all duration-300"
+                                    >
+                                        <Link href={`/vysledky/${year}`} className="h-full">
+                                            <Card className="h-full border border-border hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <CalendarDays className="w-5 h-5 text-primary" />
+                                                        <h2 className="text-xl font-bold">{year}</h2>
+                                                    </div>
+                                                    {year === new Date().getFullYear() && (
+                                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Aktuální</Badge>
+                                                    )}
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <p className="text-muted-foreground">
+                                                        Výsledky turistické sezóny {year}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                        </Link>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-10">
+                                    <h3 className="text-lg font-medium">Žádné výsledky</h3>
+                                    <p className="text-muted-foreground mt-1">Pro zadaný rok nebyly nalezeny žádné výsledky</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </ScrollArea>
+
+                <p className="text-sm text-muted-foreground mt-8">
+                            Hledáte své výsledky? <Link href="/vysledky/moje" className="text-primary hover:underline">Přejít na můj profil</Link>
+                </p>
             </div>
+                  
+            <Image src={VysledkyImage} alt="Strakatá turistika" className={"w-[250px] pointer-events-none fixed bottom-[-60px] right-[8%]"}/>
+            
         </CommonPageTemplate>
     );
 }

@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Trash, Pencil } from "lucide-react";
-import { Shield } from "lucide-react"; // Icon from lucide-react
-import { useCurrentRole } from "@/hooks/use-current-role"; // Role hook
+import { Textarea } from "@/components/ui/textarea";
+import { Trash, Pencil, Plus, Loader2 } from "lucide-react";
+import { useCurrentRole } from "@/hooks/use-current-role";
 import { AdminRestrictedContent } from "../structure/AdminRestrictedContent";
-import {Separator} from "@/components/ui/separator";
+import { format } from "date-fns";
+import { cs } from "date-fns/locale";
+import { toast } from "sonner";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type NewsItem = {
     id: string;
@@ -19,7 +23,10 @@ type NewsItem = {
 };
 
 export default function News() {
+    const router = useRouter();
     const [news, setNews] = useState<NewsItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [open, setOpen] = useState<boolean>(false);
     const [title, setTitle] = useState<string>("");
     const [content, setContent] = useState<string>("");
@@ -31,91 +38,153 @@ export default function News() {
     }, []);
 
     async function fetchNews(): Promise<void> {
-        const res = await fetch("/api/news");
-        const data: NewsItem[] = await res.json();
-        setNews(data);
+        try {
+            setIsLoading(true);
+            const res = await fetch("/api/news");
+            if (!res.ok) {
+                throw new Error(`Error: ${res.status}`);
+            }
+            const data: NewsItem[] = await res.json();
+            setNews(data);
+        } catch (error) {
+            console.error("Error fetching news:", error);
+            toast.error("Nepodařilo se načíst aktuality");
+            setNews([]);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     async function handleSubmit(): Promise<void> {
-        console.log(title, content);
-        console.log("SUBMITTING");
-        const method = editId ? "PUT" : "POST";
-        const endpoint = editId ? `/api/news/${editId}` : "/api/news";
+        try {
+            setIsSubmitting(true);
+            const method = editId ? "PUT" : "POST";
+            const endpoint = editId ? `/api/news/${editId}` : "/api/news";
 
-        await fetch(endpoint, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, content }),
-        }).then((r) => {
-            console.log("Submitted");
-            console.log(r);
-        });
+            const response = await fetch(endpoint, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, content }),
+            });
 
-        await fetchNews();
-        setOpen(false);
-        setTitle("");
-        setContent("");
-        setEditId(null);
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error("Unauthorized");
+                }
+                throw new Error(`Error: ${response.status}`);
+            }
+
+            await fetchNews();
+            setOpen(false);
+            setTitle("");
+            setContent("");
+            setEditId(null);
+            toast.success(editId ? "Aktualita byla upravena" : "Aktualita byla přidána");
+        } catch (error) {
+            console.error("Error submitting news:", error);
+            if (error instanceof Error && error.message === "Unauthorized") {
+                toast.error("Nemáte oprávnění k této akci");
+            } else {
+                toast.error("Něco se pokazilo");
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     async function handleDelete(id: string): Promise<void> {
-        await fetch(`/api/news/${id}`, { method: "DELETE" });
-        await fetchNews();
-    }
+        try {
+            const response = await fetch(`/api/news/${id}`, { method: "DELETE" });
+            
+            if (!response.ok) {
+                if (response.status === 403) {
+                    throw new Error("Unauthorized");
+                }
+                throw new Error(`Error: ${response.status}`);
+            }
 
-    async function handleEdit(newsItem: NewsItem): Promise<void> {
-        setTitle(newsItem.title);
-        setContent(newsItem.content || "");
-        setEditId(newsItem.id);
-        setOpen(true);
+            await fetchNews();
+            toast.success("Aktualita byla smazána");
+        } catch (error) {
+            console.error("Error deleting news:", error);
+            if (error instanceof Error && error.message === "Unauthorized") {
+                toast.error("Nemáte oprávnění k této akci");
+            } else {
+                toast.error("Něco se pokazilo");
+            }
+        }
     }
 
     return (
-        <div className="p-8">
-            <h2 className="text-4xl font-bold mb-6">Aktuality</h2>
-            <AdminRestrictedContent
-                role={role || "UŽIVATEL"}
-                permittedRole="ADMIN"
-                isButton={true}
-                label="Přidat aktualitu"
-                tooltipText="ADMIN ONLY - Add news item"
-                onClick={() => setOpen(!open)}
-            />
-
-            <div className="flex flex-wrap items-center justify-start gap-8 w-full">
-                {news.map((item) => (
-                    <Card key={item.id} className="w-[400px] h-[260px] p-6 rounded-[25px] relative">
-                        <h3 className="text-2xl font-bold mb-4 text-gray-700/90">{item.title}</h3>
-                        <p className="text-gray-500">{item.content}</p>
-                        <div className="absolute bottom-4 right-4 flex gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                                <Pencil className="w-5 h-5 text-blue-600" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                                <Trash className="w-5 h-5 text-red-600" />
-                            </Button>
-                        </div>
-                    </Card>
-                ))}
+        <div className="p-8 animate-fadeIn">
+            <div className="flex items-center justify-between mb-8">
+                <h2 className="text-4xl font-bold text-gray-800">Aktuality</h2>
+                <AdminRestrictedContent
+                    role={role || "UŽIVATEL"}
+                    tooltipText="Přidat aktualitu"
+                    onClick={() => setOpen(true)}
+                >
+                    Přidat aktualitu
+                </AdminRestrictedContent>
             </div>
 
-            <Dialog open={open} modal={true} onOpenChange={setOpen}>
-                <DialogTrigger asChild></DialogTrigger>
-                <DialogContent>
-                    <DialogTitle className="text-xl font-bold">{editId ? "Upravit aktualitu" : "Přidat aktualitu"}</DialogTitle>
-                    <Input
-                        placeholder="Název"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Input
-                        placeholder="Obsah (volitelné)"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                    />
-                    <Button onClick={handleSubmit}>{editId ? "Uložit změny" : "Přidat"}</Button>
-                </DialogContent>
-            </Dialog>
+            {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {news.map((item) => (
+                        <Card 
+                            key={item.id} 
+                            className="group relative overflow-hidden bg-white rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                        >
+                            <Link 
+                                href={`/aktuality/${item.id}`}
+                                className="block p-6"
+                            >
+                                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-blue-600" />
+                                <div className="p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex-grow">
+                                            <h3 className="text-2xl font-bold mb-2 text-gray-800">{item.title}</h3>
+                                            <time className="text-sm text-gray-500">
+                                                {format(new Date(item.createdAt), "d. MMMM yyyy", { locale: cs })}
+                                            </time>
+                                        </div>
+                                        <div className="flex gap-2 ml-4 z-10">
+                                            <AdminRestrictedContent
+                                                role={role || "UŽIVATEL"}
+                                                variant="icon"
+                                                tooltipText="Upravit"
+                                                icon={<Pencil className="w-4 h-4" />}
+                                                onClick={(e) => {
+                                                    e?.preventDefault();
+                                                    router.push(`/aktuality/${item.id}?edit=true`);
+                                                }}
+                                            />
+                                            <AdminRestrictedContent
+                                                role={role || "UŽIVATEL"}
+                                                variant="icon"
+                                                tooltipText="Smazat"
+                                                icon={<Trash className="w-4 h-4" />}
+                                                onClick={(e) => {
+                                                    e?.preventDefault();
+                                                    handleDelete(item.id);
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="prose prose-sm max-w-none text-gray-600">
+                                        {item.content}
+                                    </div>
+                                </div>
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400/20 to-blue-600/20" />
+                            </Link>
+                        </Card>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

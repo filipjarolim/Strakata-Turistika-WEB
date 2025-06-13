@@ -26,6 +26,7 @@ model User {
   image                 String?
   password              String?
   role                  UserRole               @default(UZIVATEL)
+  dogName               String?
   accounts              Account[]
   isTwoFactorEnabled    Boolean                @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
@@ -111,7 +112,9 @@ model VisitData {
   routeLink     String?
   year          Int       @map("seasonYear") // This remains for simplified queries
   extraPoints   Json
-  createdAt     DateTime  @default(now())
+  isApproved    Boolean   @default(false)
+  rejectionReason String?
+  createdAt     DateTime? @default(now())
 
   // Relation to Season
   seasonId String?

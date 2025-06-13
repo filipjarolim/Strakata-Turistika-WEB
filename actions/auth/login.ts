@@ -19,7 +19,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     const validatedFields = LoginSchema.safeParse(values)
 
     if (!validatedFields.success) {
-        return { error: "Invalid fields!" }
+        return { error: "Neplatné vyplnění polí!" }
     }
 
     const { email, password, code } = validatedFields.data
@@ -27,7 +27,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     const existingUser = await getUserByEmail(email)
 
     if (!existingUser || !existingUser.email || !existingUser.password) {
-        return { error: "Email does not exist!" }
+        return { error: "Tento Email neexistuje!" }
     }
 
     if (!existingUser.emailVerified) {
@@ -38,7 +38,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
             verifationToken.token
         )
 
-        return { success: "Conformation email sent!" }
+        return { success: "Potvrzovací mail byl poslán na Vaší adresu!" }
     }
 
     if (existingUser.isTwoFactorEnabled && existingUser.email) {
@@ -49,16 +49,16 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
             )
 
             if (!twoFactorToken) {
-                return { error: "Invalid code!" }
+                return { error: "Neplatný kód!" }
             }
             if (twoFactorToken.token !== code) {
-                return { error: "Invalid code!" }
+                return { error: "Neplatný kód!" }
             }
 
             const hasExpired = new Date(twoFactorToken.expires) < new Date()
 
             if (hasExpired) {
-                return { error: "Code expired!" }
+                return { error: "Kód vypršel!" }
             }
 
             await db.twoFactorToken.delete({
@@ -101,9 +101,9 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
         if (error instanceof AuthError) {
             switch (error.type) {
                 case "CredentialsSignin":
-                    return { error: "Invalid credentials!" }
+                    return { error: "Neplatné údaje!" }
                 default:
-                    return { error: "Something went wrong!" }
+                    return { error: "Někde nastala chyba!" }
             }
         }
         throw error

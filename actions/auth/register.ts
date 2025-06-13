@@ -13,7 +13,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     const validatedFields = RegisterSchema.safeParse(values)
 
     if (!validatedFields.success) {
-        return { error: "Invalid fields!" }
+        return { error: "Neplatné vyplnění polí!" }
     }
 
     const { email, password, name } = validatedFields.data
@@ -22,7 +22,7 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     const existingUser = await getUserByEmail(email)
 
     if (existingUser) {
-        return { error: "Email already in use!" }
+        return { error: "Tento Email je již zabraný!" }
     }
 
     await db.user.create({
@@ -40,5 +40,5 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
         verificationToken.token
     )
 
-    return { success: "Conformation email sent!" }
+    return { success: "Potvrzovací mail byl poslán na Vaší adresu!" }
 }

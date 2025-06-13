@@ -145,39 +145,6 @@ export const columns: ColumnDef<VisitData>[] = [
         cell: ({ row }) => <VisitedPlacesCell visitedPlaces={row.getValue('visitedPlaces')} />,
         size: 200,
     },
-    // Dog allowed column
-    {
-        accessorKey: 'dogNotAllowed',
-        header: () =>
-            renderIconOnlyHeader(
-                <Dog className="h-4 w-4 text-muted-foreground" />,
-                'Indikuje, zda jsou psi na daném místě povoleni'
-            ),
-        cell: ({ row }) => {
-            const dogNotAllowed = row.getValue('dogNotAllowed') as boolean;
-            return (
-                <Tooltip delayDuration={300}>
-                    <TooltipTrigger asChild>
-                        <div className="flex justify-center">
-                            {dogNotAllowed ? (
-                                <div className="rounded-full p-1 bg-destructive/10">
-                                    <X className="h-4 w-4 text-destructive" />
-                                </div>
-                            ) : (
-                                <div className="rounded-full p-1 bg-success/10">
-                                    <Check className="h-4 w-4 text-success" />
-                                </div>
-                            )}
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs bg-popover/95 backdrop-blur-sm p-3 text-xs text-foreground shadow-xl rounded-lg border border-border/50">
-                        {dogNotAllowed ? 'Psi nejsou na tomto místě povoleni' : 'Psi jsou na tomto místě povoleni'}
-                    </TooltipContent>
-                </Tooltip>
-            );
-        },
-        size: 70,
-    },
     // Route link column
     {
         accessorKey: 'routeLink',

@@ -7,7 +7,19 @@ export const publicRoutes = [
     "/auth/new-verification",
     "/pravidla",
     "/vysledky",
-    "/vysledky/*"
+    "/vysledky/*",
+    "/aktuality",
+    "/aktuality/*"
+]
+
+/*
+    * An array of public API routes that do not require authentication
+    * @type {string[]}
+ */
+export const publicApiRoutes = [
+    "/api/news",
+    "/api/news/*",
+    "/api/rules"
 ]
 /*
     * An array of public routes that do not require authentication

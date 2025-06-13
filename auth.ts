@@ -32,22 +32,37 @@ export const {
         async signIn({ user, account, profile }) {
             if (account?.provider !== "credentials") {
                 const imageUrl = profile?.image_url || profile?.picture;
+                
+                // First check if user exists
+                const existingUser = await db.user.findUnique({
+                    where: { email: user.email || "" }
+                });
+
+                if (existingUser) {
+                    // Update existing user's image if needed
+                    if (imageUrl && typeof imageUrl === "string") {
+                        await db.user.update({
+                            where: { id: existingUser.id },
+                            data: { image: imageUrl }
+                        });
+                    }
+                    return true;
+                }
+
+                // Create new user if doesn't exist
                 if (imageUrl && typeof imageUrl === "string") {
-                    await db.user.upsert({
-                        where: { id: user.id },
-                        update: { image: imageUrl },
-                        create: {
+                    await db.user.create({
+                        data: {
                             id: user.id,
                             email: user.email || "",
                             name: user.name || "",
-                            image: imageUrl
+                            image: imageUrl,
+                            emailVerified: new Date()
                         }
                     });
-
                 }
 
                 return true;
-
             }
 
             const existingUser = await getUserById(user.id);

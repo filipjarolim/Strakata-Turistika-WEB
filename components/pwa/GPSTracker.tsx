@@ -86,6 +86,24 @@ const startPositionIcon = L.icon({
   popupAnchor: [0, -42],
 });
 
+interface Position {
+  coords: {
+    latitude: number;
+    longitude: number;
+    altitude: number | null;
+    accuracy: number;
+    altitudeAccuracy: number | null;
+    heading: number | null;
+    speed: number | null;
+  };
+  timestamp: number;
+}
+
+interface GPSTrackerProps {
+  username: string;
+  className?: string;
+}
+
 const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => {
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
@@ -132,7 +150,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   // Add elevations state
   const [elevations, setElevations] = useState<number[]>([]);
 
-  const [wakeLock, setWakeLock] = useState<any>(null);
+  const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
   const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
   const backgroundTimerRef = useRef<number | null>(null);
   const positionsRef = useRef<[number, number][]>([]);
@@ -316,6 +334,18 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   }, [watchId]);
 
   useEffect(() => {
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      if (!isPaused) {
+        setElapsedTime(prev => prev + 1);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  useEffect(() => {
     let timer: NodeJS.Timeout;
     if (tracking && startTime && !paused) {
       timer = setInterval(() => {
@@ -448,30 +478,8 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           if (!backgroundTimerRef.current) {
             backgroundTimerRef.current = window.setInterval(() => {
               navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-                  
-                  // Only add position if it's significantly different from last position
-                  if (positionsRef.current.length > 0) {
-                    const lastPos = positionsRef.current[positionsRef.current.length - 1];
-                    const dist = haversineDistance(lastPos[0], lastPos[1], newPos[0], newPos[1]);
-                    
-                    if (dist >= MIN_DISTANCE_KM) {
-                      // Update stored positions
-                      const updatedPositions = [...positionsRef.current, newPos];
-                      positionsRef.current = updatedPositions;
-                      
-                      // Update storage
-                      storeTrackingSession({
-                        positions: updatedPositions,
-                        elapsedTime: elapsedTime + Math.floor((Date.now() - (startTime || 0) - pauseDuration) / 1000)
-                      });
-                    }
-                  }
-                },
-                (err) => {
-                  console.error('Background position error:', err);
-                },
+                handlePosition,
+                handlePositionError,
                 POSITION_OPTIONS
               );
             }, BACKGROUND_TRACKING_INTERVAL);
@@ -510,7 +518,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [tracking, paused, watchId, startTime, elapsedTime, pauseDuration, positions]);
+  }, [tracking, paused, watchId, startTime, elapsedTime, pauseDuration, positions, handlePosition, handlePositionError]);
 
   // Request wake lock when tracking starts
   useEffect(() => {
@@ -565,24 +573,24 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   }, [backgroundMode, stopTracking]);
 
   // Handler for position updates
-  const handlePosition = useCallback((pos: GeolocationPosition) => {
+  const handlePosition = useCallback((position: Position) => {
         if (paused) return;
         
-        if (pos.coords.accuracy > MIN_ACCURACY * 2) {
-          toast.warning(`Low GPS accuracy: ${pos.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
+        if (position.coords.accuracy > MIN_ACCURACY * 2) {
+          toast.warning(`Low GPS accuracy: ${position.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
           return;
         }
 
-        const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        const newPos: [number, number] = [position.coords.latitude, position.coords.longitude];
         const currentTime = Date.now();
         
     // Handle elevation data
-        if (pos.coords.altitude !== null) {
-          const currentElevation = pos.coords.altitude;
+        if (position.coords.altitude !== null) {
+          const currentElevation = position.coords.altitude;
           setElevation(currentElevation);
           setElevations(prev => [...prev, currentElevation]);
           
-          if (lastElevation !== null && pos.coords.altitudeAccuracy && pos.coords.altitudeAccuracy < 10) {
+          if (lastElevation !== null && position.coords.altitudeAccuracy && position.coords.altitudeAccuracy < 10) {
             const elevationDiff = currentElevation - lastElevation;
             if (elevationDiff > 0.5) {
               setTotalAscent(prev => prev + elevationDiff);
@@ -596,7 +604,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
         }
         
     // Calculate speed
-        let computedSpeed = pos.coords.speed;
+        let computedSpeed = position.coords.speed;
         if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
           const [lastLat, lastLon] = positions[positions.length - 1];
           const timeDiff = (currentTime - lastUpdateTime) / 1000;

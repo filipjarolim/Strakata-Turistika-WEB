@@ -117,10 +117,16 @@ export type AggregatedVisitData = {
     // Include other fields that might be needed
     year?: number;
     id: string;
+    dogName?: string; // Add dogName field
 };
 
 // Add this function to transform data for aggregated view - with better typing
-export const transformDataToAggregated = <TData extends { fullName: string; points: number; visitedPlaces?: string }>(
+export const transformDataToAggregated = <TData extends { 
+    fullName: string; 
+    points: number; 
+    visitedPlaces?: string | null; 
+    dogName?: string | null; 
+}>(
     data: TData[]
 ): AggregatedVisitData[] => {
     if (data.length === 0) return [];
@@ -130,6 +136,7 @@ export const transformDataToAggregated = <TData extends { fullName: string; poin
         visitCount: number; 
         visitedPlaces: Set<string>;
         fullName: string;
+        dogs: Set<string>; // Add dogs set
     }> = {};
     
     // Group data by person's name
@@ -140,6 +147,7 @@ export const transformDataToAggregated = <TData extends { fullName: string; poin
                 points: 0, 
                 visitCount: 0, 
                 visitedPlaces: new Set<string>(),
+                dogs: new Set<string>(), // Initialize dogs set
                 fullName
             };
         }
@@ -157,6 +165,11 @@ export const transformDataToAggregated = <TData extends { fullName: string; poin
                 if (place) cumulativeData[fullName].visitedPlaces.add(place);
             });
         }
+
+        // Add dog name if it exists and isn't empty
+        if (item.dogName) {
+            cumulativeData[fullName].dogs.add(item.dogName);
+        }
     });
     
     // Convert back to array and sort by points descending
@@ -167,6 +180,7 @@ export const transformDataToAggregated = <TData extends { fullName: string; poin
             fullName: stats.fullName,
             points: stats.points,
             visitedPlaces: Array.from(stats.visitedPlaces).join(', '),
+            dogName: Array.from(stats.dogs).join(', '), // Join all unique dog names
             // Add additional fields specific to aggregated view
             totalVisits: stats.visitCount,
             isAggregated: true,
@@ -216,20 +230,39 @@ export function DataTable<TData extends object>({
         setFilteredData(data);
     }, [data]);
 
-    // Count active filters for UI feedback
+    const isColumnVisible = useCallback((columnId: string) => {
+        return columnVisibility[columnId] !== false;
+    }, [columnVisibility]);
+
     useEffect(() => {
         let count = 0;
-        if (activeFilters.dateFilter) count++;
-        if (activeFilters.numberFilter) count++;
+        if (activeFilters.dateFilter && 
+            filterConfig?.dateField && 
+            isColumnVisible(filterConfig.dateField)) count++;
+        if (activeFilters.numberFilter && 
+            filterConfig?.numberField && 
+            isColumnVisible(filterConfig.numberField)) count++;
         if (activeFilters.customFilterParams?.categories && activeFilters.customFilterParams.categories.length > 0) count++;
         setActiveFilterCount(count);
-    }, [activeFilters]);
+    }, [activeFilters, columnVisibility, isAggregatedView, filterConfig?.dateField, filterConfig?.numberField, isColumnVisible]);
 
     const handleToggleView = () => {
-        if (!isAggregatedView) {
-            handleClearFilters();
+        const newAggregatedState = !isAggregatedView;
+        setIsAggregatedView(newAggregatedState);
+        
+        // Clear filters for columns that will be hidden
+        const updatedFilters: FilterState = { ...activeFilters };
+        
+        if (newAggregatedState) {
+            if (filterConfig?.dateField && 
+                excludedColumnsInAggregatedView.includes(filterConfig.dateField)) {
+                delete updatedFilters.dateFilter;
+            }
+            // Similarly for other filter types...
         }
-        setIsAggregatedView((prevValue) => !prevValue);
+        
+        setActiveFilters(updatedFilters);
+        setFilteredData(data); // Reset to unfiltered data
     };
 
     const filteredColumns = useMemo(() => {
@@ -463,219 +496,217 @@ export function DataTable<TData extends object>({
     const isTableEmpty = table.getRowModel().rows.length === 0;
 
     return (
-        <div className="w-full space-y-4">
-            {/* Table Controls - flexbox layout that stacks on mobile */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    {enableSearch && (
-                        <div className="w-full sm:w-auto">
-                        <SearchFilterInput
-                                placeholder="Hledat..." 
-                                value={globalFilter ?? ''}
-                                onChange={(value) => setGlobalFilter(value)}
-                                className="min-w-[200px] w-full sm:w-auto"
+        <div className="w-full space-y-6">
+            <div className="flex flex-col gap-4 p-4 bg-muted/5 rounded-lg border">
+                {/* Search and Filters row */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                        {enableSearch && (
+                            <div className="w-full sm:w-[300px]">
+                                <SearchFilterInput
+                                    placeholder="Hledat v tabulce..." 
+                                    value={globalFilter ?? ''}
+                                    onChange={(value) => setGlobalFilter(value)}
+                                    className="w-full"
+                                />
+                            </div>
+                        )}
+                        
+                        {filterConfig && !isAggregatedView && (
+                            <div className="relative w-full sm:w-auto">
+                                <FilterButton
+                                    onDateFilterChange={handleDateFilterChange}
+                                    onNumberFilterChange={handleNumberFilterChange}
+                                    onCustomFilterChange={handleCustomFilterChange}
+                                    onClearAllFilters={handleClearFilters}
+                                    year={year}
+                                    dateFieldLabel="Datum návštěvy"
+                                    numberFieldLabel="Body"
+                                    customFilterOptions={customFilterOptions}
+                                    showDateFilter={filterConfig.dateField ? isColumnVisible(filterConfig.dateField) : false}
+                                    showNumberFilter={filterConfig.numberField ? isColumnVisible(filterConfig.numberField) : false}
+                                />
+                                {activeFilterCount > 0 && (
+                                    <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* View controls */}
+                    <div className="flex flex-wrap gap-3 w-full sm:w-auto justify-end">
+                        {enableColumnVisibility && (
+                            <ColumnVisibilityMenu
+                                table={table}
+                                isAggregatedView={isAggregatedView}
                             />
-                        </div>
-                    )}
-                    
-                    {/* Filter button with count indicator */}
-                    {filterConfig && (
-                        <div className="relative">
-                            <FilterButton
-                                onDateFilterChange={handleDateFilterChange}
-                                onNumberFilterChange={handleNumberFilterChange}
-                                onCustomFilterChange={handleCustomFilterChange}
-                                onClearAllFilters={handleClearFilters}
-                                year={year}
-                                dateFieldLabel="Datum návštěvy"
-                                numberFieldLabel="Body"
-                                customFilterOptions={customFilterOptions}
+                        )}
+                        
+                        {enableAggregatedView && (
+                            <ToggleViewButton
+                                isAggregatedView={isAggregatedView}
+                                onToggleView={handleToggleView}
+                                aggregatedViewLabel={aggregatedViewLabel}
+                                detailedViewLabel={detailedViewLabel}
                             />
-                            {activeFilterCount > 0 && (
-                                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">
-                                    {activeFilterCount}
-                                </span>
-                            )}
-                        </div>
-                    )}
+                        )}
+                        
+                        {enableDownload && (
+                            <DownloadDataButton 
+                                data={filteredData}
+                                columns={table.getAllColumns().filter(column => column.getIsVisible())}
+                                filename={filename}
+                                summarySheetName={summarySheetName}
+                                mainSheetName={mainSheetName}
+                                generateSummarySheet={generateSummarySheet}
+                                summaryColumnDefinitions={summaryColumnDefinitions}
+                            />
+                        )}
+                    </div>
                 </div>
-                
-                <div className="flex flex-wrap gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                    {enableColumnVisibility && (
-                        <ColumnVisibilityMenu
-                            table={table}
-                            isAggregatedView={isAggregatedView}
-                        />
-                    )}
-                    
-                    {enableAggregatedView && (
-                        <ToggleViewButton
-                            isAggregatedView={isAggregatedView}
-                            onToggleView={handleToggleView}
-                            aggregatedViewLabel={aggregatedViewLabel}
-                            detailedViewLabel={detailedViewLabel}
-                        />
-                    )}
-                    
-                    {enableDownload && (
-                        <DownloadDataButton 
-                            data={filteredData}
-                            columns={table.getAllColumns().filter(column => column.getIsVisible())}
-                            filename={filename}
-                            summarySheetName={summarySheetName}
-                            mainSheetName={mainSheetName}
-                            generateSummarySheet={generateSummarySheet}
-                            summaryColumnDefinitions={summaryColumnDefinitions}
-                        />
-                    )}
-                </div>
+
+                {/* Active filters display */}
+                {(activeFilters.dateFilter || activeFilters.numberFilter || activeFilters.customFilterParams?.categories?.length) && (
+                    <div className="flex flex-wrap gap-2 items-center pt-2 border-t">
+                        {(activeFilters.dateFilter || 
+                          activeFilters.numberFilter || 
+                          (activeFilters.customFilterParams?.categories && 
+                           activeFilters.customFilterParams.categories.length > 0)) && (
+                            <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                <span className="text-sm font-medium text-muted-foreground">Aktivní filtry:</span>
+                                
+                                {activeFilters.dateFilter && (
+                                    <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
+                                        <span>Datum:</span>
+                                        {activeFilters.dateFilter.type === 'before' ? 'Před ' : 
+                                         activeFilters.dateFilter.type === 'after' ? 'Po ' : 'Mezi '}
+                                        {activeFilters.dateFilter.startDate?.toLocaleDateString('cs-CZ')}
+                                        {activeFilters.dateFilter.type === 'between' && activeFilters.dateFilter.endDate && 
+                                         ` - ${activeFilters.dateFilter.endDate.toLocaleDateString('cs-CZ')}`}
+                                    </Badge>
+                                )}
+                                
+                                {activeFilters.numberFilter && (
+                                    <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
+                                        <span>Body:</span>
+                                        {activeFilters.numberFilter.min !== undefined && 
+                                         `min ${activeFilters.numberFilter.min}`}
+                                        {activeFilters.numberFilter.min !== undefined && 
+                                         activeFilters.numberFilter.max !== undefined && ' - '}
+                                        {activeFilters.numberFilter.max !== undefined && 
+                                         `max ${activeFilters.numberFilter.max}`}
+                                    </Badge>
+                                )}
+                                
+                                {activeFilters.customFilterParams?.categories && 
+                                 activeFilters.customFilterParams.categories.length > 0 && (
+                                    <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
+                                        <span>Kategorie:</span>
+                                        {activeFilters.customFilterParams.categories.join(', ')}
+                                    </Badge>
+                                )}
+                                
+                                <button
+                                    onClick={handleClearFilters}
+                                    className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
+                                >
+                                    Vymazat filtry
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Loading state */}
-            {loading && (
-                <div className="w-full h-[400px] flex justify-center items-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="ml-3 text-muted-foreground">Načítání dat...</span>
-                </div>
-            )}
-            
-            {/* Table Container with shadow, rounded corners and fixed height/width */}
+            {/* Table Container */}
             {!loading && (
-                <>
-            <div className="rounded-md border overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto" style={{ minHeight: '400px' }}>
-                            <Table className="min-w-full table-fixed">
-                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                        <TableRow key={headerGroup.id} className="hover:bg-muted/50">
-                                    {headerGroup.headers.map((header) => (
-                                                <TableHead 
-                                                    key={header.id}
-                                                    className="whitespace-nowrap font-medium text-muted-foreground py-3"
-                                                    style={{
-                                                        width: header.column.columnDef.size ? `${header.column.columnDef.size}px` : 'auto',
-                                                        maxWidth: header.column.columnDef.maxSize ? `${header.column.columnDef.maxSize}px` : undefined
-                                                    }}
-                                                >
-                                                    {header.isPlaceholder
-                                                        ? null
-                                                        : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                        </TableHead>
-                                    ))}
-                                </TableRow>
-                            ))}
-                        </TableHeader>
-                                <TableBody className="relative">
-                                    {table.getRowModel().rows?.length ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow 
-                                        key={row.id} 
-                                                data-state={row.getIsSelected() && "selected"}
-                                                className="transition-colors hover:bg-muted/30"
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <TableCell 
-                                                key={cell.id} 
-                                                className="py-2.5"
+                <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <Table className="w-full">
+                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                {table.getHeaderGroups().map((headerGroup) => (
+                                    <TableRow key={headerGroup.id} className="hover:bg-muted/50">
+                                        {headerGroup.headers.map((header) => (
+                                            <TableHead 
+                                                key={header.id}
+                                                className="whitespace-nowrap font-medium text-muted-foreground py-3"
                                                 style={{
-                                                    width: cell.column.columnDef.size ? `${cell.column.columnDef.size}px` : 'auto',
-                                                    maxWidth: cell.column.columnDef.maxSize ? `${cell.column.columnDef.maxSize}px` : undefined
+                                                    width: header.column.columnDef.size ? `${header.column.columnDef.size}px` : 'auto',
+                                                    maxWidth: header.column.columnDef.maxSize ? `${header.column.columnDef.maxSize}px` : undefined
                                                 }}
                                             >
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
-                                            </TableCell>
+                                                {header.isPlaceholder
+                                                    ? null
+                                                    : flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                            </TableHead>
                                         ))}
                                     </TableRow>
-                                ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={table.getAllColumns().length}
-                                                className="h-[400px] text-center"
-                                            >
-                                                <div className="flex flex-col items-center justify-center space-y-3">
-                                                    <AlertCircle className="h-10 w-10 text-muted-foreground/60" />
-                                                    <p className="text-lg text-muted-foreground">
-                                                        {emptyStateMessage}
-                                                    </p>
-                                                </div>
-                                            </TableCell>
+                                ))}
+                            </TableHeader>
+                            <TableBody className="relative">
+                                {table.getRowModel().rows?.length ? (
+                                    table.getRowModel().rows.map((row, index) => (
+                                        <TableRow 
+                                            key={row.id}
+                                            className={cn(
+                                                "transition-colors hover:bg-muted/30",
+                                                index % 2 === 0 ? "bg-background" : "bg-muted/5"
+                                            )}
+                                        >
+                                            {row.getVisibleCells().map((cell) => (
+                                                <TableCell 
+                                                    key={cell.id} 
+                                                    className="py-2.5"
+                                                    style={{
+                                                        width: cell.column.columnDef.size ? `${cell.column.columnDef.size}px` : 'auto',
+                                                        maxWidth: cell.column.columnDef.maxSize ? `${cell.column.columnDef.maxSize}px` : undefined
+                                                    }}
+                                                >
+                                                    {flexRender(
+                                                        cell.column.columnDef.cell,
+                                                        cell.getContext()
+                                                    )}
+                                                </TableCell>
+                                            ))}
                                         </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={table.getAllColumns().length}
+                                            className="h-[400px] text-center"
+                                        >
+                                            <div className="flex flex-col items-center justify-center space-y-3">
+                                                <AlertCircle className="h-10 w-10 text-muted-foreground/60" />
+                                                <p className="text-lg text-muted-foreground">
+                                                    {emptyStateMessage}
+                                                </p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
-            </div>
-
-                    {/* Add pagination controls outside the table */}
-                    {table.getRowModel().rows?.length > 0 && (
-                <PaginationControls
-                            totalRows={table.getFilteredRowModel().rows.length}
-                            pageIndex={table.getState().pagination.pageIndex}
-                            pageSize={table.getState().pagination.pageSize}
-                            pageSizeOptions={[10, 20, 50, 100]}
-                            onPageChange={(page) => {
-                                table.setPageIndex(page);
-                            }}
-                            onPageSizeChange={(size) => {
-                                table.setPageSize(size);
-                            }}
-                        />
-                    )}
-                </>
             )}
 
-            {/* Active filters display (badges beneath the table) */}
-            {(activeFilters.dateFilter || 
-              activeFilters.numberFilter || 
-              (activeFilters.customFilterParams?.categories && 
-               activeFilters.customFilterParams.categories.length > 0)) && (
-                <div className="mt-2 flex flex-wrap gap-2 items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Aktivní filtry:</span>
-                    
-                    {activeFilters.dateFilter && (
-                        <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
-                            <span>Datum:</span>
-                            {activeFilters.dateFilter.type === 'before' ? 'Před ' : 
-                             activeFilters.dateFilter.type === 'after' ? 'Po ' : 'Mezi '}
-                            {activeFilters.dateFilter.startDate?.toLocaleDateString('cs-CZ')}
-                            {activeFilters.dateFilter.type === 'between' && activeFilters.dateFilter.endDate && 
-                             ` - ${activeFilters.dateFilter.endDate.toLocaleDateString('cs-CZ')}`}
-                        </Badge>
-                    )}
-                    
-                    {activeFilters.numberFilter && (
-                        <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
-                            <span>Body:</span>
-                            {activeFilters.numberFilter.min !== undefined && 
-                             `min ${activeFilters.numberFilter.min}`}
-                            {activeFilters.numberFilter.min !== undefined && 
-                             activeFilters.numberFilter.max !== undefined && ' - '}
-                            {activeFilters.numberFilter.max !== undefined && 
-                             `max ${activeFilters.numberFilter.max}`}
-                        </Badge>
-                    )}
-                    
-                    {activeFilters.customFilterParams?.categories && 
-                     activeFilters.customFilterParams.categories.length > 0 && (
-                        <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
-                            <span>Kategorie:</span>
-                            {activeFilters.customFilterParams.categories.join(', ')}
-                        </Badge>
-                    )}
-                    
-                    <button
-                        onClick={handleClearFilters}
-                        className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
-                    >
-                        Vymazat filtry
-                    </button>
+            {/* Pagination */}
+            {table.getRowModel().rows?.length > 0 && (
+                <div className="mt-4">
+                    <PaginationControls
+                        totalRows={table.getFilteredRowModel().rows.length}
+                        pageIndex={table.getState().pagination.pageIndex}
+                        pageSize={table.getState().pagination.pageSize}
+                        pageSizeOptions={[10, 20, 50, 100]}
+                        onPageChange={(page) => table.setPageIndex(page)}
+                        onPageSizeChange={(size) => table.setPageSize(size)}
+                    />
                 </div>
             )}
         </div>

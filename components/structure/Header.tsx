@@ -24,12 +24,13 @@ import { cn } from "@/lib";
 import { RegisterButton } from "../auth/register-button";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { ExtendedUser } from "@/next-auth";
 
 const Header = ({
                     user,
                     role,
                 }: {
-    user?: object;
+    user?: ExtendedUser | null;
     role?: string;
 }) => {
     const headerRef = useRef<HTMLElement | null>(null);
@@ -74,7 +75,7 @@ const Header = ({
                     "grid grid-cols-3 select-none md:grid-cols-12 w-full md:w-[90%] mx-auto px-4 py-3 fixed left-1/2 translate-x-[-50%] transition-all duration-300 rounded-b-xl h-fit",
                     isScrolled ? "md:w-[95%] shadow-md backdrop-blur-lg bg-white/80" : "bg-white/70 backdrop-blur-md"
                 )}
-                style={{ zIndex: 10 }}
+                style={{ zIndex: 50 }}
             >
                 <Link
                     href="/"
