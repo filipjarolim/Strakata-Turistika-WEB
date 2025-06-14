@@ -1,17 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentRole } from '@/lib/auth';
-import { UserRole } from '@prisma/client';
+import { UserRole, VisitState } from '@prisma/client';
 
 interface RejectRequest {
-  extraPoints: {
-    description: string;
-    distance: number;
-    totalAscent: number;
-    elapsedTime: number;
-    averageSpeed: number;
-    isApproved: boolean;
-  };
+  rejectionReason: string;
 }
 
 export async function PUT(
@@ -43,10 +36,8 @@ export async function PUT(
     const updatedRoute = await db.visitData.update({
       where: { id },
       data: {
-        extraPoints: {
-          ...body.extraPoints,
-          isApproved: false
-        }
+        state: VisitState.REJECTED,
+        rejectionReason: body.rejectionReason
       }
     });
 

@@ -1,115 +1,104 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, MapPin, User, Dog, Trophy, Clock, X } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { ExtendedUser } from "@/next-auth";
 
 interface FormData {
-  fullName: string;
-  visitDate: Date;
-  points: number;
+  routeLink?: string;
   visitedPlaces: string;
   dogNotAllowed: string;
-  year: number;
-  extraPoints: {
-    description: string;
-    dogName?: string;
-    distance?: number;
-    totalAscent?: number;
-    elapsedTime?: number;
-    averageSpeed?: number;
-    isApproved?: boolean;
-  };
+  routeTitle?: string;
+  routeDescription?: string;
 }
 
 interface VisitDataFormProps {
   initialData: FormData;
   onSubmit: (data: FormData) => void | Promise<void>;
-  submitLabel?: string;
-  isLoading?: boolean;
   user: ExtendedUser | null;
+  isLoading?: boolean;
+  submitLabel?: string;
 }
 
-export function VisitDataForm({ initialData, onSubmit, submitLabel = "Save", isLoading = false, user }: VisitDataFormProps) {
-  const [formData, setFormData] = useState({
-    fullName: user?.name || initialData?.fullName || '',
-    visitDate: initialData?.visitDate || new Date(),
-    points: initialData?.points || 0,
-    visitedPlaces: initialData?.visitedPlaces || '',
-    dogNotAllowed: initialData?.dogNotAllowed || 'false',
-    year: initialData?.year || new Date().getFullYear(),
-    extraPoints: initialData?.extraPoints || {}
-  });
+export function VisitDataForm({ 
+  initialData, 
+  onSubmit, 
+  user,
+  isLoading = false,
+  submitLabel = "Uložit"
+}: VisitDataFormProps) {
+  const [formData, setFormData] = useState<FormData>(initialData);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      visitDate: formData.visitDate,
-      visitedPlaces: formData.visitedPlaces,
-    });
-  };
-
-  const handleExtraPointsChange = (key: string, value: string) => {
-    setFormData({
-      ...formData,
-      extraPoints: {
-        ...formData.extraPoints,
-        [key]: value
-      }
-    });
-  };
+  // Call onSubmit whenever form data changes
+  useEffect(() => {
+    onSubmit(formData);
+  }, [formData, onSubmit]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Chyba</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="dogName" className="text-sm font-medium text-gray-700">Jméno psa</Label>
+          <Label htmlFor="routeTitle">Název trasy</Label>
           <Input
-            id="dogName"
-            value={formData.extraPoints.dogName || ''}
-            onChange={(e) => handleExtraPointsChange('dogName', e.target.value)}
-            placeholder="Zadejte jméno psa"
-            className="h-11 rounded-xl border-gray-200 bg-white/50 backdrop-blur-sm"
+            id="routeTitle"
+            value={formData.routeTitle || ''}
+            onChange={(e) => setFormData({ ...formData, routeTitle: e.target.value })}
+            placeholder="Zadejte název trasy"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="visitedPlaces" className="text-sm font-medium text-gray-700">Navštívená místa</Label>
+          <Label htmlFor="routeDescription">Popis trasy</Label>
+          <Input
+            id="routeDescription"
+            value={formData.routeDescription || ''}
+            onChange={(e) => setFormData({ ...formData, routeDescription: e.target.value })}
+            placeholder="Zadejte popis trasy"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="routeLink">Odkaz na trasu</Label>
+          <Input
+            id="routeLink"
+            value={formData.routeLink || ''}
+            onChange={(e) => setFormData({ ...formData, routeLink: e.target.value })}
+            placeholder="Zadejte odkaz na trasu"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="visitedPlaces">Navštívená místa</Label>
           <Input
             id="visitedPlaces"
             value={formData.visitedPlaces}
             onChange={(e) => setFormData({ ...formData, visitedPlaces: e.target.value })}
             placeholder="Zadejte navštívená místa"
-            className="h-11 rounded-xl border-gray-200 bg-white/50 backdrop-blur-sm"
           />
         </div>
 
-        <div className="flex items-center justify-between p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200">
-          <Label htmlFor="dogNotAllowed" className="text-sm font-medium text-gray-700">Pes není povolen</Label>
+        <div className="flex items-center justify-between space-x-2">
+          <Label htmlFor="dogNotAllowed" className="flex-1">Psi zakázáni</Label>
           <Switch
             id="dogNotAllowed"
-            checked={formData.dogNotAllowed === 'true'}
-            onCheckedChange={(checked) => setFormData({ ...formData, dogNotAllowed: checked ? 'true' : 'false' })}
+            checked={formData.dogNotAllowed === "true"}
+            onCheckedChange={(checked) => 
+              setFormData({ ...formData, dogNotAllowed: checked ? "true" : "false" })
+            }
           />
         </div>
       </div>
-
-      <Button 
-        type="submit" 
-        className="w-full h-11 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-lg shadow-blue-500/25" 
-        disabled={isLoading}
-      >
-        {isLoading ? 'Ukládání...' : submitLabel}
-      </Button>
-    </form>
+    </div>
   );
 } 

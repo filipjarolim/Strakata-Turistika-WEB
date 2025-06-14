@@ -354,53 +354,31 @@ const userAnalyticsColumns: ColumnDef<UserAnalytics>[] = [
     },
 ];
 
-// Define a type for the region summary
-type RegionSummary = {
-    region: string;
-    userCount: number;
-    activeUsers: number;
-    premiumUsers: number;
-    avgEngagement: number;
-    totalSessions: number;
-    avgSessionDuration: number;
-    conversionRate: number;
+// Define AggregatedVisitData type locally
+type AggregatedVisitData = {
+    year: number;
+    totalPoints: number;
+    visitCount: number;
+    visitedPlaces: Set<string>;
+    averagePoints: number;
+    lastVisit: Date;
+    category: string;
+    dogNotAllowed: Set<string>;
+    routeTitles: Set<string>;
 };
 
-// Transform to region view for aggregation
-const transformToRegionView = (users: UserAnalytics[]): RegionSummary[] => {
-    const regionSummary = new Map<string, RegionSummary>();
-
-    users.forEach(user => {
-        const existing = regionSummary.get(user.region);
-        
-        if (existing) {
-            existing.userCount += 1;
-            existing.activeUsers += user.isActive ? 1 : 0;
-            existing.premiumUsers += user.userType === 'premium' ? 1 : 0;
-            existing.totalSessions += user.sessionsCount;
-            existing.avgEngagement = (existing.avgEngagement * (existing.userCount - 1) + user.engagement) / existing.userCount;
-            existing.avgSessionDuration = (existing.avgSessionDuration * (existing.userCount - 1) + user.avgSessionDuration) / existing.userCount;
-        } else {
-            regionSummary.set(user.region, {
-                region: user.region,
-                userCount: 1,
-                activeUsers: user.isActive ? 1 : 0,
-                premiumUsers: user.userType === 'premium' ? 1 : 0,
-                avgEngagement: user.engagement,
-                totalSessions: user.sessionsCount,
-                avgSessionDuration: user.avgSessionDuration,
-                conversionRate: user.conversions / user.sessionsCount
-            });
-        }
-    });
-
-    // Format values to avoid NaN display issues
-    return Array.from(regionSummary.values()).map(item => ({
-        ...item,
-        avgEngagement: Number(item.avgEngagement.toFixed(1)),
-        avgSessionDuration: Number(item.avgSessionDuration.toFixed(1)),
-        activePercentage: Number(((item.activeUsers / item.userCount) * 100).toFixed(1)),
-        premiumPercentage: Number(((item.premiumUsers / item.userCount) * 100).toFixed(1)),
+// Update the transformation function
+const transformToRegionView = (items: UserAnalytics[]): AggregatedVisitData[] => {
+    return items.map(item => ({
+        year: new Date(item.registrationDate).getFullYear(),
+        totalPoints: item.engagement,
+        visitCount: item.sessionsCount,
+        visitedPlaces: new Set([item.region]),
+        averagePoints: item.engagement / (item.sessionsCount || 1),
+        lastVisit: new Date(item.lastLoginDate),
+        category: item.region,
+        dogNotAllowed: new Set(),
+        routeTitles: new Set([item.username]),
     }));
 };
 
@@ -476,7 +454,7 @@ const UserAnalyticsPage = () => {
                     columns={userAnalyticsColumns}
                     primarySortColumn="engagement"
                     primarySortDesc={true}
-                    transformToAggregatedView={transformToRegionView as unknown as (data: UserAnalytics[]) => UserAnalytics[]}
+                    transformToAggregatedView={transformToRegionView}
                     filterConfig={{
                         dateField: 'registrationDate',
                         numberField: 'engagement',
@@ -501,11 +479,6 @@ const UserAnalyticsPage = () => {
                     mainSheetName="User Analytics"
                     summarySheetName="Region Summary"
                     generateSummarySheet={true}
-                    summaryColumnDefinitions={regionSummaryColumns}
-                    customFilterOptions={{
-                        label: "Regions",
-                        options: regionFilterOptions
-                    }}
                 />
             </TooltipProvider>
         </CommonPageTemplate>

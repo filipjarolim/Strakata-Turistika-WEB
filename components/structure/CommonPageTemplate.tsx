@@ -14,7 +14,8 @@ const CommonPageTemplate = ({
                                 currentUser,
                                 currentRole,
                                 contents,
-                                style
+                                style,
+                                headerMode = "fixed"
                             }: {
     children: React.ReactNode;
     className?: string;
@@ -22,12 +23,13 @@ const CommonPageTemplate = ({
     currentRole?: string;
     contents?: { complete?: boolean; header?: boolean; footer?: boolean, supportMePopup?: boolean };
     style?: React.CSSProperties;
+    headerMode?: "fixed" | "static" | "auto-hide";
 }) => {
 
     return (
         <>
         <main className={cn("min-h-screen w-full flex flex-col px-4", className)} style={style}>
-            {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} />}
+            {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} mode={headerMode} />}
 
 
 

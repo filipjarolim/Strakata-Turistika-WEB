@@ -55,11 +55,12 @@ export async function POST(request: Request) {
     const track = await db.visitData.create({
       data: {
         visitDate: new Date(),
-        fullName: displayName,
         visitedPlaces: "ahoj",     // Placeholder value.
         points: 0,
         routeLink: image,          // Captured image data.
         year: season,
+        routeTitle: "Track " + new Date().toLocaleDateString(), // Add a default title
+        route: "", // Add empty route field
         extraPoints: {
           // Store the track data
           distance: parseFloat(distance),

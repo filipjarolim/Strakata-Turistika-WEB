@@ -65,8 +65,6 @@ export async function GET(request: Request, { params }: { params: tParams }) {
             select: {
                 id: true,
                 visitDate: true,
-                fullName: true,
-                dogName: true,
                 points: true,
                 visitedPlaces: true,
                 dogNotAllowed: true,

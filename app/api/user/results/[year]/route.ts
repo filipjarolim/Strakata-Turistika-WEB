@@ -17,10 +17,9 @@ interface ExtraPointsData {
 }
 
 // Define the visit data structure
-interface VisitData {
+type VisitData = {
     id: string;
     visitDate: Date | null;
-    fullName: string | null;
     dogName: string | null;
     points: number | null;
     visitedPlaces: unknown;
@@ -28,7 +27,7 @@ interface VisitData {
     routeLink: string | null;
     year: number | null;
     extraPoints: unknown;
-}
+};
 
 export async function GET(request: Request, { params }: { params: tParams }) {
     try {
@@ -80,7 +79,6 @@ export async function GET(request: Request, { params }: { params: tParams }) {
             select: {
                 id: true,
                 visitDate: true,
-                fullName: true,
                 dogName: true,
                 points: true,
                 visitedPlaces: true,
@@ -96,23 +94,15 @@ export async function GET(request: Request, { params }: { params: tParams }) {
         // as it's faster than parsing JSON
         let userYearVisitData: VisitData[] = [];
         
-        if (user.name) {
-            // First pass - filter by name (faster)
-            userYearVisitData = yearVisitData.filter(item => item.fullName === user.name) as VisitData[];
-        }
-        
-        // If we have no name matches or user has no name, also check the extraPoints.userId
-        if (userYearVisitData.length === 0 || !user.name) {
-            // Second pass - filter by extraPoints.userId
-            userYearVisitData = yearVisitData.filter(item => {
-                try {
-                    const extraPoints = item.extraPoints as ExtraPointsData | null;
-                    return extraPoints && extraPoints.userId === user.id;
-                } catch (e) {
-                    return false;
-                }
-            }) as VisitData[];
-        }
+        // Remove filtering by fullName, just filter by extraPoints.userId
+        userYearVisitData = yearVisitData.filter(item => {
+            try {
+                const extraPoints = item.extraPoints as ExtraPointsData | null;
+                return extraPoints && extraPoints.userId === user.id;
+            } catch (e) {
+                return false;
+            }
+        }) as VisitData[];
 
         // Store in cache
         userYearResultsCache.set(cacheKey, {

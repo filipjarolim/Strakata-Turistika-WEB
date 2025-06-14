@@ -1,18 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentRole } from '@/lib/auth';
-import { UserRole } from '@prisma/client';
-
-interface ApproveRequest {
-  extraPoints: {
-    description: string;
-    distance: number;
-    totalAscent: number;
-    elapsedTime: number;
-    averageSpeed: number;
-    isApproved: boolean;
-  };
-}
+import { UserRole, VisitState } from '@prisma/client';
 
 export async function PUT(
   req: Request,
@@ -24,7 +13,6 @@ export async function PUT(
       return new NextResponse('Unauthorized', { status: 403 });
     }
 
-    const body: ApproveRequest = await req.json();
     const { id } = await params;
     const route = await db.visitData.findUnique({
       where: { id }
@@ -37,21 +25,11 @@ export async function PUT(
       );
     }
 
-    // Update the route's approval status in extraPoints
+    // Update the route's state to APPROVED
     const updatedRoute = await db.visitData.update({
       where: { id },
       data: {
-        extraPoints: {
-          ...(route.extraPoints as {
-            description?: string;
-            distance?: number;
-            totalAscent?: number;
-            elapsedTime?: number;
-            averageSpeed?: number;
-            isApproved?: boolean;
-          }),
-          isApproved: true
-        }
+        state: VisitState.APPROVED
       }
     });
 

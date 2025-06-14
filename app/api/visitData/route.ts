@@ -17,13 +17,21 @@ interface VisitDataRequest {
     averageSpeed: number;
     isApproved: boolean;
   };
+  routeTitle?: string;
+  route?: string;
 }
 
 // Create a new VisitData record
 export async function POST(request: Request) {
   try {
     const body: VisitDataRequest = await request.json();
-    const visitData = await db.visitData.create({ data: body });
+    const visitData = await db.visitData.create({
+      data: {
+        ...body,
+        routeTitle: body.routeTitle ?? "Untitled Route",
+        route: body.route ?? "",
+      }
+    });
     return NextResponse.json(visitData, { status: 201 });
   } catch (error) {
     console.error('[CREATE_VISITDATA_ERROR]', error);

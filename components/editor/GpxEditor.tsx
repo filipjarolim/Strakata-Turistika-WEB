@@ -2,15 +2,57 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap, CircleMarker } from 'react-leaflet';
-import L from 'leaflet';
+import L, { Control } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Plus, Trash2, RotateCcw, RotateCw, Minus, EyeOff, Eye, MapPin, Maximize2, X } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, RotateCcw, RotateCw, Minus, EyeOff, Eye, MapPin, Maximize2, X, Pencil, Play, Flag } from 'lucide-react';
 import simplify from 'simplify-js';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { renderToString } from 'react-dom/server';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+
+// Maximum number of points to display on the map (now dynamic)
+function getMaxViewPointsForTrack(points: TrackPoint[]): number {
+  const { distance } = calculateRouteStats(points);
+  const pointsForDistance = Math.round(distance * 10); // 10km = 100 points
+  return Math.max(30, Math.min(500, pointsForDistance));
+}
+
+const IOS_MAP_CONTROLS_STYLE = {
+  iconSize: 'h-5 w-5', // Tailwind classes for icon size (default)
+  iconSizeSm: 'h-6 w-6', // Tailwind classes for icon size (sm screens)
+  controlSize: 'w-8 h-8', // Button size (default)
+  controlSizeSm: 'w-12 h-12', // Button size (sm screens)
+  barPaddingX: 'px-2 sm:px-4',
+  barPaddingY: 'py-2',
+  barGap: 'gap-2 sm:gap-4',
+  barBorderRadius: 'rounded-3xl',
+  barShadow: 'shadow-2xl',
+  barBorder: 'border border-white/40',
+  barBg: 'bg-white/30 backdrop-blur-2xl',
+};
+
+const GPX_EDITOR_MAP_STYLE = {
+  markerRadius: 9, // px
+  markerBorder: 3, // px
+  markerColor: '#2563eb', // blue
+  markerBorderColor: '#fff',
+  markerSelectedRadius: 13,
+  markerSelectedColor: '#1e3a8a', // darker blue
+  markerStartWidth: 48,
+  markerStartHeight: 32,
+  markerFinishWidth: 56,
+  markerFinishHeight: 32,
+  markerStartColor: '#22c55e', // green
+  markerFinishColor: '#ef4444', // red
+  markerStartFontSize: 13,
+  markerFinishFontSize: 13,
+  markerIconColor: '#fff',
+  polylineColor: '#2563eb',
+  polylineWeight: 6, // thicker trail
+  polylineOpacity: 0.7,
+};
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -38,8 +80,11 @@ interface GpxEditorProps {
   hideControls?: string[];
 }
 
+// 1. Add a drag threshold for point dragging
+const DRAG_THRESHOLD_PX = 5;
+
 function IOSMapControls({
-  onAddPoint, onDeletePoint, onUndo, onRedo, canUndo, canRedo, canDelete, onSimplify, onHidePoints, hidePoints, onZoomToSelected, canZoomToSelected, editMode, onToggleEditMode, onToggleFullscreen, isFullscreen, readOnly, hideControls
+  onAddPoint, onDeletePoint, onUndo, onRedo, canUndo, canRedo, canDelete, onSimplify, onHidePoints, hidePoints, onZoomToSelected, canZoomToSelected, editMode, onToggleEditMode, onToggleFullscreen, isFullscreen, readOnly, hideControls, routeStats, mapRef, selectedSegment, draggingIdx
 }: {
   onAddPoint: () => void;
   onDeletePoint: () => void;
@@ -59,6 +104,10 @@ function IOSMapControls({
   isFullscreen: boolean;
   readOnly?: boolean;
   hideControls?: string[];
+  routeStats: { distance: number; elevationGain: number; numPoints: number };
+  mapRef: React.RefObject<L.Map | null>;
+  selectedSegment: [number, number] | null;
+  draggingIdx: number | null;
 }) {
   // Helper for tooltips
   const Control = ({ onClick, disabled, icon, label, id }: { onClick: () => void; disabled?: boolean; icon: React.ReactNode; label: string; id: string }) => {
@@ -66,9 +115,19 @@ function IOSMapControls({
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" onClick={onClick} disabled={disabled} className="rounded-full w-8 h-8 sm:w-10 sm:h-10">
+          <button
+            onClick={onClick}
+            disabled={disabled}
+            className={cn(
+              'rounded-full flex items-center justify-center bg-white/40 backdrop-blur-xl shadow-lg border border-white/30 transition hover:bg-white/60 active:scale-95 cursor-pointer',
+              IOS_MAP_CONTROLS_STYLE.controlSize,
+              IOS_MAP_CONTROLS_STYLE.controlSizeSm,
+              disabled && 'opacity-50 cursor-not-allowed'
+            )}
+            style={{ boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
+          >
             {icon}
-          </Button>
+          </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="z-[3000]">
           {label}
@@ -77,35 +136,55 @@ function IOSMapControls({
     );
   };
 
-  // Special control for Switch (not inside a Button)
-  const SwitchControl = ({ checked, onChange, label, id }: { checked: boolean; onChange: () => void; label: string; id: string }) => {
-    if (hideControls?.includes(id)) return null;
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10">
-            <Switch checked={checked} onCheckedChange={onChange} />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="z-[3000]">
-          {label}
-        </TooltipContent>
-      </Tooltip>
-    );
+  // Add mouse enter/leave handlers to disable/enable map dragging
+  const handleMouseEnter = () => {
+    if (mapRef.current) mapRef.current.dragging.disable();
+  };
+  const handleMouseLeave = () => {
+    if (mapRef.current && draggingIdx === null) mapRef.current.dragging.enable();
   };
 
   return (
     <TooltipProvider>
-      <div className="flex flex-nowrap items-center gap-1 bg-white/60 backdrop-blur-md rounded-2xl shadow-2xl px-1 py-1 border border-gray-200 w-full max-w-5xl overflow-x-auto">
-        <Control onClick={onToggleFullscreen} icon={isFullscreen ? <X className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />} label={isFullscreen ? 'Close' : 'Enlarge'} id="fullscreen" />
-        {!readOnly && <SwitchControl checked={editMode} onChange={onToggleEditMode} label={editMode ? 'Edit' : 'View'} id="editMode" />}
-        {!readOnly && <Control onClick={onUndo} disabled={!canUndo || !editMode} icon={<RotateCcw className="h-5 w-5" />} label="Undo" id="undo" />}
-        {!readOnly && <Control onClick={onRedo} disabled={!canRedo || !editMode} icon={<RotateCw className="h-5 w-5" />} label="Redo" id="redo" />}
-        {!readOnly && <Control onClick={onAddPoint} disabled={!editMode} icon={<Plus className="h-5 w-5" />} label="Add" id="add" />}
-        {!readOnly && <Control onClick={onDeletePoint} disabled={!canDelete || !editMode} icon={<Trash2 className="h-5 w-5" />} label="Delete" id="delete" />}
-        {!readOnly && <Control onClick={onSimplify} disabled={!editMode} icon={<span className="font-bold text-lg">S</span>} label="Simplify" id="simplify" />}
-        <Control onClick={onHidePoints} icon={hidePoints ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />} label={hidePoints ? 'Show' : 'Hide'} id="hidePoints" />
-        <Control onClick={onZoomToSelected} disabled={!canZoomToSelected} icon={<MapPin className="h-5 w-5" />} label="Zoom" id="zoom" />
+      <div
+        className={cn(
+          'w-full flex items-center justify-between',
+          IOS_MAP_CONTROLS_STYLE.barBg,
+          IOS_MAP_CONTROLS_STYLE.barBorderRadius,
+          IOS_MAP_CONTROLS_STYLE.barShadow,
+          IOS_MAP_CONTROLS_STYLE.barBorder,
+          IOS_MAP_CONTROLS_STYLE.barPaddingX,
+          IOS_MAP_CONTROLS_STYLE.barPaddingY,
+          IOS_MAP_CONTROLS_STYLE.barGap,
+          'max-w-full select-none'
+        )}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Controls: left-aligned, horizontal row, responsive size */}
+        <div className={cn('flex flex-row flex-wrap items-center', IOS_MAP_CONTROLS_STYLE.barGap)}>
+          <Control onClick={onToggleFullscreen} icon={isFullscreen ? <X className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Maximize2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={isFullscreen ? 'Close' : 'Enlarge'} id="fullscreen" />
+          {/* Edit mode: Pencil icon from lucide-react */}
+          {!readOnly && <Control onClick={onToggleEditMode} icon={<Pencil className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={editMode ? 'Edit' : 'View'} id="editMode" />}
+          {!readOnly && <Control onClick={onUndo} disabled={!canUndo || !editMode} icon={<RotateCcw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Undo" id="undo" />}
+          {!readOnly && <Control onClick={onRedo} disabled={!canRedo || !editMode} icon={<RotateCw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Redo" id="redo" />}
+          {!readOnly && <Control onClick={onAddPoint} disabled={!editMode || !selectedSegment} icon={<Plus className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Add" id="add" />}
+          {!readOnly && <Control onClick={onDeletePoint} disabled={!canDelete || !editMode} icon={<Trash2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Delete" id="delete" />}
+          {!readOnly && <Control onClick={onSimplify} disabled={!editMode} icon={<span className="font-bold text-lg">S</span>} label="Simplify" id="simplify" />}
+          <Control onClick={onHidePoints} icon={hidePoints ? <EyeOff className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Eye className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={hidePoints ? 'Show' : 'Hide'} id="hidePoints" />
+          <Control onClick={onZoomToSelected} disabled={!canZoomToSelected} icon={<MapPin className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Zoom" id="zoom" />
+        </div>
+        {/* Stats: right-aligned */}
+        <div className="flex flex-col items-end text-xs sm:text-sm px-2 select-none">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Distance:</span>
+            <span className="font-medium">{routeStats.distance.toFixed(2)} km</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Points:</span>
+            <span className="font-medium">{routeStats.numPoints}</span>
+          </div>
+        </div>
       </div>
     </TooltipProvider>
   );
@@ -128,21 +207,99 @@ function FitBoundsOnPoints({ points }: { points: { lat: number; lng: number }[] 
   return null;
 }
 
-// Downsample points and keep mapping to original indices (guarantee unique indices)
+// Optimize point downsampling with better algorithm
 function evenlyDownsamplePointsWithIndex(points: TrackPoint[], maxPoints: number): { point: TrackPoint; originalIdx: number }[] {
   if (points.length <= maxPoints) return points.map((p, i) => ({ point: p, originalIdx: i }));
-  const result = [];
+  
+  // Use Douglas-Peucker algorithm for better downsampling
+  const simplified = simplify(points.map(p => ({ x: p.lat, y: p.lng })), 0.0001, true);
+  
+  // Map back to original points and indices
+  const result: { point: TrackPoint; originalIdx: number }[] = [];
   const used = new Set<number>();
-  for (let i = 0; i < maxPoints; i++) {
-    let idx = Math.round(i * (points.length - 1) / (maxPoints - 1));
-    // Ensure uniqueness
-    while (used.has(idx) && idx < points.length) idx++;
-    if (idx >= points.length) idx = points.length - 1;
-    used.add(idx);
-    result.push({ point: points[idx], originalIdx: idx });
+  
+  // Always include first and last points
+  result.push({ point: points[0], originalIdx: 0 });
+  used.add(0);
+  
+  // Add simplified points
+  for (const p of simplified) {
+    // Find closest original point
+    let minDist = Infinity;
+    let closestIdx = -1;
+    
+    for (let i = 0; i < points.length; i++) {
+      if (used.has(i)) continue;
+      const dist = Math.pow(points[i].lat - p.x, 2) + Math.pow(points[i].lng - p.y, 2);
+      if (dist < minDist) {
+        minDist = dist;
+        closestIdx = i;
+      }
+    }
+    
+    if (closestIdx !== -1) {
+      result.push({ point: points[closestIdx], originalIdx: closestIdx });
+      used.add(closestIdx);
+    }
   }
+  
+  // Always include last point
+  if (!used.has(points.length - 1)) {
+    result.push({ point: points[points.length - 1], originalIdx: points.length - 1 });
+  }
+  
   return result;
 }
+
+// Add debounce utility
+function debounce<T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+interface CircleMarkerProps {
+  center: [number, number];
+  radius: number;
+  pathOptions: Record<string, unknown>;
+  eventHandlers: Record<string, unknown>;
+  className?: string;
+}
+
+// Add memoized marker component
+const MemoizedCircleMarker = React.memo(function MemoizedCircleMarker({ center, radius, pathOptions, eventHandlers, className }: CircleMarkerProps) {
+  return (
+    <CircleMarker
+      center={center}
+      radius={radius}
+      pathOptions={pathOptions}
+      eventHandlers={eventHandlers}
+      className={className}
+    />
+  );
+});
+
+interface PolylineProps {
+  positions: [number, number][];
+  pathOptions: Record<string, unknown>;
+  eventHandlers: Record<string, unknown>;
+}
+
+// Add memoized polyline component
+const MemoizedPolyline = React.memo(function MemoizedPolyline({ positions, pathOptions, eventHandlers }: PolylineProps) {
+  return (
+    <Polyline
+      positions={positions}
+      pathOptions={pathOptions}
+      eventHandlers={eventHandlers}
+    />
+  );
+});
+
+// Helper function to convert TrackPoint to Leaflet coordinates
+const toLeafletCoords = (point: TrackPoint): [number, number] => [point.lat, point.lng];
 
 // SVG Map Pin component (blue border, no margin)
 function MapPinSVG({ selected }: { selected?: boolean }) {
@@ -194,8 +351,8 @@ function calculateElevationGain(points: TrackPoint[]): number {
   return totalGain;
 }
 
-function calculateRouteStats(points: TrackPoint[]): { distance: number; elevationGain: number } {
-  if (points.length < 2) return { distance: 0, elevationGain: 0 };
+function calculateRouteStats(points: TrackPoint[]): { distance: number; elevationGain: number; numPoints: number } {
+  if (points.length < 2) return { distance: 0, elevationGain: 0, numPoints: 0 };
   
   let totalDistance = 0;
   for (let i = 1; i < points.length; i++) {
@@ -206,12 +363,57 @@ function calculateRouteStats(points: TrackPoint[]): { distance: number; elevatio
   
   return {
     distance: totalDistance,
-    elevationGain
+    elevationGain,
+    numPoints: points.length
   };
 }
 
+// Add a style object for user-select none
+const GPX_EDITOR_USER_SELECT_NONE = {
+  userSelect: 'none' as const,
+};
+
+// Helper to trim a segment by a given radius in meters (approximate)
+function trimSegmentEnds(
+  p1: { lat: number; lng: number },
+  p2: { lat: number; lng: number },
+  trimMeters: number
+): [{ lat: number; lng: number }, { lat: number; lng: number }] {
+  // Use simple linear interpolation for small distances
+  const toRad = (deg: number) => deg * Math.PI / 180;
+  const R = 6371000; // Earth radius in meters
+  const lat1 = toRad(p1.lat), lng1 = toRad(p1.lng);
+  const lat2 = toRad(p2.lat), lng2 = toRad(p2.lng);
+  const dLat = lat2 - lat1, dLng = lng2 - lng1;
+  const dist = Math.sqrt(dLat * dLat + dLng * dLng) * R;
+  if (dist === 0) return [p1, p2];
+  const trimFrac = trimMeters / dist;
+  const interp = (a: number, b: number, f: number) => a + (b - a) * f;
+  return [
+    {
+      lat: interp(p1.lat, p2.lat, trimFrac),
+      lng: interp(p1.lng, p2.lng, trimFrac)
+    },
+    {
+      lat: interp(p2.lat, p1.lat, trimFrac),
+      lng: interp(p2.lng, p1.lng, trimFrac)
+    }
+  ];
+}
+
+// For start/finish markers, use fixed width/height and set iconAnchor to center
+const START_FINISH_MARKER_WIDTH = 80;
+const START_FINISH_MARKER_HEIGHT = 32;
+
 export default function GpxEditor({ onSave, initialTrack = [], readOnly = false, hideControls = [] }: GpxEditorProps) {
-  const [points, setPoints] = useState<TrackPoint[]>(initialTrack);
+  // Calculate max view points based on initial track distance
+  const maxViewPoints = getMaxViewPointsForTrack(initialTrack);
+  const [points, setPoints] = useState<TrackPoint[]>(() => {
+    if (initialTrack.length > maxViewPoints) {
+      return evenlyDownsamplePointsWithIndex(initialTrack, maxViewPoints).map(d => d.point);
+    }
+    return initialTrack;
+  });
   const [history, setHistory] = useState<TrackPoint[][]>([initialTrack]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
@@ -222,10 +424,9 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSimplified, setIsSimplified] = useState(false);
   const [originalPoints, setOriginalPoints] = useState<TrackPoint[]>([]);
-  const [routeStats, setRouteStats] = useState({ distance: 0, elevationGain: 0 });
-  const mapRef = useRef<L.Map>(null);
-
-  const MAX_VIEW_POINTS = 500;
+  const [routeStats, setRouteStats] = useState({ distance: 0, elevationGain: 0, numPoints: 0 });
+  const mapRef = useRef<L.Map | null>(null);
+  const [selectedSegment, setSelectedSegment] = useState<[number, number] | null>(null);
 
   const addToHistory = useCallback((newPoints: TrackPoint[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -233,6 +434,31 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
+
+  // Memoize display points calculation
+  const displayPoints = React.useMemo(() => {
+    if (editMode) {
+      if (points.length > maxViewPoints) {
+        return evenlyDownsamplePointsWithIndex(points, maxViewPoints).map(d => d.point);
+      }
+      return points;
+    }
+    return evenlyDownsamplePointsWithIndex(points, maxViewPoints).map(d => d.point);
+  }, [points, editMode, maxViewPoints]);
+
+  // Debounce map interactions
+  const debouncedHandleMouseMove = useCallback(
+    (e: L.LeafletMouseEvent) => {
+      if (draggingIdx !== null && draggingLatLng) {
+        requestAnimationFrame(() => {
+          const newPoints = [...points];
+          newPoints[draggingIdx] = { lat: e.latlng.lat, lng: e.latlng.lng };
+          setPoints(newPoints);
+        });
+      }
+    },
+    [draggingIdx, draggingLatLng, points]
+  );
 
   const handleMouseMove = useCallback((e: L.LeafletMouseEvent) => {
     if (draggingIdx !== null && draggingLatLng) {
@@ -269,7 +495,22 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
   }, [draggingIdx, draggingLatLng, points, handleMouseMove, handleMouseUp, addToHistory]);
 
   const addPoint = () => {
-    if (mapRef.current) {
+    if (selectedSegment && points.length > 1) {
+      // Insert at midpoint of selected segment
+      const [i1, i2] = selectedSegment;
+      const p1 = points[i1];
+      const p2 = points[i2];
+      const mid = {
+        lat: (p1.lat + p2.lat) / 2,
+        lng: (p1.lng + p2.lng) / 2,
+      };
+      const newPoints = [...points];
+      newPoints.splice(i2, 0, mid);
+      setPoints(newPoints);
+      addToHistory(newPoints);
+      setSelectedPoint(i2); // select the new point
+      setSelectedSegment(null);
+    } else if (mapRef.current) {
       const center = mapRef.current.getCenter();
       const newPoints = [...points, { lat: center.lat, lng: center.lng }];
       setPoints(newPoints);
@@ -304,6 +545,7 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
 
   const handleMarkerClick = (index: number) => {
     setSelectedPoint(index);
+    setSelectedSegment(null);
   };
 
   const handleMapClick = (e: L.LeafletMouseEvent) => {
@@ -342,14 +584,6 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
     }
   };
 
-  // Determine which points to display
-  let displayPoints: TrackPoint[] = [];
-  if (editMode) {
-    displayPoints = points;
-  } else {
-    displayPoints = evenlyDownsamplePointsWithIndex(points, MAX_VIEW_POINTS).map(d => d.point);
-  }
-
   // Only allow editing in edit mode
   const canEdit = editMode && !readOnly;
 
@@ -379,89 +613,260 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
   // Update stats when points change
   useEffect(() => {
     const stats = calculateRouteStats(points);
-    setRouteStats(stats);
+    setRouteStats({ ...stats, numPoints: points.length });
   }, [points]);
 
   const handleSave = () => {
     onSave(points);
   };
 
+  // Optimize marker rendering with virtualization
+  const renderMarkers = useCallback(() => {
+    if (hidePoints) return null;
+
+    const visibleMarkers = displayPoints.map((point, index) => {
+      const isSelected = selectedPoint === index || draggingIdx === index;
+      const isSegmentEnd = selectedSegment && (index === selectedSegment[0] || index === selectedSegment[1]);
+      const isStart = index === 0;
+      const isFinish = index === displayPoints.length - 1 && displayPoints.length > 1;
+      
+      if (isStart || isFinish) {
+        // Start/Finish marker: use Marker with custom DivIcon
+        const width = START_FINISH_MARKER_WIDTH;
+        const height = START_FINISH_MARKER_HEIGHT;
+        const fillColor = isStart ? GPX_EDITOR_MAP_STYLE.markerStartColor : GPX_EDITOR_MAP_STYLE.markerFinishColor;
+        const label = isStart ? 'Start' : 'Finish';
+        const icon = isStart ? renderToString(<Play style={{width: 22, height: 22, marginRight: 8, flexShrink: 0}} color={GPX_EDITOR_MAP_STYLE.markerIconColor} />) : renderToString(<Flag style={{width: 22, height: 22, marginRight: 8, flexShrink: 0}} color={GPX_EDITOR_MAP_STYLE.markerIconColor} />);
+        const scale = (isSelected || isSegmentEnd) ? 1.15 : 1;
+        const html = `
+          <div style="
+            display: inline-flex;
+            width: ${width * scale}px;
+            height: ${height * scale}px;
+            background: ${fillColor};
+            border: 3px solid ${GPX_EDITOR_MAP_STYLE.markerBorderColor};
+            border-radius: ${height}px;
+            align-items: center;
+            justify-content: center;
+            font-size: ${isStart ? GPX_EDITOR_MAP_STYLE.markerStartFontSize : GPX_EDITOR_MAP_STYLE.markerFinishFontSize}px;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+            pointer-events: auto;
+            padding: 4px 10px;
+            gap: 8px 0px;
+            transition: height 0.1s;
+            overflow: hidden;
+            box-sizing: border-box;
+            user-select: none;
+            z-index: 1200;
+          " class='select-none'>
+            ${icon}
+            <span style='white-space:nowrap;'>${label}</span>
+          </div>
+        `;
+        return (
+          <Tooltip key={index}>
+            <TooltipTrigger asChild>
+              <Marker
+                position={toLeafletCoords(point)}
+                icon={L.divIcon({
+                  className: '',
+                  html,
+                  iconSize: [width * scale, height * scale],
+                  iconAnchor: [width * scale / 2, height * scale / 2],
+                })}
+                zIndexOffset={1200}
+                eventHandlers={canEdit ? {
+                  click: () => handleMarkerClick(index),
+                  mousedown: (e: L.LeafletMouseEvent) => {
+                    if (mapRef.current) mapRef.current.dragging.disable();
+                    // Drag threshold logic
+                    const startX = e.originalEvent.clientX;
+                    const startY = e.originalEvent.clientY;
+                    let moved = false;
+                    const onMove = (moveEvent: MouseEvent) => {
+                      if (!moved && (Math.abs(moveEvent.clientX - startX) > DRAG_THRESHOLD_PX || Math.abs(moveEvent.clientY - startY) > DRAG_THRESHOLD_PX)) {
+                        setDraggingIdx(index);
+                        setDraggingLatLng(point);
+                        moved = true;
+                      }
+                    };
+                    const onUp = () => {
+                      window.removeEventListener('mousemove', onMove);
+                      window.removeEventListener('mouseup', onUp);
+                      if (mapRef.current && draggingIdx === null) mapRef.current.dragging.enable();
+                    };
+                    window.addEventListener('mousemove', onMove);
+                    window.addEventListener('mouseup', onUp);
+                    e.originalEvent.preventDefault();
+                    e.originalEvent.stopPropagation();
+                  },
+                  dragend: (e) => {
+                    if (mapRef.current && draggingIdx === null) mapRef.current.dragging.enable();
+                    const newLatLng = e.target.getLatLng();
+                    const newPoints = [...points];
+                    newPoints[index] = { lat: newLatLng.lat, lng: newLatLng.lng };
+                    setPoints(newPoints);
+                    addToHistory(newPoints);
+                    setSelectedPoint(index);
+                    setDraggingIdx(null);
+                    setDraggingLatLng(null);
+                  }
+                } : {
+                  click: () => handleMarkerClick(index)
+                }}
+                draggable={canEdit}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="z-[3000] select-none">
+              {label}
+            </TooltipContent>
+          </Tooltip>
+        );
+      } else {
+        return (
+          <MemoizedCircleMarker
+            key={index}
+            center={toLeafletCoords(point)}
+            radius={isSelected || isSegmentEnd ? GPX_EDITOR_MAP_STYLE.markerSelectedRadius : GPX_EDITOR_MAP_STYLE.markerRadius}
+            pathOptions={{
+              color: GPX_EDITOR_MAP_STYLE.markerBorderColor,
+              weight: GPX_EDITOR_MAP_STYLE.markerBorder,
+              fillColor: isSelected || isSegmentEnd ? GPX_EDITOR_MAP_STYLE.markerSelectedColor : GPX_EDITOR_MAP_STYLE.markerColor,
+              fillOpacity: 1,
+            }}
+            eventHandlers={canEdit ? {
+              click: () => handleMarkerClick(index),
+              mousedown: (e: L.LeafletMouseEvent) => {
+                if (mapRef.current) mapRef.current.dragging.disable();
+                // Drag threshold logic
+                const startX = e.originalEvent.clientX;
+                const startY = e.originalEvent.clientY;
+                let moved = false;
+                const onMove = (moveEvent: MouseEvent) => {
+                  if (!moved && (Math.abs(moveEvent.clientX - startX) > DRAG_THRESHOLD_PX || Math.abs(moveEvent.clientY - startY) > DRAG_THRESHOLD_PX)) {
+                    setDraggingIdx(index);
+                    setDraggingLatLng(point);
+                    moved = true;
+                  }
+                };
+                const onUp = () => {
+                  window.removeEventListener('mousemove', onMove);
+                  window.removeEventListener('mouseup', onUp);
+                  if (mapRef.current && draggingIdx === null) mapRef.current.dragging.enable();
+                };
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
+                e.originalEvent.preventDefault();
+                e.originalEvent.stopPropagation();
+              }
+            } : {
+              click: () => handleMarkerClick(index)
+            }}
+            className={isSelected || isSegmentEnd ? 'transition-all duration-100 select-none' : 'select-none'}
+          />
+        );
+      }
+    });
+
+    return visibleMarkers;
+  }, [displayPoints, selectedPoint, draggingIdx, selectedSegment, hidePoints, canEdit]);
+
   return (
     <TooltipProvider>
       <div className={cn('relative w-full h-full', isFullscreen && 'fixed inset-0 z-[2000] bg-black/70 flex items-center justify-center')} onClick={handleOverlayClick}>
         <div className={cn('w-full h-full', isFullscreen && 'max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex items-center justify-center')}>
-          {/* Add route statistics display */}
-          <div className="absolute top-4 left-4 z-[1100] bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Route Statistics</h3>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Distance:</span>
-                <span className="text-sm font-medium">{routeStats.distance.toFixed(2)} km</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Elevation:</span>
-                <span className="text-sm font-medium">{Math.round(routeStats.elevationGain)} m</span>
-              </div>
-            </div>
-          </div>
           <MapContainer
             center={displayPoints[0] || [50.0755, 14.4378]}
             zoom={13}
             minZoom={10}
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: '100%', width: '100%', ...GPX_EDITOR_USER_SELECT_NONE }}
             ref={mapRef}
-            className="rounded-lg border"
+            className="rounded-lg border select-none"
             zoomControl={false}
+            attributionControl={false}
+            preferCanvas={true}
           >
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url={`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=a5w3EO45npvzNFzD6VoD`}
               eventHandlers={canEdit ? { click: handleMapClick } : undefined}
             />
-            <FitBoundsOnPoints points={displayPoints} />
+           
+            {/* Only fit bounds on initial load or explicit zoom, not on every change */}
+            {/* <FitBoundsOnPoints points={displayPoints} /> */}
             <Polyline
-              positions={displayPoints}
-              pathOptions={{ color: 'blue', weight: 3 }}
+              positions={displayPoints.map(toLeafletCoords)}
+              pathOptions={{ color: GPX_EDITOR_MAP_STYLE.polylineColor, weight: GPX_EDITOR_MAP_STYLE.polylineWeight, opacity: GPX_EDITOR_MAP_STYLE.polylineOpacity }}
+              eventHandlers={{
+                click: (e: L.LeafletMouseEvent) => {
+                  if (displayPoints.length < 2 || !mapRef.current) return;
+                  const map = mapRef.current;
+                  const clickPoint = map.latLngToLayerPoint(e.latlng);
+                  let minDist = Infinity;
+                  let segIdx: [number, number] | null = null;
+                  for (let i = 0; i < displayPoints.length - 1; i++) {
+                    const p1 = map.latLngToLayerPoint(L.latLng(displayPoints[i].lat, displayPoints[i].lng));
+                    const p2 = map.latLngToLayerPoint(L.latLng(displayPoints[i + 1].lat, displayPoints[i + 1].lng));
+                    // Use Leaflet's pointToSegmentDistance
+                    const dist = L.LineUtil.pointToSegmentDistance(clickPoint, p1, p2);
+                    if (dist < minDist) {
+                      minDist = dist;
+                      segIdx = [i, i + 1];
+                    }
+                  }
+                  // Only select if close enough (e.g., < 15px)
+                  if (minDist < 15) {
+                    setSelectedSegment(segIdx);
+                    setSelectedPoint(null);
+                  } else {
+                    setSelectedSegment(null);
+                  }
+                }
+              }}
             />
-            {!hidePoints && displayPoints.map((point, index) => (
-              <Tooltip key={index}>
-                <TooltipTrigger asChild>
-                  <Marker
-                    position={point}
-                    icon={L.divIcon({
-                      className: '',
-                      html: `<div style=\"transform: translate(-50%, -100%);\">${renderToString(<MapPinSVG selected={selectedPoint === index} />)}</div>`
-                    })}
-                    eventHandlers={canEdit ? {
-                      click: () => handleMarkerClick(index),
-                      mousedown: (e) => {
-                        setDraggingIdx(index);
-                        setDraggingLatLng(point);
-                        e.originalEvent.preventDefault();
-                        e.originalEvent.stopPropagation();
-                      },
-                      dragend: (e) => {
-                        const newLatLng = e.target.getLatLng();
-                        const newPoints = [...points];
-                        newPoints[index] = { lat: newLatLng.lat, lng: newLatLng.lng };
-                        setPoints(newPoints);
-                        addToHistory(newPoints);
-                        setSelectedPoint(index);
-                        setDraggingIdx(null);
-                        setDraggingLatLng(null);
+            {/* Highlighted segment (rendered before points so points overlay it) */}
+            {selectedSegment && (() => {
+              const [i1, i2] = selectedSegment;
+              const p1 = displayPoints[i1];
+              const p2 = displayPoints[i2];
+              // Use marker radius in meters (approximate, e.g. 10m)
+              const trimmed = trimSegmentEnds(p1, p2, 10); // 10 meters, tweak as needed
+              return (
+                <MemoizedPolyline
+                  positions={trimmed.map(toLeafletCoords)}
+                  pathOptions={{ color: GPX_EDITOR_MAP_STYLE.markerSelectedColor, weight: GPX_EDITOR_MAP_STYLE.polylineWeight + 2, opacity: 0.9, lineCap: 'round' }}
+                  eventHandlers={{
+                    click: (e: L.LeafletMouseEvent) => {
+                      if (displayPoints.length < 2 || !mapRef.current) return;
+                      const map = mapRef.current;
+                      const clickPoint = map.latLngToLayerPoint(e.latlng);
+                      let minDist = Infinity;
+                      let segIdx: [number, number] | null = null;
+                      for (let i = 0; i < displayPoints.length - 1; i++) {
+                        const p1 = map.latLngToLayerPoint(L.latLng(displayPoints[i].lat, displayPoints[i].lng));
+                        const p2 = map.latLngToLayerPoint(L.latLng(displayPoints[i + 1].lat, displayPoints[i + 1].lng));
+                        // Use Leaflet's pointToSegmentDistance
+                        const dist = L.LineUtil.pointToSegmentDistance(clickPoint, p1, p2);
+                        if (dist < minDist) {
+                          minDist = dist;
+                          segIdx = [i, i + 1];
+                        }
                       }
-                    } : {
-                      click: () => handleMarkerClick(index)
-                    }}
-                    draggable={canEdit}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="z-[3000]">
-                  {`Point ${index + 1}`}
-                </TooltipContent>
-              </Tooltip>
-            ))}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] w-fit flex justify-center px-1">
+                      // Only select if close enough (e.g., < 15px)
+                      if (minDist < 15) {
+                        setSelectedSegment(segIdx);
+                        setSelectedPoint(null);
+                      } else {
+                        setSelectedSegment(null);
+                      }
+                    }
+                  }}
+                />
+              );
+            })()}
+            {renderMarkers()}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[1000] w-full flex justify-center px-1">
               <IOSMapControls
                 onAddPoint={addPoint}
                 onDeletePoint={deletePoint}
@@ -481,8 +886,18 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
                 isFullscreen={isFullscreen}
                 readOnly={readOnly}
                 hideControls={hideControls}
+                routeStats={routeStats}
+                mapRef={mapRef}
+                selectedSegment={selectedSegment}
+                draggingIdx={draggingIdx}
               />
             </div>
+            <div className="absolute top-2 right-2 z-[1100] bg-white/80 rounded-lg px-3 py-1 text-xs text-gray-700 shadow select-none pointer-events-auto">
+  &copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a>, 
+  &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors,
+  <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
+</div>
+
           </MapContainer>
         </div>
       </div>

@@ -18,6 +18,13 @@ enum UserRole {
   UZIVATEL
 }
 
+enum VisitState {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                    String                 @id @default(cuid()) @map("_id")
   name                  String?
@@ -104,15 +111,17 @@ model Season {
 model VisitData {
   id            String    @id @default(cuid()) @map("_id")
   visitDate     DateTime?
-  fullName      String
+  routeTitle    String
+  routeDescription String?
   dogName       String?
   points        Int
   visitedPlaces String
   dogNotAllowed String?
   routeLink     String?
+  route         Json      // This will store the full GPS points array
   year          Int       @map("seasonYear") // This remains for simplified queries
   extraPoints   Json
-  isApproved    Boolean   @default(false)
+  state         VisitState @default(DRAFT)
   rejectionReason String?
   createdAt     DateTime? @default(now())
 

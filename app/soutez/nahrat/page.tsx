@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
+import StepProgress from '@/components/ui/step-progress';
 
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
@@ -95,7 +96,7 @@ export default function NahratPage() {
   };
 
   const handleSave = async () => {
-    if (!selectedFile || !routeName || trackPoints.length === 0) return;
+    if (!selectedFile || !routeName || trackPoints.length === 0 || !user) return;
 
     setIsSaving(true);
     try {
@@ -106,20 +107,23 @@ export default function NahratPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          fullName: routeName,
+          routeTitle: routeName,
+          routeDescription: routeDescription,
+          route: trackPoints, // Store the full GPS points array
           routeLink: JSON.stringify(trackPoints),
           visitDate: new Date(),
           points: 0,
           visitedPlaces: "GPS Route",
           dogNotAllowed: "false",
           year: new Date().getFullYear(),
+          state: "DRAFT",
+          userId: user.id, // Add the user ID
           extraPoints: {
             description: routeDescription,
             distance: 0,
             totalAscent: 0,
             elapsedTime: 0,
-            averageSpeed: 0,
-            isApproved: false
+            averageSpeed: 0
           }
         }),
       });
@@ -142,6 +146,16 @@ export default function NahratPage() {
   return (
     <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role} className="px-6">
       <div className="container mx-auto py-6 space-y-6 max-w-5xl">
+        <StepProgress
+          steps={['Nahrát trasu', 'Upravit trasu', 'Dokončení']}
+          currentStep={1}
+          className="mb-8"
+          stepImages={[
+            '/icons/upload.png',
+            '/icons/edit.png',
+            '/icons/finish.png',
+          ]}
+        />
         <div className="flex items-center gap-2 mb-6">
           <MapIcon className="h-6 w-6" />
           <h1 className="text-3xl font-bold">Nahrát trasu závodu</h1>

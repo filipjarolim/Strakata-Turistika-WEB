@@ -1,23 +1,24 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentRole } from '@/lib/auth';
-import { UserRole } from '@prisma/client';
+import { UserRole, VisitState } from '@prisma/client';
 
 interface RouteRequest {
-  fullName: string;
+  routeTitle: string;
+  routeDescription: string;
   routeLink: string;
   visitDate: Date;
   points: number;
   visitedPlaces: string;
   dogNotAllowed: string;
   year: number;
+  state: VisitState;
   extraPoints: {
     description: string;
     distance: number;
     totalAscent: number;
     elapsedTime: number;
     averageSpeed: number;
-    isApproved: boolean;
   };
 }
 
@@ -28,34 +29,28 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 403 });
     }
 
-    // Fetch all routes and filter in memory
+    // Fetch only routes that need review (PENDING_REVIEW state)
     const routes = await db.visitData.findMany({
+      where: {
+        state: VisitState.PENDING_REVIEW
+      },
       orderBy: {
-        visitDate: 'desc'
+        createdAt: 'desc'
       },
       select: {
         id: true,
-        fullName: true,
+        routeTitle: true,
+        routeDescription: true,
         visitDate: true,
         year: true,
         routeLink: true,
-        extraPoints: true
+        state: true,
+        extraPoints: true,
+        createdAt: true
       }
     });
 
-    // Filter routes that haven't been approved yet
-    const unapprovedRoutes = routes.filter(route => {
-      try {
-        const extraPoints = route.extraPoints as {
-          isApproved?: boolean;
-        };
-        return extraPoints?.isApproved === false;
-      } catch {
-        return false;
-      }
-    });
-
-    return NextResponse.json(unapprovedRoutes);
+    return NextResponse.json(routes);
   } catch (error) {
     console.error('[GET_ADMIN_ROUTES_ERROR]', error);
     return NextResponse.json(

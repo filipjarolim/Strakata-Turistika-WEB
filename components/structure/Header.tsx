@@ -29,13 +29,17 @@ import { ExtendedUser } from "@/next-auth";
 const Header = ({
                     user,
                     role,
+                    mode = "fixed"
                 }: {
     user?: ExtendedUser | null;
     role?: string;
+    mode?: "fixed" | "static" | "auto-hide";
 }) => {
     const headerRef = useRef<HTMLElement | null>(null);
     const [headerHeight, setHeaderHeight] = useState<number>(0);
     const [isScrolled, setIsScrolled] = useState<boolean>(false);
+    const [isVisible, setIsVisible] = useState<boolean>(true);
+    const [lastScrollY, setLastScrollY] = useState<number>(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const pathname = usePathname();
 
@@ -49,18 +53,35 @@ const Header = ({
         updateHeaderHeight();
 
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20);
+            const currentScrollY = window.scrollY;
+            
+            if (mode === "auto-hide") {
+                if (currentScrollY > lastScrollY) {
+                    // Scrolling down
+                    setIsVisible(false);
+                } else {
+                    // Scrolling up
+                    setIsVisible(true);
+                }
+                setLastScrollY(currentScrollY);
+            }
+            
+            setIsScrolled(currentScrollY > 20);
         };
 
         // Update on window resize for responsiveness
         window.addEventListener("resize", updateHeaderHeight);
-        window.addEventListener("scroll", handleScroll);
+        if (mode !== "static") {
+            window.addEventListener("scroll", handleScroll);
+        }
         
         return () => {
             window.removeEventListener("resize", updateHeaderHeight);
-            window.removeEventListener("scroll", handleScroll);
+            if (mode !== "static") {
+                window.removeEventListener("scroll", handleScroll);
+            }
         };
-    }, []);
+    }, [mode, lastScrollY]);
 
     // Close mobile menu when route changes
     useEffect(() => {
@@ -72,10 +93,16 @@ const Header = ({
             <header
                 ref={headerRef}
                 className={cn(
-                    "grid grid-cols-3 select-none md:grid-cols-12 w-full md:w-[90%] mx-auto px-4 py-3 fixed left-1/2 translate-x-[-50%] transition-all duration-300 rounded-b-xl h-fit",
-                    isScrolled ? "md:w-[95%] shadow-md backdrop-blur-lg bg-white/80" : "bg-white/70 backdrop-blur-md"
+                    "grid grid-cols-3 select-none md:grid-cols-12 w-full md:w-[90%] mx-auto px-4 py-3 rounded-b-xl h-fit",
+                    mode !== "static" && "fixed left-1/2 translate-x-[-50%]",
+                    isScrolled ? "md:w-[95%] shadow-md backdrop-blur-lg bg-white/80" : "bg-white/70 backdrop-blur-md",
+                    "transition-all duration-300",
+                    mode === "auto-hide" && !isVisible && "-translate-y-[100%]"
                 )}
-                style={{ zIndex: 50 }}
+                style={{ 
+                    zIndex: 50,
+                    ...(mode === "auto-hide" && !isVisible && { boxShadow: "none" })
+                }}
             >
                 <Link
                     href="/"
@@ -282,7 +309,7 @@ const Header = ({
                 </div>
             </header>
 
-            <div style={{height: `${headerHeight}px`}}></div>
+            {mode !== "static" && <div style={{height: `${headerHeight}px`}}></div>}
         </>
     );
 };

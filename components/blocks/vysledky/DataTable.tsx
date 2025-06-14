@@ -31,23 +31,44 @@ import { FilterButton } from './FilterButton';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { format } from "date-fns";
+import { cs } from "date-fns/locale";
 
-export type VisitData = {
+export interface VisitData {
     id: string;
-    visitDate?: string | null;
-    fullName: string;
-    dogName?: string | null;
+    visitDate: string | null;
     points: number;
     visitedPlaces: string;
-    dogNotAllowed?: string | null;
-    routeLink?: string | null;
+    dogNotAllowed: string;
+    routeLink: string | null;
     year: number;
-};
+    extraPoints: {
+        description: string;
+        distance: number;
+        totalAscent: number;
+        elapsedTime: number;
+        averageSpeed: number;
+    };
+    state: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+    routeTitle: string;
+    routeDescription: string | null;
+    rejectionReason?: string | null;
+    createdAt?: string | null;
+}
 
-export type FilterConfig<TData = unknown> = {
-    dateField?: string;  // Field name to use for date filtering, like 'visitDate' or 'createdAt'
-    numberField?: string; // Field name for number range filtering
-    customFilter?: (data: TData, filters: Record<string, unknown>) => boolean; // Custom filter function
+export interface AggregatedVisitData {
+    year: number;
+    totalPoints: number;
+    visitCount: number;
+    visitedPlaces: Set<string>;
+    dogNotAllowed: Set<string>;
+    routeTitles: Set<string>;
+}
+
+export interface FilterConfig<T> {
+    dateField?: keyof T;
+    numberField?: keyof T;
+    customFilter?: (item: T, filters: Record<string, unknown>) => boolean;
 }
 
 // Define types for filter parameters
@@ -75,144 +96,181 @@ type FilterState = {
 
 const ROWS_PER_PAGE = 10;
 
-export type DataTableProps<TData extends object> = {
+export interface DataTableProps<TData extends { id: string }> {
     data: TData[];
     columns: ColumnDef<TData>[];
     year?: number;
     primarySortColumn?: string;
     primarySortDesc?: boolean;
-    transformToAggregatedView?: (data: TData[]) => TData[] | AggregatedVisitData[];
+    transformToAggregatedView?: (data: TData[]) => AggregatedVisitData[];
     filterConfig?: FilterConfig<TData>;
     filename?: string;
     enableDownload?: boolean;
     enableAggregatedView?: boolean;
-    aggregatedViewLabel?: string; // E.g., "View by Category", "Cumulative View", etc.
-    detailedViewLabel?: string; // Label for detailed view button
+    aggregatedViewLabel?: string;
+    detailedViewLabel?: string;
     enableColumnVisibility?: boolean;
     enableSearch?: boolean;
     excludedColumnsInAggregatedView?: string[];
     mainSheetName?: string;
     summarySheetName?: string;
     generateSummarySheet?: boolean;
-    summaryColumnDefinitions?: {
-        header: string;
-        key: string;
-        width?: number;
-    }[];
-    customFilterOptions?: {
-        label: string;
-        options: { value: string; label: string }[];
-    };
     loading?: boolean;
     emptyStateMessage?: string;
-};
+}
 
-// Define a type for the aggregated record
-export type AggregatedVisitData = {
-    fullName: string;
-    points: number;
-    visitedPlaces: string;
-    totalVisits: number;
-    isAggregated: boolean;
-    // Include other fields that might be needed
-    year?: number;
-    id: string;
-    dogName?: string; // Add dogName field
-};
+export const columns: ColumnDef<VisitData>[] = [
+    {
+        accessorKey: "visitDate",
+        header: "Datum návštěvy",
+        cell: ({ row }) => {
+            const date = row.getValue("visitDate") as string;
+            return date ? format(new Date(date), "d. MMMM yyyy", { locale: cs }) : "-";
+        },
+    },
+    {
+        accessorKey: "routeTitle",
+        header: "Název trasy",
+        cell: ({ row }) => row.getValue("routeTitle") || "-",
+    },
+    {
+        accessorKey: "points",
+        header: "Body",
+        cell: ({ row }) => row.getValue("points") || 0,
+    },
+    {
+        accessorKey: "visitedPlaces",
+        header: "Navštívená místa",
+        cell: ({ row }) => row.getValue("visitedPlaces") || "-",
+    },
+    {
+        accessorKey: "dogNotAllowed",
+        header: "Psi zakázáni",
+        cell: ({ row }) => row.getValue("dogNotAllowed") === "true" ? "Ano" : "Ne",
+    },
+    {
+        accessorKey: "state",
+        header: "Stav",
+        cell: ({ row }) => {
+            const state = row.getValue("state") as string;
+            let variant: "default" | "secondary" | "destructive" | "outline" = "default";
+            let label = state;
+
+            switch (state) {
+                case "DRAFT":
+                    variant = "secondary";
+                    label = "Koncept";
+                    break;
+                case "PENDING_REVIEW":
+                    variant = "outline";
+                    label = "Čeká na schválení";
+                    break;
+                case "APPROVED":
+                    variant = "default";
+                    label = "Schváleno";
+                    break;
+                case "REJECTED":
+                    variant = "destructive";
+                    label = "Zamítnuto";
+                    break;
+            }
+
+            return <Badge variant={variant}>{label}</Badge>;
+        },
+    },
+];
 
 // Add this function to transform data for aggregated view - with better typing
-export const transformDataToAggregated = <TData extends { 
-    fullName: string; 
-    points: number; 
-    visitedPlaces?: string | null; 
-    dogName?: string | null; 
-}>(
-    data: TData[]
-): AggregatedVisitData[] => {
-    if (data.length === 0) return [];
-    
-    const cumulativeData: Record<string, { 
-        points: number; 
-        visitCount: number; 
-        visitedPlaces: Set<string>;
-        fullName: string;
-        dogs: Set<string>; // Add dogs set
-    }> = {};
-    
-    // Group data by person's name
-    data.forEach(item => {
-        const fullName = item.fullName;
-        if (!cumulativeData[fullName]) {
-            cumulativeData[fullName] = { 
-                points: 0, 
-                visitCount: 0, 
+export const transformDataToAggregated = (data: VisitData[]): AggregatedVisitData[] => {
+    const aggregated = data.reduce((acc, item) => {
+        const key = item.year.toString();
+        if (!acc[key]) {
+            acc[key] = {
+                year: item.year,
+                totalPoints: 0,
+                visitCount: 0,
                 visitedPlaces: new Set<string>(),
-                dogs: new Set<string>(), // Initialize dogs set
-                fullName
+                dogNotAllowed: new Set<string>(),
+                routeTitles: new Set<string>()
             };
         }
         
-        // Accumulate points
-        cumulativeData[fullName].points += item.points;
+        acc[key].totalPoints += item.points;
+        acc[key].visitCount += 1;
+        if (item.visitedPlaces) acc[key].visitedPlaces.add(item.visitedPlaces);
+        if (item.dogNotAllowed) acc[key].dogNotAllowed.add(item.dogNotAllowed);
+        if (item.routeTitle) acc[key].routeTitles.add(item.routeTitle);
         
-        // Count visits
-        cumulativeData[fullName].visitCount += 1;
-        
-        // Collect unique visited places
-        if (item.visitedPlaces) {
-            const places = item.visitedPlaces.split(',').map(p => p.trim());
-            places.forEach(place => {
-                if (place) cumulativeData[fullName].visitedPlaces.add(place);
-            });
-        }
-
-        // Add dog name if it exists and isn't empty
-        if (item.dogName) {
-            cumulativeData[fullName].dogs.add(item.dogName);
-        }
-    });
+        return acc;
+    }, {} as Record<string, AggregatedVisitData>);
     
-    // Convert back to array and sort by points descending
-    return Object.values(cumulativeData).map(stats => {
-        // Create a new object with required fields to match expected type
-        return {
-            id: stats.fullName, // Use name as ID (now guaranteed to be non-null)
-            fullName: stats.fullName,
-            points: stats.points,
-            visitedPlaces: Array.from(stats.visitedPlaces).join(', '),
-            dogName: Array.from(stats.dogs).join(', '), // Join all unique dog names
-            // Add additional fields specific to aggregated view
-            totalVisits: stats.visitCount,
-            isAggregated: true,
-            year: data[0] && 'year' in data[0] ? (data[0] as { year?: number }).year : undefined
-        } as AggregatedVisitData;
-    }).sort((a, b) => b.points - a.points);
+    return Object.values(aggregated);
 };
 
-export function DataTable<TData extends object>({
+export const summaryColumnDefinitions: ColumnDef<AggregatedVisitData>[] = [
+    {
+        accessorKey: "year",
+        header: "Rok",
+        cell: ({ row }) => row.getValue("year"),
+    },
+    {
+        accessorKey: "totalPoints",
+        header: "Celkem bodů",
+        cell: ({ row }) => row.getValue("totalPoints"),
+    },
+    {
+        accessorKey: "visitCount",
+        header: "Počet návštěv",
+        cell: ({ row }) => row.getValue("visitCount"),
+    },
+    {
+        accessorKey: "visitedPlaces",
+        header: "Navštívená místa",
+        cell: ({ row }) => {
+            const places = row.getValue("visitedPlaces") as Set<string>;
+            return Array.from(places).join(", ") || "-";
+        },
+    },
+    {
+        accessorKey: "dogNotAllowed",
+        header: "Psi zakázáni",
+        cell: ({ row }) => {
+            const restrictions = row.getValue("dogNotAllowed") as Set<string>;
+            return Array.from(restrictions).join(", ") || "-";
+        },
+    },
+    {
+        accessorKey: "routeTitles",
+        header: "Trasy",
+        cell: ({ row }) => {
+            const titles = row.getValue("routeTitles") as Set<string>;
+            return Array.from(titles).join(", ") || "-";
+        },
+    },
+];
+
+export const DataTable = <TData extends { id: string }>({
     data,
     columns,
-    year = new Date().getFullYear(),
+    year,
     primarySortColumn,
-    primarySortDesc = true,
+    primarySortDesc = false,
     transformToAggregatedView,
     filterConfig,
-    filename = `data-export-${year}`,
-    enableDownload = true,
+    filename,
+    enableDownload = false,
     enableAggregatedView = false,
     aggregatedViewLabel = "Aggregated View",
-    detailedViewLabel,
-    enableColumnVisibility = true,
-    enableSearch = true,
+    detailedViewLabel = "Detailed View",
+    enableColumnVisibility = false,
+    enableSearch = false,
     excludedColumnsInAggregatedView = [],
-    mainSheetName,
-    summarySheetName,
-    generateSummarySheet,
-    summaryColumnDefinitions,
-    customFilterOptions,
+    mainSheetName = "Data",
+    summarySheetName = "Summary",
+    generateSummarySheet = false,
     loading = false,
-    emptyStateMessage = "No data available",
-}: DataTableProps<TData>) {
+    emptyStateMessage = "No data available"
+}: DataTableProps<TData>) => {
     const initialSorting: SortingState = primarySortColumn 
         ? [{ id: primarySortColumn, desc: primarySortDesc }] 
         : [];
@@ -238,10 +296,10 @@ export function DataTable<TData extends object>({
         let count = 0;
         if (activeFilters.dateFilter && 
             filterConfig?.dateField && 
-            isColumnVisible(filterConfig.dateField)) count++;
+            isColumnVisible(filterConfig.dateField as string)) count++;
         if (activeFilters.numberFilter && 
             filterConfig?.numberField && 
-            isColumnVisible(filterConfig.numberField)) count++;
+            isColumnVisible(filterConfig.numberField as string)) count++;
         if (activeFilters.customFilterParams?.categories && activeFilters.customFilterParams.categories.length > 0) count++;
         setActiveFilterCount(count);
     }, [activeFilters, columnVisibility, isAggregatedView, filterConfig?.dateField, filterConfig?.numberField, isColumnVisible]);
@@ -255,7 +313,7 @@ export function DataTable<TData extends object>({
         
         if (newAggregatedState) {
             if (filterConfig?.dateField && 
-                excludedColumnsInAggregatedView.includes(filterConfig.dateField)) {
+                excludedColumnsInAggregatedView.includes(filterConfig.dateField as string)) {
                 delete updatedFilters.dateFilter;
             }
             // Similarly for other filter types...
@@ -284,7 +342,7 @@ export function DataTable<TData extends object>({
                     return transformToAggregatedView(filteredData);
                 }
                 // Use our own transform function as fallback
-                return transformDataToAggregated(filteredData as { fullName: string; points: number; visitedPlaces?: string }[]);
+                return transformDataToAggregated(filteredData as unknown as VisitData[]);
             }
             return filteredData;
         },
@@ -340,7 +398,7 @@ export function DataTable<TData extends object>({
         if (!filterConfig?.dateField) return;
 
         const [startDate, endDate] = dates;
-        const dateField = filterConfig.dateField;
+        const dateField = filterConfig.dateField as keyof TData;
         
         // Update active filters
         setActiveFilters(prev => ({
@@ -369,11 +427,11 @@ export function DataTable<TData extends object>({
         // Apply date filter if configured
         if (filters.dateFilter && filterConfig?.dateField) {
             const { type, startDate, endDate } = filters.dateFilter;
-            const dateField = filterConfig.dateField;
+            const dateField = filterConfig.dateField as keyof TData;
 
             result = result.filter((item: TData) => {
-                if (!item[dateField as keyof TData]) return false;
-                const itemDate = new Date(item[dateField as keyof TData] as string);
+                if (!item[dateField]) return false;
+                const itemDate = new Date(item[dateField] as string);
 
                 if (type === 'before') {
                     return startDate && itemDate < startDate;
@@ -391,10 +449,10 @@ export function DataTable<TData extends object>({
         // Apply number range filter if configured
         if (filters.numberFilter && filterConfig?.numberField) {
             const { min, max } = filters.numberFilter;
-            const numberField = filterConfig.numberField;
+            const numberField = filterConfig.numberField as keyof TData;
 
             result = result.filter((item: TData) => {
-                const value = parseFloat(String(item[numberField as keyof TData]));
+                const value = parseFloat(String(item[numberField]));
                 if (isNaN(value)) return false;
                 
                 if (min !== undefined && max !== undefined) {
@@ -410,8 +468,9 @@ export function DataTable<TData extends object>({
 
         // Apply custom filter if provided
         if (filterConfig?.customFilter && filters.customFilterParams) {
-            result = result.filter(item => 
-                filterConfig.customFilter!(item, filters.customFilterParams || {})
+            const customFilter = filterConfig.customFilter;
+            result = result.filter(item =>
+                customFilter(item, filters.customFilterParams as Record<string, unknown>)
             );
         }
 
@@ -522,9 +581,8 @@ export function DataTable<TData extends object>({
                                     year={year}
                                     dateFieldLabel="Datum návštěvy"
                                     numberFieldLabel="Body"
-                                    customFilterOptions={customFilterOptions}
-                                    showDateFilter={filterConfig.dateField ? isColumnVisible(filterConfig.dateField) : false}
-                                    showNumberFilter={filterConfig.numberField ? isColumnVisible(filterConfig.numberField) : false}
+                                    showDateFilter={filterConfig.dateField ? isColumnVisible(filterConfig.dateField as string) : false}
+                                    showNumberFilter={filterConfig.numberField ? isColumnVisible(filterConfig.numberField as string) : false}
                                 />
                                 {activeFilterCount > 0 && (
                                     <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">
@@ -561,7 +619,6 @@ export function DataTable<TData extends object>({
                                 summarySheetName={summarySheetName}
                                 mainSheetName={mainSheetName}
                                 generateSummarySheet={generateSummarySheet}
-                                summaryColumnDefinitions={summaryColumnDefinitions}
                             />
                         )}
                     </div>

@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Save, ArrowLeft, Map, Trophy } from "lucide-react";
+import { AlertCircle, Save, ArrowLeft, Map, Trophy, Loader2, Check } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { VisitDataForm } from "@/components/forms/VisitDataForm";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
+import StepProgress from '@/components/ui/step-progress';
 
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
@@ -29,8 +30,9 @@ const DynamicGpxEditor = dynamic(
 
 interface Route {
   id: string;
-  name: string;
-  description: string;
+  routeTitle: string;
+  routeDescription: string;
+  routeLink: string;
   track: {
     lat: number;
     lng: number;
@@ -46,24 +48,15 @@ interface Route {
     totalAscent: number;
     elapsedTime: number;
     averageSpeed: number;
-    isApproved: boolean;
   };
 }
 
 interface FormData {
-  visitDate: Date;
-  points: number;
+  routeLink?: string;
   visitedPlaces: string;
   dogNotAllowed: string;
-  year: number;
-  extraPoints: {
-    description: string;
-    distance?: number;
-    totalAscent?: number;
-    elapsedTime?: number;
-    averageSpeed?: number;
-    isApproved?: boolean;
-  };
+  routeTitle?: string;
+  routeDescription?: string;
 }
 
 // Add downsampling function
@@ -107,8 +100,9 @@ export default function FinishRoutePage() {
         
         setRoute({
           id: data.id,
-          name: data.fullName,
-          description: data.extraPoints?.description || '',
+          routeTitle: data.routeTitle,
+          routeDescription: data.routeDescription,
+          routeLink: data.routeLink || '',
           track: track,
           displayTrack: downsampleTrack(track),
           season: data.year || 0,
@@ -124,7 +118,7 @@ export default function FinishRoutePage() {
     fetchRoute();
   }, [params.id]);
 
-  const handlePublish = async (formData: FormData) => {
+  const handlePublish = async () => {
     if (!route) return;
 
     setIsPublishing(true);
@@ -135,24 +129,14 @@ export default function FinishRoutePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          routeLink: JSON.stringify(route.track),
-          extraPoints: {
-            ...(formData.extraPoints || {}),
-            description: formData.extraPoints?.description || '',
-            distance: route.extraPoints?.distance || 0,
-            totalAscent: route.extraPoints?.totalAscent || 0,
-            elapsedTime: route.extraPoints?.elapsedTime || 0,
-            averageSpeed: route.extraPoints?.averageSpeed || 0,
-            isApproved: false
-          }
+          state: "PENDING_REVIEW"
         }),
       });
 
       if (!response.ok) throw new Error('Failed to publish route');
       
-      // Navigate to the competition page
-      router.push('/soutez');
+      // Navigate to the results page
+      router.push('/vysledky/moje');
     } catch (err) {
       setError('Failed to publish route');
     } finally {
@@ -181,39 +165,51 @@ export default function FinishRoutePage() {
   }
 
   return (
-    <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role} className="px-6">
+    <CommonPageTemplate contents={{header: true}} headerMode={"auto-hide"} currentUser={user} currentRole={role} className="px-6">
       <div className="container mx-auto py-6 space-y-6 max-w-5xl">
+        <StepProgress
+          steps={['Nahrát trasu', 'Upravit trasu', 'Dokončení']}
+          currentStep={3}
+          className="mb-8"
+          stepImages={[
+            '/icons/upload.png',
+            '/icons/edit.png',
+            '/icons/finish.png',
+          ]}
+        />
         <div className="flex items-center gap-2 mb-6">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-3xl font-bold">Finalize Route</h1>
+          <h1 className="text-3xl font-bold">Dokončení trasy</h1>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-lg">
             <CardHeader className="bg-muted/50">
-              <CardTitle className="text-2xl">Visit Details</CardTitle>
-              <CardDescription className="text-base">Review and finalize your visit details</CardDescription>
+              <CardTitle className="text-2xl">Detaily návštěvy</CardTitle>
+              <CardDescription className="text-base">Zkontrolujte a dokončete detaily návštěvy</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Název trasy</Label>
+                  <p className="text-lg font-medium">{route.routeTitle}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Popis trasy</Label>
+                  <p className="text-muted-foreground">{route.routeDescription}</p>
+                </div>
+              </div>
               <VisitDataForm
                 initialData={{
-                  fullName: route.name || "",
-                  visitDate: new Date(),
-                  points: 0,
                   visitedPlaces: '',
                   dogNotAllowed: "false",
-                  year: new Date().getFullYear(),
-                  extraPoints: {
-                    description: route.description,
-                    ...route.extraPoints
-                  }
+                  routeLink: '',
+                  routeTitle: route.routeTitle,
+                  routeDescription: route.routeDescription
                 }}
-                onSubmit={handlePublish}
-                isLoading={isPublishing}
-                submitLabel="Publish Route"
+                onSubmit={() => {}}
                 user={user}
               />
             </CardContent>
@@ -221,17 +217,17 @@ export default function FinishRoutePage() {
 
           <Card className="shadow-lg">
             <CardHeader className="bg-muted/50">
-              <CardTitle className="text-2xl">Route Statistics</CardTitle>
-              <CardDescription className="text-base">Calculated from your route</CardDescription>
+              <CardTitle className="text-2xl">Statistiky trasy</CardTitle>
+              <CardDescription className="text-base">Vypočítáno z vaší trasy</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1 p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Distance</p>
+                  <p className="text-sm font-medium text-muted-foreground">Vzdálenost</p>
                   <p className="text-2xl font-bold">{route.extraPoints?.distance?.toFixed(2) || '0'} km</p>
                 </div>
                 <div className="space-y-1 p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Elevation</p>
+                  <p className="text-sm font-medium text-muted-foreground">Převýšení</p>
                   <p className="text-2xl font-bold">{route.extraPoints?.totalAscent?.toFixed(0) || '0'} m</p>
                 </div>
               </div>
@@ -241,8 +237,8 @@ export default function FinishRoutePage() {
 
         <Card className="shadow-lg">
           <CardHeader className="bg-muted/50">
-            <CardTitle className="text-2xl">Route Preview</CardTitle>
-            <CardDescription className="text-base">Final check of your route</CardDescription>
+            <CardTitle className="text-2xl">Náhled trasy</CardTitle>
+            <CardDescription className="text-base">Závěrečná kontrola vaší trasy</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border">
@@ -255,6 +251,28 @@ export default function FinishRoutePage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="flex justify-end pb-8">
+          <Button 
+            onClick={handlePublish}
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl text-white font-medium py-6 text-lg"
+            disabled={isPublishing}
+          >
+            {isPublishing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Odesílání...
+              </>
+            ) : (
+              <>
+                <div className="h-6 w-6 rounded-full border-2 border-white mr-2 flex items-center justify-center">
+                  <Check className="h-4 w-4" />
+                </div>
+                Odeslat ke schválení
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </CommonPageTemplate>
   );

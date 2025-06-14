@@ -8,7 +8,7 @@ import { useCurrentRole } from '@/hooks/use-current-role';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarRange, User, ChevronLeft, Filter, Loader2 } from "lucide-react";
+import { CalendarRange, User, ChevronLeft, Filter, Loader2, MapPin, Link as LinkIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { columns } from '@/components/blocks/vysledky/columns';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { redirect } from 'next/navigation';
 import { fetchWithCache, prefetchApiData } from '@/lib/api-utils';
+import { Badge } from '@/components/ui/badge';
+
+type VisitState = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
 
 const YearSelector: React.FC<{ 
     year: number | null; 
@@ -75,6 +78,28 @@ const YearSelector: React.FC<{
             </DropdownMenu>
         </div>
     );
+};
+
+const getStateBadge = (state: VisitState) => {
+  const variants = {
+    'DRAFT': "secondary",
+    'PENDING_REVIEW': "outline",
+    'APPROVED': "default",
+    'REJECTED': "destructive"
+  } as const;
+
+  const labels = {
+    'DRAFT': "Koncept",
+    'PENDING_REVIEW': "Čeká na schválení",
+    'APPROVED': "Schváleno",
+    'REJECTED': "Zamítnuto"
+  };
+
+  return (
+    <Badge variant={variants[state]} className="font-medium">
+      {labels[state]}
+    </Badge>
+  );
 };
 
 export default function MojeVysledkyPage() {
@@ -198,26 +223,28 @@ export default function MojeVysledkyPage() {
     }
 
     return (
-        <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role}>
+        <CommonPageTemplate contents={{ header: true }} headerMode={"auto-hide"} currentUser={user} currentRole={role}>
             <div className="p-4 md:p-6 max-w-7xl mx-auto">
                 <div className="mb-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                        <div>
+                        <div className="space-y-2">
                             <Link 
                                 href="/vysledky" 
-                                className="text-sm text-muted-foreground hover:text-primary mb-2 inline-block"
+                                className="text-sm text-muted-foreground hover:text-primary mb-2 inline-flex items-center gap-1 transition-colors"
                             >
-                                <ChevronLeft className="h-4 w-4 inline-block" /> Zpět na přehled sezón
+                                <ChevronLeft className="h-4 w-4" /> Zpět na přehled sezón
                             </Link>
-                            <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-3">
-                                <User className="h-7 w-7" />
-                                Moje výsledky
-                            </h1>
-                            {user?.name && (
-                                <p className="text-muted-foreground mt-1">
-                                    Přehled výsledků pro: <span className="font-medium">{user.name}</span>
-                                </p>
-                            )}
+                            <div className="space-y-1">
+                                <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-3">
+                                    <User className="h-7 w-7" />
+                                    Moje výsledky
+                                </h1>
+                                {user?.name && (
+                                    <p className="text-muted-foreground">
+                                        Přehled výsledků pro: <span className="font-medium">{user.name}</span>
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -240,10 +267,42 @@ export default function MojeVysledkyPage() {
                 </div>
 
                 <TooltipProvider>
-                    <div className="bg-card rounded-lg border shadow-sm p-4">
-                        <DataTable 
+                    <div className="bg-card rounded-2xl border shadow-sm p-4 backdrop-blur-sm bg-opacity-80">
+                        <DataTable<VisitData> 
                             data={displayData} 
-                            columns={columns}
+                            columns={[
+                                ...columns,
+                                {
+                                    id: 'stateBadge',
+                                    header: 'Stav',
+                                    cell: ({ row }) => getStateBadge(row.original.state)
+                                },
+                                {
+                                    id: 'routeTitleDisplay',
+                                    header: 'Název trasy',
+                                    cell: ({ row }) => row.original.routeTitle
+                                },
+                                {
+                                    id: 'routeDescriptionDisplay',
+                                    header: 'Popis trasy',
+                                    cell: ({ row }) => row.original.routeDescription
+                                },
+                                {
+                                    id: 'routeLinkDisplay',
+                                    header: 'Odkaz na trasu',
+                                    cell: ({ row }) => row.original.routeLink && (
+                                        <a 
+                                            href={row.original.routeLink} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline inline-flex items-center gap-1"
+                                        >
+                                            <LinkIcon className="h-4 w-4" />
+                                            Zobrazit trasu
+                                        </a>
+                                    )
+                                }
+                            ]}
                             year={selectedYear || new Date().getFullYear()} 
                             primarySortColumn="visitDate"
                             primarySortDesc={true}
@@ -259,7 +318,7 @@ export default function MojeVysledkyPage() {
                             detailedViewLabel="Detailní pohled"
                             enableColumnVisibility={true}
                             enableSearch={true}
-                            excludedColumnsInAggregatedView={['visitDate', 'dogNotAllowed', 'routeLink', 'fullName']}
+                            excludedColumnsInAggregatedView={['visitDate', 'dogNotAllowed', 'routeLink']}
                             mainSheetName="Detailní Data"
                             summarySheetName="Souhrnná Data"
                             generateSummarySheet={true}
@@ -271,15 +330,14 @@ export default function MojeVysledkyPage() {
                             }
                         />
                         
-                        {/* Add a load more indicator */}
                         {!loading && displayCount < filteredData.length && (
                             <div 
                                 ref={loadMoreRef} 
                                 className="w-full mt-4 py-4 flex justify-center"
                             >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 text-muted-foreground">
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    <p className="text-muted-foreground text-sm">Načítání dalších výsledků...</p>
+                                    <p className="text-sm">Načítání dalších výsledků...</p>
                                 </div>
                             </div>
                         )}

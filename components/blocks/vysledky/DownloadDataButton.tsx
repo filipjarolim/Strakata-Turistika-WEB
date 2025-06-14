@@ -12,7 +12,7 @@ const transformVisitDataToCumulative = (data: VisitData[]) => {
     const cumulativeData: Record<string, { points: number; visits: number }> = {};
     
     data.forEach(visit => {
-        const fullName = visit.fullName;
+        const fullName = visit.id;
         if (!cumulativeData[fullName]) {
             cumulativeData[fullName] = { points: 0, visits: 0 };
         }
@@ -184,8 +184,7 @@ export const DownloadDataButton = <TData extends object>({
             (data as unknown as VisitData[]).forEach((entry) => {
                 detailedSheet.addRow([
                     entry.visitDate ? new Date(entry.visitDate).toLocaleDateString('cs-CZ') : 'N/A',
-                    entry.fullName,
-                    entry.dogName || 'N/A',
+                    entry.id,
                     entry.points,
                     entry.visitedPlaces,
                     entry.dogNotAllowed ? 'Ne' : 'Ano',

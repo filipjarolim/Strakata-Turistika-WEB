@@ -333,6 +333,34 @@ const summaryCategoryColumns = [
     }
 ];
 
+// Define AggregatedVisitData type locally
+type AggregatedVisitData = {
+    year: number;
+    totalPoints: number;
+    visitCount: number;
+    visitedPlaces: Set<string>;
+    averagePoints: number;
+    lastVisit: Date;
+    category: string;
+    dogNotAllowed: Set<string>;
+    routeTitles: Set<string>;
+};
+
+// Add this transformation function
+const transformProductsToAggregatedView = (products: Product[]): AggregatedVisitData[] => {
+    return products.map(product => ({
+        year: new Date(product.createdAt).getFullYear(),
+        totalPoints: product.price,
+        visitCount: product.rating,
+        visitedPlaces: new Set([product.category]),
+        averagePoints: product.price / product.rating,
+        lastVisit: new Date(product.createdAt),
+        category: product.category,
+        dogNotAllowed: new Set(),
+        routeTitles: new Set([product.name]),
+    }));
+};
+
 const GenericTableExamplePage = () => {
     const [products] = useState<Product[]>(sampleProducts);
     const user = useCurrentUser();
@@ -363,17 +391,10 @@ const GenericTableExamplePage = () => {
                     columns={productColumns}
                     primarySortColumn="rating"
                     primarySortDesc={true}
-                    transformToAggregatedView={transformProductsToCategoryView as unknown as (data: Product[]) => Product[]}
+                    transformToAggregatedView={transformProductsToAggregatedView}
                     filterConfig={{
                         dateField: 'createdAt',
                         numberField: 'price',
-                        customFilter: (item: Product, filters: Record<string, unknown>) => {
-                            // Filter for specific categories
-                            if (filters.categories && Array.isArray(filters.categories) && filters.categories.length > 0) {
-                                return filters.categories.includes(item.category);
-                            }
-                            return true;
-                        }
                     }}
                     enableDownload={true}
                     enableAggregatedView={true}
@@ -386,11 +407,6 @@ const GenericTableExamplePage = () => {
                     mainSheetName="Product Inventory"
                     summarySheetName="Category Summary"
                     generateSummarySheet={true}
-                    summaryColumnDefinitions={summaryCategoryColumns}
-                    customFilterOptions={{
-                        label: "Categories",
-                        options: productCategories
-                    }}
                 />
             </TooltipProvider>
         </CommonPageTemplate>

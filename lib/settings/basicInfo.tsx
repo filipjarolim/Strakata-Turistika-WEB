@@ -2,7 +2,7 @@ import smallIcon from '@/public/icons/icon-192x192.png';
 import largeIcon from '@/public/icons/icon-512x512.png';
 import transparentHeader from "@/public/icons/transparent-header.png"
 import transparentHeaderOutline from "@/public/icons/transparent-header-outline.png"
-import coverImage from "@/assets/img/strakataturistikabackground.png"
+import coverImage from "@/assets/img/coverImageST.png"
 import loginImage from "@/assets/img/loginpagecover.png"
 
 const basicInfo = {

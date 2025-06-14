@@ -372,39 +372,31 @@ type CategorySummary = {
     totalValue: number;
 };
 
-// Transform to category view for aggregation
-const transformToCategoryView = (items: InventoryItem[]): CategorySummary[] => {
-    const categorySummary = new Map<string, CategorySummary>();
+// Define AggregatedVisitData type locally
+type AggregatedVisitData = {
+    year: number;
+    totalPoints: number;
+    visitCount: number;
+    visitedPlaces: Set<string>;
+    averagePoints: number;
+    lastVisit: Date;
+    category: string;
+    dogNotAllowed: Set<string>;
+    routeTitles: Set<string>;
+};
 
-    items.forEach(item => {
-        const existing = categorySummary.get(item.category);
-        
-        if (existing) {
-            existing.itemCount += 1;
-            existing.totalStock += item.stockLevel;
-            existing.totalSales += item.salesLast30Days;
-            existing.totalValue += item.stockLevel * item.retailPrice;
-            existing.averagePrice = (existing.averagePrice * (existing.itemCount - 1) + item.retailPrice) / existing.itemCount;
-            existing.averageMargin = (existing.averageMargin * (existing.itemCount - 1) + item.profitMargin) / existing.itemCount;
-        } else {
-            categorySummary.set(item.category, {
-                category: item.category,
-                itemCount: 1,
-                totalStock: item.stockLevel,
-                averagePrice: item.retailPrice,
-                totalSales: item.salesLast30Days,
-                averageMargin: item.profitMargin,
-                totalValue: item.stockLevel * item.retailPrice
-            });
-        }
-    });
-
-    // Format values to avoid NaN display issues
-    return Array.from(categorySummary.values()).map(item => ({
-        ...item,
-        averagePrice: Number(item.averagePrice.toFixed(2)),
-        averageMargin: Number(item.averageMargin.toFixed(1)),
-        totalValue: Number(item.totalValue.toFixed(2)),
+// Update the transformation function
+const transformToAggregatedView = (items: InventoryItem[]): AggregatedVisitData[] => {
+    return items.map(item => ({
+        year: new Date(item.lastRestocked).getFullYear(),
+        totalPoints: item.stockLevel,
+        visitCount: item.salesLast30Days,
+        visitedPlaces: new Set([item.category]),
+        averagePoints: item.stockLevel / item.salesLast30Days,
+        lastVisit: new Date(item.lastRestocked),
+        category: item.category,
+        dogNotAllowed: new Set(),
+        routeTitles: new Set([item.name]),
     }));
 };
 
@@ -470,7 +462,7 @@ const InventorySalesPage = () => {
                     columns={inventoryColumns}
                     primarySortColumn="salesLast30Days"
                     primarySortDesc={true}
-                    transformToAggregatedView={transformToCategoryView as unknown as (data: InventoryItem[]) => InventoryItem[]}
+                    transformToAggregatedView={transformToAggregatedView}
                     filterConfig={{
                         dateField: 'lastRestocked',
                         numberField: 'stockLevel',
@@ -495,11 +487,6 @@ const InventorySalesPage = () => {
                     mainSheetName="Inventory"
                     summarySheetName="Category Summary"
                     generateSummarySheet={true}
-                    summaryColumnDefinitions={categorySummaryColumns}
-                    customFilterOptions={{
-                        label: "Categories",
-                        options: categoryFilterOptions
-                    }}
                 />
             </TooltipProvider>
         </CommonPageTemplate>
