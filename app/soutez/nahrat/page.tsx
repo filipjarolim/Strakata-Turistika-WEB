@@ -7,12 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Upload, Save, MapIcon } from "lucide-react";
+import { AlertCircle, Upload, Save, MapIcon, MapPin, BarChart, ArrowLeft, ArrowRight } from "lucide-react";
 import dynamic from 'next/dynamic';
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
 import StepProgress from '@/components/ui/step-progress';
+import { IOSTextInput } from '@/components/ui/ios/text-input';
+import { IOSButton } from '@/components/ui/ios/button';
+import { IOSTextarea } from '@/components/ui/ios/textarea';
+import { IOSTagInput } from "@/components/ui/ios/tag-input";
+import { IOSCard } from "@/components/ui/ios/card";
+import { cn } from "@/lib/utils";
 
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
@@ -162,71 +168,39 @@ export default function NahratPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="shadow-lg">
-            <CardHeader className="bg-muted/50">
-              <CardTitle className="text-2xl">Nahrát trasu</CardTitle>
-              <CardDescription className="text-base">Nahrajte GPX soubor nebo použijte předpřipravenou trasu</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="gpx-file">GPX Soubor</Label>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      id="gpx-file"
-                      type="file"
-                      accept=".gpx"
-                      onChange={handleFileChange}
-                      className="flex-1"
-                    />
-                    <Button variant="outline" asChild>
-                      <a href="/sample-routes/easy-trail.gpx" download>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Stáhnout vzorovou trasu
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="route-name">Název trasy</Label>
-                  <Input
-                    id="route-name"
-                    placeholder="Zadejte název trasy"
-                    value={routeName}
-                    onChange={(e) => setRouteName(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="route-description">Popis trasy</Label>
-                  <Input
-                    id="route-description"
-                    placeholder="Zadejte popis trasy"
-                    value={routeDescription}
-                    onChange={(e) => setRouteDescription(e.target.value)}
-                  />
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Chyba</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <Button 
-                  className="w-full"
-                  disabled={!selectedFile || !routeName || trackPoints.length === 0}
-                  onClick={handleSave}
+          <IOSCard
+            title="Nahrát trasu"
+            icon={<Upload className="h-5 w-5" />}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-center w-full">
+                <label
+                  htmlFor="gpx-upload"
+                  className={cn(
+                    "flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl cursor-pointer",
+                    "bg-white/50 backdrop-blur-sm hover:bg-white/70 transition-colors",
+                    "border-gray-200 hover:border-blue-500/50",
+                    "focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  )}
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Ukládání...' : 'Uložit trasu'}
-                </Button>
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">Klikněte pro nahrání</span> nebo přetáhněte soubor
+                    </p>
+                    <p className="text-xs text-gray-500">GPX soubor (max. 10MB)</p>
+                  </div>
+                  <input
+                    id="gpx-upload"
+                    type="file"
+                    accept=".gpx"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </IOSCard>
 
           {trackPoints.length > 0 && (
             <Card className="shadow-lg">

@@ -1,81 +1,98 @@
 import { FaUser } from "react-icons/fa";
 import { ExitIcon } from "@radix-ui/react-icons";
+import { Map, Shield, Bug, Settings } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
     Avatar,
     AvatarFallback,
 } from "@/components/ui/avatar";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { LogoutButton } from "@/components/auth/logout-button";
-
-import { Button } from "@/components/ui/button";
 import { authprefix } from "@/assets/auth";
+import { 
+    IOSDropdownMenu, 
+    IOSDropdownMenuItem, 
+    IOSDropdownMenuLabel, 
+    IOSDropdownMenuSeparator 
+} from "@/components/ui/ios/dropdown-menu";
+import { ExtendedUser } from "@/next-auth";
 
-export const UserButton = () => {
+interface UserButtonProps {
+    role?: string;
+}
+    
+export const UserButton = ({ role }: UserButtonProps) => {
     const user = useCurrentUser();
 
     return (
-        <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-                <Button size={"md"} className={"rounded-full select-none outline-hidden shadow-none border flex flex-row items-center pr-4 dark:bg-[#111] bg-white text-black font-semibold dark:text-white hover:bg-[#fff] hover:text-[#000] dark:hover:bg-[#000] p-2"}>
-                    <Avatar className={"w-[22px] h-[22px]"}>
+        <IOSDropdownMenu
+            trigger={
+                <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-2xl bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:bg-white/90 active:bg-white/95 transition-all duration-200 shadow-sm shadow-black/5">
+                    <Avatar className="w-7 h-7">
                         {user?.image ? (
-                            <Image src={user.image} alt="User Image" width={22} height={22} className="rounded-full" />
+                            <Image src={user.image} alt="User Image" width={28} height={28} className="rounded-full" />
                         ) : (
-                            <AvatarFallback className="bg-sky-500">
-                                <FaUser className="text-white" />
+                            <AvatarFallback className="bg-blue-500">
+                                <FaUser className="text-white w-3.5 h-3.5" />
                             </AvatarFallback>
                         )}
                     </Avatar>
-                    <div>
+                    <span className="text-sm font-medium text-gray-900">
                         {authprefix.buttons.user.label}
-                    </div>
-                </Button>
-            </DropdownMenuTrigger>
+                    </span>
+                </button>
+            }
+        >
+            <IOSDropdownMenuLabel>{authprefix.buttons.user.menu.label}</IOSDropdownMenuLabel>
+            <IOSDropdownMenuSeparator />
+            
+            {/* Default Menu Options */}
+            {authprefix.buttons.user.menu.options.map((option) => (
+                <Link href={option.href} key={option.label}>
+                    <IOSDropdownMenuItem
+                        icon={option.icon}
+                        shortcut={option.shortcut}
+                    >
+                        {option.label}
+                    </IOSDropdownMenuItem>
+                </Link>
+            ))}
 
-            <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>{authprefix.buttons.user.menu.label}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    {authprefix.buttons.user.menu.options.map((option) => (
-                        <Link href={option.href} key={option.label} >
-                            <DropdownMenuItem className={"cursor-pointer"} >
+            <IOSDropdownMenuSeparator />
+            
+            {/* My Routes */}
+            <Link href="/vysledky/moje">
+                <IOSDropdownMenuItem icon={<Map className="h-3.5 w-3.5" />}>
+                    Moje trasy
+                </IOSDropdownMenuItem>
+            </Link>
 
-                                {option.icon}
-                                <span>{option.label}</span>
-                                <DropdownMenuShortcut className={"font-bold"}>{option.shortcut}</DropdownMenuShortcut>
-                            </DropdownMenuItem>
+            {/* Admin Routes */}
+            {role === "ADMIN" && (
+                <Link href="/admin">
+                    <IOSDropdownMenuItem icon={<Shield className="h-3.5 w-3.5" />}>
+                        Administrace
+                    </IOSDropdownMenuItem>
+                </Link>
+            )}
 
-                        </Link>
-                    ))}
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                    <LogoutButton>
-                        <DropdownMenuItem>
-                            <ExitIcon className="h-4 w-4 mr-2" />
-                            Logout
-                        </DropdownMenuItem>
-                    </LogoutButton>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-            </DropdownMenuContent>
-        </DropdownMenu>
+            {/* Tester Routes */}
+            {role === "TESTER" && (
+                <Link href="/tester">
+                    <IOSDropdownMenuItem icon={<Settings className="h-3.5 w-3.5" />}>
+                        Testování
+                    </IOSDropdownMenuItem>
+                </Link>
+            )}
+            
+            <IOSDropdownMenuSeparator />
+            <LogoutButton>
+                <IOSDropdownMenuItem icon={<ExitIcon className="h-3.5 w-3.5" />}>
+                    Logout
+                </IOSDropdownMenuItem>
+            </LogoutButton>
+        </IOSDropdownMenu>
     );
 };

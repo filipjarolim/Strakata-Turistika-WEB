@@ -55,7 +55,7 @@ const SettingsPage = () => {
             newPassword: undefined,
             name: user?.name || undefined,
             email: user?.email || undefined,
-            role: user?.role || undefined,
+            role: (user?.role === 'ADMIN' || user?.role === 'UZIVATEL') ? user.role : undefined,
             isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
         }
     });
@@ -189,6 +189,9 @@ const SettingsPage = () => {
                                                     </SelectItem>
                                                     <SelectItem value={UserRole.UZIVATEL}>
                                                         Uživatel
+                                                    </SelectItem>
+                                                    <SelectItem value={UserRole.TESTER}>
+                                                        Tester
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>

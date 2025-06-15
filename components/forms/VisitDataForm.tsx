@@ -1,104 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { ExtendedUser } from "@/next-auth";
+import React from 'react';
+import { IOSTextInput } from '@/components/ui/ios/text-input';
+import { IOSTextarea } from '@/components/ui/ios/textarea';
+import { IOSSwitch } from '@/components/ui/ios/switch';
+import { ExtendedUser } from '@/next-auth';
 
-interface FormData {
-  routeLink?: string;
+interface VisitData {
   visitedPlaces: string;
   dogNotAllowed: string;
-  routeTitle?: string;
-  routeDescription?: string;
+  routeLink: string;
+  routeTitle: string;
+  routeDescription: string;
 }
 
 interface VisitDataFormProps {
-  initialData: FormData;
-  onSubmit: (data: FormData) => void | Promise<void>;
+  initialData: VisitData;
+  onSubmit: (data: VisitData) => void;
   user: ExtendedUser | null;
-  isLoading?: boolean;
-  submitLabel?: string;
 }
 
-export function VisitDataForm({ 
-  initialData, 
-  onSubmit, 
-  user,
-  isLoading = false,
-  submitLabel = "Uložit"
-}: VisitDataFormProps) {
-  const [formData, setFormData] = useState<FormData>(initialData);
-  const [error, setError] = useState<string | null>(null);
+export const VisitDataForm: React.FC<VisitDataFormProps> = ({
+  initialData,
+  onSubmit,
+  user
+}) => {
+  const [formData, setFormData] = React.useState(initialData);
 
-  // Call onSubmit whenever form data changes
-  useEffect(() => {
-    onSubmit(formData);
-  }, [formData, onSubmit]);
+  const handleChange = (field: string, value: string) => {
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    onSubmit(newData);
+  };
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Chyba</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+    <div className="space-y-4">
+      <IOSTextInput
+        id="visited-places"
+        value={formData.visitedPlaces}
+        onChange={(e) => handleChange('visitedPlaces', e.target.value)}
+        label="Navštívená místa"
+        placeholder="Zadejte navštívená místa"
+      />
+
+      <IOSSwitch
+        id="dog-not-allowed"
+        checked={formData.dogNotAllowed === "true"}
+        onChange={(e) => handleChange('dogNotAllowed', e.target.checked ? "true" : "false")}
+        label="Psi nejsou povoleni"
+      />
+
+      {user?.dogName && (
+        <IOSTextInput
+          id="dog-name"
+          value={user.dogName}
+          readOnly
+          label="Jméno psa"
+        />
       )}
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="routeTitle">Název trasy</Label>
-          <Input
-            id="routeTitle"
-            value={formData.routeTitle || ''}
-            onChange={(e) => setFormData({ ...formData, routeTitle: e.target.value })}
-            placeholder="Zadejte název trasy"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="routeDescription">Popis trasy</Label>
-          <Input
-            id="routeDescription"
-            value={formData.routeDescription || ''}
-            onChange={(e) => setFormData({ ...formData, routeDescription: e.target.value })}
-            placeholder="Zadejte popis trasy"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="routeLink">Odkaz na trasu</Label>
-          <Input
-            id="routeLink"
-            value={formData.routeLink || ''}
-            onChange={(e) => setFormData({ ...formData, routeLink: e.target.value })}
-            placeholder="Zadejte odkaz na trasu"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="visitedPlaces">Navštívená místa</Label>
-          <Input
-            id="visitedPlaces"
-            value={formData.visitedPlaces}
-            onChange={(e) => setFormData({ ...formData, visitedPlaces: e.target.value })}
-            placeholder="Zadejte navštívená místa"
-          />
-        </div>
-
-        <div className="flex items-center justify-between space-x-2">
-          <Label htmlFor="dogNotAllowed" className="flex-1">Psi zakázáni</Label>
-          <Switch
-            id="dogNotAllowed"
-            checked={formData.dogNotAllowed === "true"}
-            onCheckedChange={(checked) => 
-              setFormData({ ...formData, dogNotAllowed: checked ? "true" : "false" })
-            }
-          />
-        </div>
-      </div>
     </div>
   );
-} 
+}; 

@@ -132,7 +132,7 @@ const Header = ({
                                 <RegisterButton>Začít</RegisterButton>
                             </div>
                         ) : (
-                            <UserButton />
+                            <UserButton role={role} />
                         )}
                     </div>
                     
@@ -293,7 +293,7 @@ const Header = ({
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
-                                                <UserButton />
+                                                <UserButton role={role} />
                                                 <LogoutButton className="mt-2 block w-full">
                                                     <Button variant="outline" className="w-full">
                                                         Odhlásit se

@@ -7,13 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Save, ArrowLeft, Map, Trophy, Loader2, Check } from "lucide-react";
+import { AlertCircle, Save, ArrowLeft, Map, Trophy, Loader2, Check, MapPin, BarChart, Camera } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { VisitDataForm } from "@/components/forms/VisitDataForm";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useCurrentRole } from '@/hooks/use-current-role';
 import StepProgress from '@/components/ui/step-progress';
+import { IOSButton } from '@/components/ui/ios/button';
+import { IOSTextInput } from '@/components/ui/ios/text-input';
+import { IOSTextarea } from '@/components/ui/ios/textarea';
+import { IOSTagInput } from "@/components/ui/ios/tag-input";
+import { IOSCard } from "@/components/ui/ios/card";
+import { ImageUpload, ImageSource } from "@/components/ui/ios/image-upload";
 
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
@@ -32,23 +38,17 @@ interface Route {
   id: string;
   routeTitle: string;
   routeDescription: string;
-  routeLink: string;
-  track: {
-    lat: number;
-    lng: number;
-  }[];
-  displayTrack?: {
-    lat: number;
-    lng: number;
-  }[];
-  season: number;
-  extraPoints?: {
-    description: string;
+  track: string;
+  displayTrack?: string;
+  visitedPlaces: string[];
+  extraPoints: {
     distance: number;
     totalAscent: number;
     elapsedTime: number;
     averageSpeed: number;
+    difficulty: number;
   };
+  photos: ImageSource[];
 }
 
 interface FormData {
@@ -102,11 +102,11 @@ export default function FinishRoutePage() {
           id: data.id,
           routeTitle: data.routeTitle,
           routeDescription: data.routeDescription,
-          routeLink: data.routeLink || '',
-          track: track,
-          displayTrack: downsampleTrack(track),
-          season: data.year || 0,
-          extraPoints: data.extraPoints
+          track: data.routeLink || '',
+          displayTrack: downsampleTrack(track).map(p => `${p.lat},${p.lng}`).join(','),
+          visitedPlaces: data.visitedPlaces || [],
+          extraPoints: data.extraPoints,
+          photos: data.photos || []
         });
       } catch (err) {
         setError('Failed to load route');
@@ -141,6 +141,62 @@ export default function FinishRoutePage() {
       setError('Failed to publish route');
     } finally {
       setIsPublishing(false);
+    }
+  };
+
+  const handlePhotoUpload = async (file: File, title: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      
+      const response = await fetch(`/api/competition/images/${params.id}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to upload photo');
+      
+      const data = await response.json();
+      setRoute(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          photos: [...prev.photos, {
+            url: data.url,
+            public_id: data.public_id,
+            title: title
+          }]
+        };
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      setError('Failed to upload photo');
+    }
+  };
+
+  const handlePhotoDelete = async (public_id: string) => {
+    try {
+      const response = await fetch(`/api/competition/images/${params.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ public_id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to delete photo');
+      
+      setRoute(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          photos: prev.photos.filter(photo => photo.public_id !== public_id)
+        };
+      });
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      setError('Failed to delete photo');
     }
   };
 
@@ -184,94 +240,112 @@ export default function FinishRoutePage() {
           <h1 className="text-3xl font-bold">Dokončení trasy</h1>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="shadow-lg">
-            <CardHeader className="bg-muted/50">
-              <CardTitle className="text-2xl">Detaily návštěvy</CardTitle>
-              <CardDescription className="text-base">Zkontrolujte a dokončete detaily návštěvy</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Název trasy</Label>
-                  <p className="text-lg font-medium">{route.routeTitle}</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Popis trasy</Label>
-                  <p className="text-muted-foreground">{route.routeDescription}</p>
-                </div>
-              </div>
-              <VisitDataForm
-                initialData={{
-                  visitedPlaces: '',
-                  dogNotAllowed: "false",
-                  routeLink: '',
-                  routeTitle: route.routeTitle,
-                  routeDescription: route.routeDescription
-                }}
-                onSubmit={() => {}}
-                user={user}
+        <div className="space-y-6">
+          <IOSCard
+            title="Základní informace"
+            icon={<MapPin className="h-5 w-5" />}
+          >
+            <div className="space-y-4">
+              <IOSTextInput
+                label="Název trasy"
+                value={route?.routeTitle || ''}
+                readOnly
               />
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader className="bg-muted/50">
-              <CardTitle className="text-2xl">Statistiky trasy</CardTitle>
-              <CardDescription className="text-base">Vypočítáno z vaší trasy</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Vzdálenost</p>
-                  <p className="text-2xl font-bold">{route.extraPoints?.distance?.toFixed(2) || '0'} km</p>
-                </div>
-                <div className="space-y-1 p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm font-medium text-muted-foreground">Převýšení</p>
-                  <p className="text-2xl font-bold">{route.extraPoints?.totalAscent?.toFixed(0) || '0'} m</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="shadow-lg">
-          <CardHeader className="bg-muted/50">
-            <CardTitle className="text-2xl">Náhled trasy</CardTitle>
-            <CardDescription className="text-base">Závěrečná kontrola vaší trasy</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="aspect-[16/9] w-full rounded-lg overflow-hidden border">
-              <DynamicGpxEditor 
-                onSave={() => {}} 
-                initialTrack={route.displayTrack || route.track} 
-                readOnly={true}
-                hideControls={['editMode', 'undo', 'redo', 'add', 'delete', 'simplify']}
+              <IOSTextarea
+                value={route?.routeDescription || ''}
+                readOnly
+                onChange={() => {}}
               />
             </div>
-          </CardContent>
-        </Card>
+          </IOSCard>
 
-        <div className="flex justify-end pb-8">
-          <Button 
-            onClick={handlePublish}
-            className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl text-white font-medium py-6 text-lg"
-            disabled={isPublishing}
+          <IOSCard
+            title="Navštívená místa"
+            icon={<Map className="h-5 w-5" />}
           >
-            {isPublishing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Odesílání...
-              </>
-            ) : (
-              <>
-                <div className="h-6 w-6 rounded-full border-2 border-white mr-2 flex items-center justify-center">
+            <IOSTagInput
+              tags={route?.visitedPlaces || []}
+              onChange={() => {}}
+              placeholder="Žádná navštívená místa"
+              label="Navštívená místa"
+              readOnly
+            />
+          </IOSCard>
+
+          <IOSCard
+            title="Statistiky trasy"
+            icon={<BarChart className="h-5 w-5" />}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <IOSTextInput
+                label="Délka trasy (km)"
+                type="number"
+                value={route?.extraPoints?.distance?.toFixed(2) || '0'}
+                readOnly
+              />
+              <IOSTextInput
+                label="Převýšení (m)"
+                type="number"
+                value={route?.extraPoints?.totalAscent?.toFixed(0) || '0'}
+                readOnly
+              />
+              <IOSTextInput
+                label="Čas (min)"
+                type="number"
+                value={route?.extraPoints?.elapsedTime?.toFixed(0) || '0'}
+                readOnly
+              />
+              <IOSTextInput
+                label="Obtížnost (1-5)"
+                type="number"
+                value={route?.extraPoints?.difficulty?.toString() || '1'}
+                readOnly
+              />
+            </div>
+          </IOSCard>
+
+          <IOSCard
+            title="Fotky"
+            icon={<Camera className="w-5 h-5" />}
+            className="mt-6"
+          >
+            <ImageUpload
+              sources={route.photos}
+              onUpload={handlePhotoUpload}
+              onDelete={handlePhotoDelete}
+              count={4}
+              stackingStyle="grid"
+              aspectRatio="square"
+              showUploadButton={true}
+              showDeleteButton={true}
+              className="mt-4"
+              uploadButtonClassName="bg-white/50 hover:bg-white/70"
+              deleteButtonClassName="bg-red-600/90 hover:bg-red-600"
+              imageContainerClassName="rounded-xl overflow-hidden"
+              placeholderClassName="rounded-xl"
+            />
+          </IOSCard>
+
+          <div className="flex justify-end pb-8">
+            <IOSButton 
+              onClick={handlePublish}
+              className="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl text-white font-medium py-6 text-lg"
+              disabled={isPublishing}
+              loading={isPublishing}
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="h-4 w-4" />
+                  Odesílání...
+                </>
+              ) : (
+                <>
                   <Check className="h-4 w-4" />
-                </div>
-                Odeslat ke schválení
-              </>
-            )}
-          </Button>
+                  Odeslat ke schválení
+                </>
+              )}
+            </IOSButton>
+          </div>
         </div>
       </div>
     </CommonPageTemplate>

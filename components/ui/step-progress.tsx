@@ -37,8 +37,15 @@ export default function StepProgress({ steps, currentStep, className, stepImages
                       alt="Step icon"
                       width={128}
                       height={128}
-                      className="pointer-events-none select-none transform scale-200"
-                      style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 1 }}
+                      className="pointer-events-none select-none"
+                      style={{ 
+                        position: 'absolute', 
+                        left: '50%', 
+                        top: '50%', 
+                        transform: 'translate(-50%, -50%) scale(2)', 
+                        transformOrigin: 'center',
+                        zIndex: 1 
+                      }}
                     />
                   )}
                   {/* {isCompleted && (

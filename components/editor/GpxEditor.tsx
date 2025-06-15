@@ -543,10 +543,10 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
     }
   };
 
-  const handleMarkerClick = (index: number) => {
+  const handleMarkerClick = useCallback((index: number) => {
     setSelectedPoint(index);
     setSelectedSegment(null);
-  };
+  }, []);
 
   const handleMapClick = (e: L.LeafletMouseEvent) => {
     const newPoints = [...points, { lat: e.latlng.lat, lng: e.latlng.lng }];
@@ -621,89 +621,26 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
   };
 
   // Optimize marker rendering with virtualization
-  const renderMarkers = useCallback(() => {
-    if (hidePoints) return null;
-
+  const renderMarkers = React.useCallback(() => {
     const visibleMarkers = displayPoints.map((point, index) => {
-      const isSelected = selectedPoint === index || draggingIdx === index;
+      const isSelected = index === selectedPoint;
       const isSegmentEnd = selectedSegment && (index === selectedSegment[0] || index === selectedSegment[1]);
-      const isStart = index === 0;
-      const isFinish = index === displayPoints.length - 1 && displayPoints.length > 1;
-      
-      if (isStart || isFinish) {
-        // Start/Finish marker: use Marker with custom DivIcon
-        const width = START_FINISH_MARKER_WIDTH;
-        const height = START_FINISH_MARKER_HEIGHT;
-        const fillColor = isStart ? GPX_EDITOR_MAP_STYLE.markerStartColor : GPX_EDITOR_MAP_STYLE.markerFinishColor;
-        const label = isStart ? 'Start' : 'Finish';
-        const icon = isStart ? renderToString(<Play style={{width: 22, height: 22, marginRight: 8, flexShrink: 0}} color={GPX_EDITOR_MAP_STYLE.markerIconColor} />) : renderToString(<Flag style={{width: 22, height: 22, marginRight: 8, flexShrink: 0}} color={GPX_EDITOR_MAP_STYLE.markerIconColor} />);
-        const scale = (isSelected || isSegmentEnd) ? 1.15 : 1;
-        const html = `
-          <div style="
-            display: inline-flex;
-            width: ${width * scale}px;
-            height: ${height * scale}px;
-            background: ${fillColor};
-            border: 3px solid ${GPX_EDITOR_MAP_STYLE.markerBorderColor};
-            border-radius: ${height}px;
-            align-items: center;
-            justify-content: center;
-            font-size: ${isStart ? GPX_EDITOR_MAP_STYLE.markerStartFontSize : GPX_EDITOR_MAP_STYLE.markerFinishFontSize}px;
-            color: #fff;
-            font-weight: 600;
-            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
-            pointer-events: auto;
-            padding: 4px 10px;
-            gap: 8px 0px;
-            transition: height 0.1s;
-            overflow: hidden;
-            box-sizing: border-box;
-            user-select: none;
-            z-index: 1200;
-          " class='select-none'>
-            ${icon}
-            <span style='white-space:nowrap;'>${label}</span>
-          </div>
-        `;
+      const label = `Point ${index + 1}`;
+
+      if (isSelected || isSegmentEnd) {
         return (
           <Tooltip key={index}>
             <TooltipTrigger asChild>
               <Marker
                 position={toLeafletCoords(point)}
                 icon={L.divIcon({
-                  className: '',
-                  html,
-                  iconSize: [width * scale, height * scale],
-                  iconAnchor: [width * scale / 2, height * scale / 2],
+                  className: 'custom-marker',
+                  html: `<div class="marker-pin ${isSelected ? 'selected' : ''}"></div>`,
+                  iconSize: [24, 24],
+                  iconAnchor: [12, 12]
                 })}
-                zIndexOffset={1200}
                 eventHandlers={canEdit ? {
-                  click: () => handleMarkerClick(index),
-                  mousedown: (e: L.LeafletMouseEvent) => {
-                    if (mapRef.current) mapRef.current.dragging.disable();
-                    // Drag threshold logic
-                    const startX = e.originalEvent.clientX;
-                    const startY = e.originalEvent.clientY;
-                    let moved = false;
-                    const onMove = (moveEvent: MouseEvent) => {
-                      if (!moved && (Math.abs(moveEvent.clientX - startX) > DRAG_THRESHOLD_PX || Math.abs(moveEvent.clientY - startY) > DRAG_THRESHOLD_PX)) {
-                        setDraggingIdx(index);
-                        setDraggingLatLng(point);
-                        moved = true;
-                      }
-                    };
-                    const onUp = () => {
-                      window.removeEventListener('mousemove', onMove);
-                      window.removeEventListener('mouseup', onUp);
-                      if (mapRef.current && draggingIdx === null) mapRef.current.dragging.enable();
-                    };
-                    window.addEventListener('mousemove', onMove);
-                    window.addEventListener('mouseup', onUp);
-                    e.originalEvent.preventDefault();
-                    e.originalEvent.stopPropagation();
-                  },
-                  dragend: (e) => {
-                    if (mapRef.current && draggingIdx === null) mapRef.current.dragging.enable();
+                  dragend: (e: L.DragEndEvent) => {
                     const newLatLng = e.target.getLatLng();
                     const newPoints = [...points];
                     newPoints[index] = { lat: newLatLng.lat, lng: newLatLng.lng };
@@ -771,7 +708,7 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
     });
 
     return visibleMarkers;
-  }, [displayPoints, selectedPoint, draggingIdx, selectedSegment, hidePoints, canEdit]);
+  }, [displayPoints, selectedPoint, draggingIdx, selectedSegment, canEdit, points, addToHistory, handleMarkerClick, mapRef]);
 
   return (
     <TooltipProvider>

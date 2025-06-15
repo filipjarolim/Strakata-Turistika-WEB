@@ -338,7 +338,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [tracking, paused, storeTrackingSession]);
+  }, [tracking, paused]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -382,88 +382,6 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     // Update ref whenever positions change
     positionsRef.current = positions;
   }, [positions]);
-
-  // Initialize background tracking
-  useEffect(() => {
-    initBackgroundTracking((session) => {
-      // This callback is called when the app comes back to foreground
-      // and there might be new positions collected in the background
-      if (session.positions.length > positions.length) {
-        setPositions(session.positions);
-        setElapsedTime(session.elapsedTime);
-        setPauseDuration(session.pauseDuration);
-        
-        // Recenter map to the latest position
-        if (session.positions.length > 0) {
-          setMapCenter(session.positions[session.positions.length - 1]);
-          setRecenterTrigger(prev => prev + 1);
-        }
-        
-        toast.info('Updated with background tracking data');
-      }
-    });
-    
-    // Check for unfinished tracking sessions on startup
-    const storedSession = getStoredTrackingSession();
-    if (storedSession.isActive && storedSession.positions.length > 0 && !tracking) {
-      // Ask user if they want to resume tracking
-      const resumeSession = window.confirm('Found an unfinished tracking session. Would you like to resume it?');
-      
-      if (resumeSession) {
-        setPositions(storedSession.positions);
-        setStartTime(storedSession.startTime || Date.now());
-        setElapsedTime(storedSession.elapsedTime || 0);
-        setPauseDuration(storedSession.pauseDuration || 0);
-        setPaused(storedSession.isPaused || false);
-        setTracking(true);
-        
-        if (!storedSession.isPaused) {
-          // Start tracking again
-          const id = navigator.geolocation.watchPosition(
-            handlePosition,
-            handlePositionError,
-            POSITION_OPTIONS
-          );
-          setWatchId(id);
-        }
-        
-        toast.success('Resumed previous tracking session');
-    } else {
-        // Clear the unfinished session
-        clearStoredTrackingSession();
-      }
-    }
-    
-    return () => {
-      if (backgroundTimerRef.current) {
-        window.clearInterval(backgroundTimerRef.current);
-        backgroundTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  // Error handler for geolocation
-  const handlePositionError = useCallback((err: GeolocationPositionError) => {
-    console.error('Error watching position:', err);
-    let errorMessage = 'Location error: ';
-    switch (err.code) {
-      case 1:
-        errorMessage += 'Permission denied. Please enable location services.';
-        stopTracking();
-        break;
-      case 2:
-        errorMessage += 'Position unavailable. Check your GPS signal.';
-        break;
-      case 3:
-        errorMessage += 'Position request timed out. Try again.';
-        break;
-      default:
-        errorMessage += err.message;
-    }
-    if (!backgroundMode) {
-      toast.error(errorMessage);
-    }
-  }, [backgroundMode, stopTracking]);
 
   // Handler for position updates
   const handlePosition = useCallback((position: Position) => {
@@ -527,20 +445,91 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       setMapCenter(newPos);
   
       const updatedPositions = [...prev, newPos];
-      
-      // Store tracking data for background access
-      storeTrackingSession({
-        positions: updatedPositions,
-        startTime,
-        elapsedTime,
-        pauseDuration,
-        isActive: true,
-        isPaused: false
-      });
-      
       return updatedPositions;
     });
-  }, [paused, positions, lastUpdateTime, lastElevation, maxSpeed, startTime, elapsedTime, pauseDuration]);
+  }, [paused, positions, lastUpdateTime, lastElevation, maxSpeed]);
+
+  // Error handler for geolocation
+  const handlePositionError = useCallback((err: GeolocationPositionError) => {
+    console.error('Error watching position:', err);
+    let errorMessage = 'Location error: ';
+    switch (err.code) {
+      case 1:
+        errorMessage += 'Permission denied. Please enable location services.';
+        stopTracking();
+        break;
+      case 2:
+        errorMessage += 'Position unavailable. Check your GPS signal.';
+        break;
+      case 3:
+        errorMessage += 'Position request timed out. Try again.';
+        break;
+      default:
+        errorMessage += err.message;
+    }
+    if (!backgroundMode) {
+      toast.error(errorMessage);
+    }
+  }, [backgroundMode, stopTracking]);
+
+  // Initialize background tracking
+  useEffect(() => {
+    initBackgroundTracking((session) => {
+      // This callback is called when the app comes back to foreground
+      // and there might be new positions collected in the background
+      if (session.positions.length > positions.length) {
+        setPositions(session.positions);
+        setElapsedTime(session.elapsedTime);
+        setPauseDuration(session.pauseDuration);
+        
+        // Recenter map to the latest position
+        if (session.positions.length > 0) {
+          setMapCenter(session.positions[session.positions.length - 1]);
+          setRecenterTrigger(prev => prev + 1);
+        }
+        
+        toast.info('Updated with background tracking data');
+      }
+    });
+    
+    // Check for unfinished tracking sessions on startup
+    const storedSession = getStoredTrackingSession();
+    if (storedSession.isActive && storedSession.positions.length > 0 && !tracking) {
+      // Ask user if they want to resume tracking
+      const resumeSession = window.confirm('Found an unfinished tracking session. Would you like to resume it?');
+      
+      if (resumeSession) {
+        setPositions(storedSession.positions);
+        setStartTime(storedSession.startTime || Date.now());
+        setElapsedTime(storedSession.elapsedTime || 0);
+        setPauseDuration(storedSession.pauseDuration || 0);
+        setPaused(storedSession.isPaused || false);
+        setTracking(true);
+        
+        if (!storedSession.isPaused) {
+          // Start tracking again
+          const id = navigator.geolocation.watchPosition(
+            handlePosition,
+            handlePositionError,
+            POSITION_OPTIONS
+          );
+          setWatchId(id);
+        }
+        
+        toast.success('Resumed previous tracking session');
+      } else {
+        // Clear the unfinished session
+        clearStoredTrackingSession();
+      }
+    }
+    
+    return () => {
+      if (backgroundTimerRef.current) {
+        window.clearInterval(backgroundTimerRef.current);
+        backgroundTimerRef.current = null;
+      }
+    };
+  }, [tracking, positions.length, handlePosition, handlePositionError]);
 
   // Handle visibility change (phone locked/unlocked)
   useEffect(() => {
@@ -796,184 +785,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       })
       .catch((err) => {
         console.error('Error recentering map:', err);
-        toast.error(`Couldn't get location: ${err.message}`);
-        setLoading(false);
+        toast.error(`Location request timed out. Please check your GPS signal and try again.`);
       });
   }, [isOffline]);
 
-  const toggleMapType = useCallback(() => {
-    setMapType(prev => prev === 'standard' ? 'satellite' : 'standard');
-    toast.info(`Switched to ${mapType === 'standard' ? 'satellite' : 'standard'} map`);
-  }, [mapType]);
-
-  const handleFinish = useCallback(async () => {
-    if (positions.length <= 1) {
-      toast.error('Not enough tracking data to save');
-      return;
-    }
-    
-    setIsSaving(true);
-    const { distance, avgSpeed } = calculations();
-    let imageData: string | null = mapImage;
-    
-    if (!imageData) {
-      const capturedImage = await captureMapImage();
-      if (!capturedImage) {
-        setIsSaving(false);
-        return;
-      }
-      imageData = capturedImage;
-    }
-
-    const trackData: TrackData = {
-      season: new Date().getFullYear(),
-      image: imageData,
-      distance: distance(),
-      elapsedTime,
-      averageSpeed: avgSpeed(),
-      fullName: username || 'Unknown User',
-      maxSpeed: maxSpeed.toFixed(1),
-      totalAscent: totalAscent.toFixed(0),
-      totalDescent: totalDescent.toFixed(0),
-      timestamp: Date.now(),
-      positions: positions
-    };
-
-    try {
-      if (isOffline) {
-        await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        toast.success('Track saved offline. It will be uploaded when you reconnect.');
-        setSaveSuccess(true);
-      } else {
-        const response = await fetch('/api/saveTrack', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(trackData)
-        });
-        
-        if (response.ok) {
-          toast.success('Track saved successfully!');
-          setSaveSuccess(true);
-        } else {
-          toast.error('Failed to save track data');
-          setSaveSuccess(false);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving track:', error);
-      
-      if (!isOffline) {
-        await storeDataForOfflineSync(trackData as unknown as OfflineData);
-        toast.warning('Network error. Track saved offline for later upload.');
-        setSaveSuccess(true);
-      } else {
-        toast.error('Failed to save track data');
-        setSaveSuccess(false);
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  }, [positions, username, mapImage, elapsedTime, captureMapImage, maxSpeed, totalAscent, totalDescent, calculations, isOffline]);
-
   return (
-    <div className={`relative bg-gray-100 w-full md:w-[400px]  h-screen mx-auto rounded-none md:rounded-[40px] overflow-hidden shadow-2xl ${className}`}>
-      {/* iPhone notch simulation - only show on larger screens */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150px] h-[30px] bg-black rounded-b-[20px] z-50 hidden md:block" />
-      
-      <div className="absolute inset-0">
-        {loading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="flex flex-col items-center space-y-4">
-              <Loader2 className="animate-spin text-gray-800 h-9 w-9" />
-              <p className="text-lg font-medium text-gray-800">Loading map...</p>
-            </div>
-          </div>
-        )}
-
-        <MapComponent
-          mapCenter={mapCenter}
-          positions={positions}
-          mapType={mapType}
-          recenterTrigger={recenterTrigger}
-          mapContainerRef={mapContainerRef}
-          loading={loading}
-          className="w-full h-full"
-        />
-
-        <div className="absolute bottom-0 left-0 right-0 z-10">
-          <Drawer defaultOpen modal={false}>
-            <DrawerTrigger asChild>
-              <div className="absolute bottom-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-sm flex items-center justify-between px-4 cursor-pointer transition-all duration-300 hover:bg-white group">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 rounded-full">
-                    <Activity className="h-5 w-5 text-blue-500" />
-                    <span className="text-sm font-medium text-blue-700">{calculateDistance()} km</span>
-                  </div>
-                  <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 rounded-full">
-                    <Clock className="h-5 w-5 text-green-500" />
-                    <span className="text-sm font-medium text-green-700">{formatTime(elapsedTime)}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 bg-orange-50 px-3 py-1.5 rounded-full">
-                    <Gauge className="h-5 w-5 text-orange-500" />
-                    <span className="text-sm font-medium text-orange-700">{speed.toFixed(1)} km/h</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <ChevronUp className="h-5 w-5 text-gray-500 transition-transform duration-300 group-data-[state=open]:rotate-180" />
-                </div>
-              </div>
-            </DrawerTrigger>
-            <DrawerPortal>
-              <DrawerOverlay className="bg-black/50 transition-opacity duration-300" />
-              <DrawerContent className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full md:w-[400px] h-[60vh] rounded-t-[40px] border-0 transition-transform duration-300 ease-out">
-                <DrawerHeader className="px-6">
-                  <DrawerTitle className="text-xl font-semibold">Tracking Controls</DrawerTitle>
-                </DrawerHeader>
-                <div className="p-6 space-y-6 overflow-y-auto">
-                  <StatsComponent
-                    distance={calculateDistance()}
-                    elapsedTime={elapsedTime}
-                    speed={speed}
-                    className="mb-4"
-                  />
-
-                  <ControlsComponent
-                    tracking={tracking}
-                    paused={paused}
-                    isOffline={isOffline}
-                    loading={loading}
-                    onStartTracking={startTracking}
-                    onStopTracking={stopTracking}
-                    onPauseTracking={pauseTracking}
-                    onResumeTracking={resumeTracking}
-                    onRecenterMap={recenterMap}
-                    onToggleMapType={toggleMapType}
-                    onResetTracking={resetTracking}
-                    className="flex flex-col space-y-4"
-                  />
-                </div>
-              </DrawerContent>
-            </DrawerPortal>
-          </Drawer>
-        </div>
-
-        <ResultsModal
-          showResults={showResults}
-          mapImage={mapImage}
-          distance={calculateDistance()}
-          elapsedTime={elapsedTime}
-          avgSpeed={calculateAverageSpeed()}
-          maxSpeed={maxSpeed}
-          isSaving={isSaving}
-          saveSuccess={saveSuccess}
-          onClose={() => setShowResults(false)}
-          onFinish={handleFinish}
-          onReset={resetTracking}
-          className="bg-white rounded-lg shadow-xl"
-        />
-      </div>
+    <div className={`${className} flex flex-col h-full`}>
+      {/* Rest of the component content */}
     </div>
   );
 };

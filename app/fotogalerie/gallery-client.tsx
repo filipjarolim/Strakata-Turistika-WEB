@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { UploadForm } from './upload-form';
-import { supabase } from '@/lib/supabase';
 
 export interface Category {
     id: string;
@@ -34,7 +33,7 @@ export const CATEGORIES: Category[] = [
 ];
 
 interface GalleryImage {
-  id: string;
+  public_id: string;
   url: string;
   title: string;
   description: string;
@@ -42,11 +41,6 @@ interface GalleryImage {
   category: string;
   created_at: string;
   aspectRatio?: string;
-}
-
-interface GalleryData {
-  images: GalleryImage[];
-  total: number;
 }
 
 export const GalleryClient = () => {
@@ -63,13 +57,10 @@ export const GalleryClient = () => {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('gallery_images')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setImages(data || []);
+            const response = await fetch('/api/gallery');
+            if (!response.ok) throw new Error('Failed to fetch images');
+            const data = await response.json();
+            setImages(data.resources || []);
         } catch (error) {
             console.error('Error fetching images:', error);
         } finally {
@@ -209,7 +200,7 @@ export const GalleryClient = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredImages.map(image => (
                                 <Card 
-                                    key={image.id} 
+                                    key={image.public_id} 
                                     className="overflow-hidden group cursor-pointer hover:shadow-md transition-all duration-300"
                                     onClick={() => setSelectedImage(image)}
                                 >

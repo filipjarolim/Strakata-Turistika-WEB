@@ -4,6 +4,7 @@ import transparentHeader from "@/public/icons/transparent-header.png"
 import transparentHeaderOutline from "@/public/icons/transparent-header-outline.png"
 import coverImage from "@/assets/img/coverImageST.png"
 import loginImage from "@/assets/img/loginpagecover.png"
+import headerImage from "@/public/icons/globeheader.png"
 
 const basicInfo = {
     name: 'Strakatá turistika',
@@ -13,13 +14,12 @@ const basicInfo = {
         icons: {
             small: smallIcon,
             large: largeIcon,
-            transparentHeader,
-            transparentHeaderOutline,
+            transparentHeader: headerImage,
+            transparentHeaderOutline: headerImage,
         },
         coverImage: coverImage,
         loginImage: loginImage
     },
-
 };
 
 export default basicInfo

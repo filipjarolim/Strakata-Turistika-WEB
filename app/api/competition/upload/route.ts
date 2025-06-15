@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get('file') as File;
   const title = formData.get('title') as string;
+  const competitionId = formData.get('competitionId') as string;
 
   if (!file) {
     return new Response('No file uploaded', { status: 400 });
@@ -13,6 +14,10 @@ export async function POST(req: NextRequest) {
 
   if (!title?.trim()) {
     return new Response('Title is required', { status: 400 });
+  }
+
+  if (!competitionId?.trim()) {
+    return new Response('Competition ID is required', { status: 400 });
   }
 
   try {
@@ -25,21 +30,21 @@ export async function POST(req: NextRequest) {
     // Upload to Cloudinary with optimization settings
     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
       cloudinary.uploader.upload(dataURI, {
-        folder: 'gallery',
+        folder: `competition/${competitionId}`,
         resource_type: 'auto',
-        tags: ['gallery', `title:${title}`],
+        tags: ['competition', `title:${title}`, `competition:${competitionId}`],
         context: {
           title: title,
           created_at: new Date().toISOString()
         },
         // Optimization settings
-        format: 'webp', // Convert to WebP format
-        quality: 'auto', // Automatic quality optimization
-        fetch_format: 'auto', // Automatically choose the best format
+        format: 'webp',
+        quality: 'auto',
+        fetch_format: 'auto',
         transformation: [
-          { width: 1920, height: 1080, crop: 'limit' }, // Limit maximum dimensions
-          { quality: 'auto:good' }, // Good quality with automatic optimization
-          { fetch_format: 'auto' } // Automatically choose the best format
+          { width: 1920, height: 1080, crop: 'limit' },
+          { quality: 'auto:good' },
+          { fetch_format: 'auto' }
         ]
       }, (error, result) => {
         if (error) reject(error);
