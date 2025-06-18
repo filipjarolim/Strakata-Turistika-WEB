@@ -47,6 +47,7 @@
     "@serwist/sw": "^9.0.12",
     "@supabase/supabase-js": "^2.49.4",
     "@tanstack/react-table": "^8.20.6",
+    "@tiptap/extension-placeholder": "^2.14.0",
     "@tiptap/react": "^2.11.7",
     "@tiptap/starter-kit": "^2.11.7",
     "@tmcw/togeojson": "^7.1.1",

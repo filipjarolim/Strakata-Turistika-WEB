@@ -42,9 +42,8 @@ export const VisitDataForm: React.FC<VisitDataFormProps> = ({
       />
 
       <IOSSwitch
-        id="dog-not-allowed"
         checked={formData.dogNotAllowed === "true"}
-        onChange={(e) => handleChange('dogNotAllowed', e.target.checked ? "true" : "false")}
+        onCheckedChange={(checked) => handleChange('dogNotAllowed', checked ? "true" : "false")}
         label="Psi nejsou povoleni"
       />
 

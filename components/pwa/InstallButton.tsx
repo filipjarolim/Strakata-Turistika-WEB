@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { IOSButton } from "@/components/ui/ios/button";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PartyPopper } from "lucide-react";
@@ -72,13 +72,14 @@ const InstallButton: React.FC = () => {
 
     return (
         <div className="flex flex-col items-start justify-start gap-2 p-4 rounded-lg">
-            <Button
-                variant="default"
-                className="rounded-full"
+            <IOSButton
                 onClick={handleInstallClick}
+                variant="default"
+                className="rounded-full w-full"
             >
-                Instalovat aplikaci
-            </Button>
+                <Download className="w-5 h-5" />
+                Nainstalovat
+            </IOSButton>
             {isIOS && (
                 <p className="text-[8px] text-gray-600">
                     To install this app on your iOS device, tap the share button and then

@@ -59,7 +59,7 @@ export default function TesterPage() {
                         <IOSSwitch
                             label="Povolit testování"
                             checked={isEnabled}
-                            onChange={(e) => setIsEnabled(e.target.checked)}
+                            onCheckedChange={setIsEnabled}
                         />
                     </div>
                 </IOSCard>

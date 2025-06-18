@@ -18,28 +18,13 @@ import Showcase2 from "@/assets/img/showcase/3.png";
 import Showcase3 from "@/assets/img/showcase/2.png";
 import News from "@/components/blocks/News";
 import { MapPin, Calendar, Award, ArrowRight } from "lucide-react";
+import { IOSButton } from "@/components/ui/ios/button";
+import { IOSBadge } from "@/components/ui/ios/badge";
+import { IOSCard } from "@/components/ui/ios/card";
+import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
+import { IOSImageShowcase } from "@/components/ui/ios/image-showcase";
 
 
-const featuredLocations = [
-    {
-        id: 1,
-        title: "Krkonošský národní park",
-        description: "Objevte krásy nejvyššího českého pohoří s vaším čtyřnohým přítelem.",
-        image: "/locations/krkonose.jpg"
-    },
-    {
-        id: 2,
-        title: "Český ráj",
-        description: "Prozkoumejte úchvatné skalní město a malebné stezky.",
-        image: "/locations/cesky-raj.jpg"
-    },
-    {
-        id: 3,
-        title: "Šumava",
-        description: "Nechte se okouzlit nádhernou přírodou a křišťálovými jezery.",
-        image: "/locations/sumava.jpg"
-    }
-];
 
 const benefits = [
     {
@@ -68,69 +53,90 @@ const Home = async () => {
         <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
             {/* Hero Section */}
             <div className="animate-fadeIn">
-                <div className={"grid grid-cols-1 md:grid-cols-2 w-full"}>
+                <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full px-8"}>
                     <div className={"p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
-                        <h1 className="text-7xl font-bold mb-4 ">
-                            {basicInfo.name}
-                        </h1>
-                        <p className="text-6xl font-semibold mb-4 text-gray-700/60">
+                         <h1 className="text-[90px] font-semibold whitespace-nowrap overflow-visible">
+                              {basicInfo.name}
+                        </h1>   
+                        <div className="text-6xl font-semibold mb-4 text-gray-700/60 w-[90%]">
                             aneb poznáváme
                             {" "}
-                            <span className={"inline-block bg-red-300/80 backdrop-blur-md text-red-950/70 rounded-full text-5xl w-fit px-4 pb-1 pt-3 border border-red-200/50 shadow-sm"}>
-                                <span className={"flex flex-row items-center justify-start"}>
-                                    <span className={"text-4xl"}>
-                                        <Image src={PinEmoji} alt="emoji" width={48} height={48} className="rounded-full inline-block"/>
-                                    </span>
-                                    Česko
-                                </span>
-                            </span>
+                            <IOSBadge
+                                label="Česko"
+                                icon={PinEmoji}
+                                size={100}
+                                bgColor="bg-red-200/80"
+                                borderColor="border-red-400/70"
+                                textColor="text-red-900/80"
+                            />
                             {" "}
                             s českým strakatým
                             {" "}
-                            <span
-                                className={"inline-block bg-amber-300/80 backdrop-blur-md text-amber-950/70 rounded-full text-5xl w-fit px-4 border border-amber-200/50 shadow-sm"}>
-                                <span className={"flex flex-row items-center justify-start"}>
-                                    <span className={"text-4xl"}>
-                                        <Image src={DogEmoji} alt="emoji" width={64} height={64}
-                                               className="rounded-full inline-block"/>
-                                    </span>
-                                 psem
-                                </span>
-                            </span>
+                            <IOSBadge
+                                label="psem"
+                                icon={DogEmoji}
+                                size={156}
+                                bgColor="bg-amber-200/80"
+                                borderColor="border-amber-400/70"
+                                textColor="text-amber-900/80"
+                            />
                             .
-                        </p>
+                        </div>
                         <div className={"flex gap-x-2 flex-row items-center justify-start py-4 w-full"}>
-                            <Button variant={"outline"} className={"rounded-full"}>
+                            <IOSButton variant="outline" className={"rounded-full"}>
                                 Prozkoumat
-                            </Button>
+                            </IOSButton>
                             <InstallButton/>
                         </div>
                     </div>
                     <div className={"flex flex-row items-center justify-center select-none"}>
-                        <Image src={basicInfo.img.coverImage} alt="Strakatá turistika" className={"w-[100%]"}/>
+                        <IOSImageShowcase 
+                            images={[
+                                { url: Showcase1, alt: "Showcase 1" },
+                                { url: Showcase2, alt: "Showcase 2" },
+                                { url: Showcase3, alt: "Showcase 3" }
+                            ]}
+                            layout="overlap"
+                            mainWidth={320}
+                            mainHeight={420}
+                            sideWidth={220}
+                            sideHeight={300}
+                        />
                     </div>
-                    <p className="text-5xl md:hidden text-center font-semibold mt-4 text-gray-700/60">
+                    <div className="text-5xl md:hidden text-center font-semibold mt-4 text-gray-700/60">
                         aneb poznáváme
                         {" "}
-                        <span className={"text-black/70 font-bold"}>
-                            Česko
-                        </span>
-                        {" "}
-                        s českým
-                        {" "}
-                        <span className={"text-black/70 font-bold"}>
-                             strakatým psem
-                        </span>
+                        <IOSBadge
+                                label="Česko"
+                                icon={PinEmoji}
+                                size={32}
+                                bgColor="bg-red-200/80"
+                                borderColor="border-red-400/70"
+                                textColor="text-red-900/80"
+                            />
+                            {" "}
+                            s českým strakatým
+                            {" "}
+                            <IOSBadge
+                                label="psem"
+                                icon={DogEmoji}
+                                size={96}
+                                bgColor="bg-amber-200/80"
+                                borderColor="border-amber-400/70"
+                                textColor="text-amber-900/80"
+                            />
                         .
-                    </p>
+                    </div>
                     <div className={"flex md:hidden flex-row items-center justify-center py-4 w-full"}>
-                        <Button variant={"outline"} className={"rounded-full"}>
+                        <IOSButton variant="outline" className={"rounded-full"}>
                             Prozkoumat
-                        </Button>
+                        </IOSButton>
                         <InstallButton/>
                     </div>
                 </div>
             </div>
+            
+            # here add the content
             
             <Separator className="my-8" />
             
@@ -197,13 +203,22 @@ const Home = async () => {
                 <h2 className="text-4xl font-bold mb-10 text-center">Proč Strakatá turistika?</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {benefits.map((benefit, index) => (
-                        <div key={index} className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-md hover:shadow-xl transition-all">
-                            <div className="mb-4 p-3 bg-amber-100 rounded-full">
-                                {benefit.icon}
+                        <IOSCard
+                            key={index}
+                            className="hover:shadow-xl transition-all duration-300"
+                        >
+                            <div className="flex flex-col items-center text-center">
+                                <IOSCircleIcon
+                                    variant="amber"
+                                    size="lg"
+                                    className="mb-6"
+                                >
+                                    {benefit.icon}
+                                </IOSCircleIcon>
+                                <h3 className="text-xl font-bold mb-2">{benefit.title}</h3>
+                                <p className="text-gray-500">{benefit.description}</p>
                             </div>
-                            <h3 className="text-xl font-bold mb-2">{benefit.title}</h3>
-                            <p className="text-gray-500">{benefit.description}</p>
-                        </div>
+                        </IOSCard>
                     ))}
                 </div>
             </div>
@@ -215,12 +230,12 @@ const Home = async () => {
                     Staňte se součástí komunity milovníků strakatých psů a objevujte krásy České republiky společně s námi.
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center">
-                    <Button size="lg" className="rounded-full">
+                    <IOSButton size="lg" className="rounded-full">
                         Registrujte se nyní
-                    </Button>
-                    <Button variant="outline" size="lg" className="rounded-full">
+                    </IOSButton>
+                    <IOSButton variant="outline" size="lg" className="rounded-full">
                         Zjistit více
-                    </Button>
+                    </IOSButton>
                 </div>
             </div>
         </CommonPageTemplate>

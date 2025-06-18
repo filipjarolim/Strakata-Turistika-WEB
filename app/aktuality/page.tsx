@@ -9,7 +9,8 @@ export default async function AktualityPage() {
 
     return (
         <CommonPageTemplate 
-            contents={{complete: true}} 
+            contents={{header: true}} 
+            headerMode="auto-hide"
             currentUser={user}
             currentRole={role}
         >

@@ -1,53 +1,45 @@
 "use client";
 import React from "react";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
-interface IOSButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface IOSButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'default' | 'outline' | 'blue' | 'primary';
+  size?: 'default' | 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
+  icon?: React.ReactNode;
 }
 
 export const IOSButton = React.forwardRef<HTMLButtonElement, IOSButtonProps>(
-  ({ children, loading, className, disabled, ...props }, ref) => {
-    // Check if children is an array and has an icon as first child
-    const hasIcon = React.Children.toArray(children).some(
-      child => React.isValidElement(child) && child.type === 'svg'
-    );
-
-    // Separate icon and text content
-    const icon = React.Children.toArray(children).find(
-      child => React.isValidElement(child) && child.type === 'svg'
-    );
-    const textContent = React.Children.toArray(children).filter(
-      child => !(React.isValidElement(child) && child.type === 'svg')
-    );
-
+  ({ className, variant = 'default', size = 'default', loading, icon, children, ...props }, ref) => {
     return (
       <button
-        ref={ref}
-        disabled={disabled || loading}
         className={cn(
-          "w-full h-12 rounded-xl font-semibold text-white",
-          "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
-          "transition-all duration-200 shadow-sm",
-          "focus:ring-2 focus:ring-blue-500/50 focus:outline-none",
-          "flex items-center justify-center gap-2",
-          disabled || loading ? "opacity-60 cursor-not-allowed" : "",
+          "inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          // Variants
+          variant === 'default' && "bg-white/50 backdrop-blur-sm text-gray-900 hover:bg-white/70 border border-gray-200",
+          variant === 'outline' && "border border-gray-200 bg-white/50 backdrop-blur-sm hover:bg-gray-100/50 hover:text-gray-900",
+          variant === 'blue' && "bg-blue-500 text-white hover:bg-blue-600",
+          variant === 'primary' && "bg-blue-500 text-white hover:bg-blue-600 shadow-lg",
+          // Sizes
+          size === 'default' && "h-10 px-4 py-2",
+          size === 'sm' && "h-9 px-3 text-sm",
+          size === 'md' && "h-11 px-6 py-2.5 text-base",
+          size === 'lg' && "h-12 px-8 text-lg",
+          size === 'icon' && "h-10 w-10",
           className
         )}
+        ref={ref}
+        disabled={loading || props.disabled}
         {...props}
       >
         {loading ? (
-          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
-        ) : hasIcon ? (
-          <>
-            {icon}
-            {textContent}
-          </>
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          children
+          <>
+            {icon && <span className="mr-2">{icon}</span>}
+            {children}
+          </>
         )}
       </button>
     );

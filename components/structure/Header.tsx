@@ -106,16 +106,11 @@ const Header = ({
             >
                 <Link
                     href="/"
-                    className="flex flex-row items-center justify-start col-span-2 md:col-span-2 lg:col-span-2 text-[18px] font-bold text-black/80 transition-all duration-200 hover:text-black"
+                    className="flex flex-row items-center justify-start col-span-2 md:col-span-2 lg:col-span-2"
                 >
-                    <Image
-                        src={basicInfo.img.icons.transparentHeaderOutline}
-                        alt="Logo"
-                        width={32}
-                        height={32}
-                        className="mr-2 transition-transform duration-300 hover:scale-110"
-                    />
-                    <span className="hidden sm:inline">Strakatá Turistika</span>
+                    <span className="text-[22px] font-semibold text-black/90 tracking-tight">
+                        Strakatá Turistika
+                    </span>
                 </Link>
                 
                 {/* Desktop Navigation */}

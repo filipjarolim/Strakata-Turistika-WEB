@@ -3,55 +3,81 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Shield } from "lucide-react";
 import { ReactNode } from "react";
+import { IOSButton } from "@/components/ui/ios/button";
+import { IOSBadge } from "@/components/ui/ios/badge";
 
 type AdminRestrictedContentProps = {
     role: string;
     permittedRole?: string;
-    tooltipText?: string;
+    badgeText?: string;
     variant?: 'default' | 'icon';
     icon?: ReactNode;
-    onClick?: (e?: React.MouseEvent) => void;  // Updated type
+    onClick?: (e?: React.MouseEvent) => void;
     children?: ReactNode;
+    buttonClassName?: string;
 };
 
 export function AdminRestrictedContent({
     role,
     permittedRole = "ADMIN",
-    tooltipText,
+    badgeText = "Admin",
     variant = 'default',
     icon,
     onClick,
     children,
+    buttonClassName,
 }: AdminRestrictedContentProps) {
-    if (role !== permittedRole) return null;
+    const isPermitted = role === permittedRole;
 
     if (variant === 'icon') {
-        return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={onClick}
-                            className="h-8 w-8 rounded-md bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center text-white"
-                        >
-                            {icon}
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <span>{tooltipText}</span>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
+        if (isPermitted) {
+            return (
+                <button
+                    onClick={onClick}
+                    className={"rounded-full bg-blue-100 hover:bg-blue-200 transition-colors flex items-center justify-center text-blue-600 shadow-sm " + (buttonClassName || "")}
+                    style={{ width: 36, height: 36 }}
+                    aria-label={badgeText}
+                >
+                    {icon}
+                </button>
+            );
+        } else {
+            return (
+                <IOSBadge
+                    label={badgeText}
+                    size={20}
+                    bgColor="bg-blue-50"
+                    borderColor="border-blue-200"
+                    textColor="text-blue-500"
+                    className="px-4 py-0.5 min-h-0 text-xs font-semibold"
+                />
+            );
+        }
     }
 
-    return (
-        <button
-            onClick={onClick}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-        >
-            {children}
-            <Shield className="w-4 h-4" />
-        </button>
-    );
+    if (variant === 'default') {
+        if (isPermitted) {
+            return (
+                <IOSButton
+                    onClick={onClick}
+                    className={buttonClassName}
+                >
+                    {children}
+                </IOSButton>
+            );
+        } else {
+            return (
+                <IOSBadge
+                    label={badgeText}
+                    size={20}
+                    bgColor="bg-blue-50"
+                    borderColor="border-blue-200"
+                    textColor="text-blue-500"
+                    className="px-4 py-0.5 min-h-0 text-xs font-semibold"
+                />
+            );
+        }
+    }
+
+    return null;
 }

@@ -101,6 +101,7 @@ model News {
   title     String
   content   String?
   createdAt DateTime @default(now())
+  images    Json?    // Array of { url, public_id, title }
 }
 
 model Season {
@@ -125,6 +126,7 @@ model VisitData {
   state         VisitState @default(DRAFT)
   rejectionReason String?
   createdAt     DateTime? @default(now())
+  photos        Json?     // Array of { url: string, public_id: string, title: string }
 
   // Relation to Season
   seasonId String?

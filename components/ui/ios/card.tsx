@@ -6,72 +6,100 @@ interface IOSCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
   subtitle?: string;
   icon?: React.ReactNode;
+  iconBackground?: string;
+  iconColor?: string;
   footer?: React.ReactNode;
   variant?: "default" | "elevated" | "outlined";
+  headerClassName?: string;
+  contentClassName?: string;
+  footerClassName?: string;
 }
 
 export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
-  ({ title, subtitle, icon, footer, variant = "default", className, children, ...props }, ref) => {
+  ({ 
+    title, 
+    subtitle, 
+    icon, 
+    iconBackground = "bg-blue-100", 
+    iconColor = "text-blue-600",
+    footer, 
+    variant = "default", 
+    className,
+    headerClassName,
+    contentClassName,
+    footerClassName,
+    children, 
+    ...props 
+  }, ref) => {
     const cardRef = useRef<HTMLDivElement>(null);
 
-    const baseStyles = "rounded-2xl bg-white/80 backdrop-blur-lg";
-    const variantStyles = {
-      default: "border border-gray-200",
-      elevated: "shadow-lg shadow-black/5",
-      outlined: "border-2 border-gray-200",
+    const baseStyles = {
+      default: "bg-white/80 backdrop-blur-sm border border-gray-200/50",
+      elevated: "bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/50",
+      outlined: "border-2 border-gray-200/50 bg-transparent"
     };
+
+    const iconContainerStyles = cn(
+      "flex items-center justify-center rounded-xl w-10 h-10 shrink-0",
+      iconBackground
+    );
+
+    const iconStyles = cn(
+      "w-5 h-5",
+      iconColor
+    );
 
     return (
       <div
-        ref={(node) => {
-          if (typeof ref === 'function') ref(node);
-          else if (ref) ref.current = node;
-          cardRef.current = node;
-        }}
+        ref={ref}
         className={cn(
-          baseStyles,
-          variantStyles[variant],
-          "overflow-hidden h-full flex flex-col relative",
-          "transition-all duration-300 ease-out",
+          "rounded-2xl overflow-hidden transition-all duration-200",
+          baseStyles[variant],
           className
         )}
         {...props}
       >
-        {/* Glass overlay for full height */}
-        <div className="absolute inset-0 z-0 transition-colors duration-300 bg-white/80" style={{backdropFilter: 'blur(20px)'}} />
-        <div className="relative z-20 flex flex-col flex-1 h-full">
-          {(title || subtitle || icon) && (
-            <div className="p-4 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                {icon && (
-                  <div className="flex-shrink-0 text-blue-600">
-                    {icon}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  {title && (
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
-                      {title}
-                    </h3>
-                  )}
-                  {subtitle && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      {subtitle}
-                    </p>
-                  )}
+        {(title || subtitle || icon) && (
+          <div className={cn(
+            "flex items-start gap-4 p-6",
+            headerClassName
+          )}>
+            {icon && (
+              <div className={iconContainerStyles}>
+                <div className={iconStyles}>
+                  {icon}
                 </div>
               </div>
+            )}
+            <div className="flex-1 min-w-0">
+              {title && (
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {title}
+                </h3>
+              )}
+              {subtitle && (
+                <p className="text-sm text-gray-500 line-clamp-2">
+                  {subtitle}
+                </p>
+              )}
             </div>
-          )}
-          <div className="p-4 flex-1 flex flex-col justify-center">
-            {children}
           </div>
-          {footer && (
-            <div className="px-4 py-3 bg-gray-50/50 border-t border-gray-100">
-              {footer}
-            </div>
-          )}
+        )}
+        <div className={cn(
+          "px-6 pb-6",
+          (title || subtitle || icon) ? "pt-0" : "pt-6",
+          contentClassName
+        )}>
+          {children}
         </div>
+        {footer && (
+          <div className={cn(
+            "px-6 py-4 bg-gray-50/50 border-t border-gray-100/50",
+            footerClassName
+          )}>
+            {footer}
+          </div>
+        )}
       </div>
     );
   }

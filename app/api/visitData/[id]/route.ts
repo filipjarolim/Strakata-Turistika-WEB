@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { currentRole } from '@/lib/auth';
+import { UserRole, VisitState } from '@prisma/client';
 
 export async function GET(
   request: Request,
@@ -19,31 +21,41 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const data = await request.json();
-    
-    // Move description to extraPoints
-    const { description, ...restData } = data;
-    const updatedData = {
-      ...restData,
-      extraPoints: {
-        ...(data.extraPoints || {}),
-        description: description || ''
-      }
-    };
+    const body = await req.json();
+    const { id } = params;
 
-    const updated = await db.visitData.update({
+    console.log('Updating visitData:', { id, body });
+
+    // Parse the route data from string back to array
+    const route = body.routeLink ? JSON.parse(body.routeLink) : [];
+
+    const visitData = await db.visitData.update({
       where: { id },
-      data: updatedData
+      data: {
+        visitDate: new Date(body.visitDate),
+        routeTitle: body.routeTitle,
+        routeDescription: body.routeDescription,
+        dogNotAllowed: body.dogNotAllowed,
+        visitedPlaces: body.visitedPlaces,
+        routeLink: body.routeLink,
+        route: route,
+        year: new Date(body.visitDate).getFullYear(),
+        photos: body.photos,
+        extraPoints: body.extraPoints
+      }
     });
-    return NextResponse.json(updated);
+
+    return NextResponse.json(visitData);
   } catch (error) {
-    console.error('[UPDATE_VISITDATA_ERROR]', error);
-    return NextResponse.json({ message: 'Failed to update VisitData.' }, { status: 500 });
+    console.error('Error updating visitData:', error);
+    return new NextResponse(
+      JSON.stringify({ error: 'Error updating visit data' }),
+      { status: 500 }
+    );
   }
 }
 

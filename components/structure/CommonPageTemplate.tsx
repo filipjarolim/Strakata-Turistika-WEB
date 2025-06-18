@@ -34,14 +34,16 @@ const CommonPageTemplate = ({
                 {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
             </main>
 
-            <BugReportPanel currentUser={currentUser} currentRole={currentRole} />
+            {/* <BugReportPanel currentUser={currentUser} currentRole={currentRole} /> */}
 
             {(contents?.complete || contents?.footer) && (
-                <Image 
-                    src={FooterDog} 
-                    alt="Strakatá turistika" 
-                    className="w-full mt-[-110px] pointer-events-none"
-                />
+                <div className="relative" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>
+                    <Image 
+                        src={FooterDog} 
+                        alt="Strakatá turistika" 
+                        className="w-full mt-[-110px] pointer-events-none"
+                    />
+                </div>
             )}
         </>
     );

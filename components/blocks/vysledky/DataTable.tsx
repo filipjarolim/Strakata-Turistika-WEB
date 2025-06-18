@@ -188,7 +188,7 @@ export const transformDataToAggregated = (data: VisitData[]): AggregatedVisitDat
             acc[key] = {
                 year: item.year,
                 totalPoints: 0,
-                visitCount: 0,
+                visitCount: 0, 
                 visitedPlaces: new Set<string>(),
                 dogNotAllowed: new Set<string>(),
                 routeTitles: new Set<string>()
@@ -469,7 +469,7 @@ export const DataTable = <TData extends { id: string }>({
         // Apply custom filter if provided
         if (filterConfig?.customFilter && filters.customFilterParams) {
             const customFilter = filterConfig.customFilter;
-            result = result.filter(item =>
+            result = result.filter(item => 
                 customFilter(item, filters.customFilterParams as Record<string, unknown>)
             );
         }

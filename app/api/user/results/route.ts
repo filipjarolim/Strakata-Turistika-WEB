@@ -66,7 +66,7 @@ export async function GET() {
                 state: true,
                 rejectionReason: true,
                 createdAt: true
-            }
+                }
         });
 
         // Store in cache

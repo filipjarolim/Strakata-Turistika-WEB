@@ -2,13 +2,17 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-interface IOSSwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface IOSSwitchProps {
   label?: string;
   error?: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
 }
 
 export const IOSSwitch = React.forwardRef<HTMLInputElement, IOSSwitchProps>(
-  ({ label, error, className, ...props }, ref) => {
+  ({ label, error, checked, onCheckedChange, disabled, className }, ref) => {
     return (
       <div className="w-full mb-4">
         <label className="flex items-center justify-between cursor-pointer">
@@ -22,14 +26,16 @@ export const IOSSwitch = React.forwardRef<HTMLInputElement, IOSSwitchProps>(
               ref={ref}
               type="checkbox"
               className="sr-only"
-              {...props}
+              checked={checked}
+              onChange={(e) => onCheckedChange(e.target.checked)}
+              disabled={disabled}
             />
             <div
               className={cn(
                 "w-12 h-7 rounded-full transition-all duration-200",
                 "bg-gray-200",
-                props.checked && "bg-blue-600",
-                props.disabled && "opacity-50 cursor-not-allowed",
+                checked && "bg-blue-600",
+                disabled && "opacity-50 cursor-not-allowed",
                 className
               )}
             >
@@ -37,7 +43,7 @@ export const IOSSwitch = React.forwardRef<HTMLInputElement, IOSSwitchProps>(
                 className={cn(
                   "absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-all duration-200",
                   "bg-white shadow-sm",
-                  props.checked && "translate-x-5"
+                  checked && "translate-x-5"
                 )}
               />
             </div>

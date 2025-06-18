@@ -25,7 +25,8 @@ export async function GET(
                 id: true,
                 title: true,
                 content: true,
-                createdAt: true
+                createdAt: true,
+                images: true
             }
         });
 
@@ -89,7 +90,7 @@ export async function PUT(
             );
         }
 
-        const { title, content } = await req.json();
+        const { title, content, images } = await req.json();
 
         if (!title) {
             return new NextResponse(
@@ -103,12 +104,13 @@ export async function PUT(
 
         const news = await db.news.update({
             where: { id },
-            data: { title, content },
+            data: { title, content, images },
             select: {
                 id: true,
                 title: true,
                 content: true,
-                createdAt: true
+                createdAt: true,
+                images: true
             }
         });
 

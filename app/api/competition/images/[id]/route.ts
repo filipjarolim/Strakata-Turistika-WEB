@@ -9,10 +9,11 @@ cloudinary.config({
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const id = params.id;
+    const { id } = await (params instanceof Promise ? params : Promise.resolve(params));
+    
     const result = await new Promise((resolve, reject) => {
       cloudinary.search
         .expression(`folder:competition/${id}/*`)

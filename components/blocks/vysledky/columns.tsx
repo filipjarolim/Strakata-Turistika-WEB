@@ -5,15 +5,15 @@ import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 
 export const columns: ColumnDef<VisitData>[] = [
-  {
+    {
     accessorKey: "visitDate",
     header: "Datum",
-    cell: ({ row }) => {
+        cell: ({ row }) => {
       const date = row.getValue("visitDate") as string;
       return date ? format(new Date(date), "d. MMMM yyyy", { locale: cs }) : "-";
+        },
     },
-  },
-  {
+    {
     accessorKey: "routeTitle",
     header: "Název trasy",
     cell: ({ row }) => row.getValue("routeTitle") || "-",
@@ -21,28 +21,28 @@ export const columns: ColumnDef<VisitData>[] = [
   {
     accessorKey: "points",
     header: "Body",
-    cell: ({ row }) => {
+        cell: ({ row }) => {
       const points = row.getValue("points") as number;
       return points || 0;
+        },
     },
-  },
-  {
+    {
     accessorKey: "visitedPlaces",
     header: "Navštívená místa",
     cell: ({ row }) => row.getValue("visitedPlaces") || "-",
-  },
-  {
+    },
+    {
     accessorKey: "dogNotAllowed",
     header: "Psi zakázáni",
-    cell: ({ row }) => {
+        cell: ({ row }) => {
       const dogNotAllowed = row.getValue("dogNotAllowed") as string;
       return dogNotAllowed === "true" ? "Ano" : "Ne";
     },
-  },
-  {
+    },
+    {
     accessorKey: "state",
     header: "Stav",
-    cell: ({ row }) => {
+        cell: ({ row }) => {
       const state = row.getValue("state") as string;
       const variants = {
         'DRAFT': "secondary",
@@ -58,11 +58,11 @@ export const columns: ColumnDef<VisitData>[] = [
         'REJECTED': "Zamítnuto"
       };
 
-      return (
+            return (
         <Badge variant={variants[state as keyof typeof variants]} className="font-medium">
           {labels[state as keyof typeof labels]}
         </Badge>
-      );
-    },
+            );
+        },
   }
 ];
