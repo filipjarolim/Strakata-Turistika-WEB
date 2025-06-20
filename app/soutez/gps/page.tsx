@@ -6,6 +6,7 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { GPSLoadingScreen } from "@/components/ui/GPSLoadingScreen";
 import { 
   Play, 
   Pause, 
@@ -77,6 +78,9 @@ interface WeatherData {
 }
 
 const GPSPage = () => {
+  // Loading state
+  const [isGPSReady, setIsGPSReady] = useState(false);
+  
   // Core tracking state
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -101,6 +105,11 @@ const GPSPage = () => {
   const lastPositionRef = useRef<GPSPosition | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle GPS ready callback
+  const handleGPSReady = useCallback(() => {
+    setIsGPSReady(true);
+  }, []);
 
   // Register service worker for offline functionality
   useEffect(() => {
@@ -473,6 +482,11 @@ const GPSPage = () => {
       }
     };
   }, []);
+
+  // Show loading screen if GPS is not ready
+  if (!isGPSReady) {
+    return <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />;
+  }
 
   // Convert session positions to map format
   const mapTrackPoints = currentSession?.positions.map(pos => ({
@@ -946,7 +960,7 @@ const GPSPage = () => {
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   {showStats ? 'Hide Stats' : 'Show Stats'}
-                  </Button>
+                </Button>
               </div>
 
               {/* Weather Info */}

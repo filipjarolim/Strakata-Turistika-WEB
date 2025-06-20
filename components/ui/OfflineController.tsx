@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { 
   Sheet, 
@@ -14,15 +14,14 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check, Settings } from "lucide-react";
+import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check, Settings, MapPin, Signal, Battery, CloudOff } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import { NetworkStatus } from './NetworkStatus';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // List of critical pages that should always be cached for offline use
 const DEFAULT_CRITICAL_PAGES = [
@@ -34,16 +33,23 @@ const DEFAULT_CRITICAL_PAGES = [
   '/kontakty'
 ];
 
-// All available pages that can be selected for caching
-const AVAILABLE_PAGES = [
-  { id: 'home', name: 'Domovská stránka', path: '/' },
-  { id: 'results', name: 'Výsledky', path: '/vysledky' },
-  { id: 'rules', name: 'Pravidla', path: '/pravidla' },
-  { id: 'offline', name: 'Offline stránka', path: '/offline' },
-  { id: 'gallery', name: 'Fotogalerie', path: '/fotogalerie' },
-  { id: 'contacts', name: 'Kontakty', path: '/kontakty' },
-  { id: 'settings', name: 'Nastavení', path: '/nastaveni' },
-  { id: 'profile', name: 'Profil', path: '/auth/profil' }
+// GPS-specific cache requirements
+const GPS_CRITICAL_RESOURCES = [
+  '/soutez/gps',
+  '/offline',
+  '/offline-map',
+  '/manifest.json',
+  '/sw.js',
+  '/images/marker-icon.png',
+  '/images/marker-icon-2x.png',
+  '/images/marker-shadow.png'
+];
+
+// Map tiles and external resources
+const MAP_RESOURCES = [
+  'https://api.maptiler.com/maps/outdoor-v2/256/',
+  'https://tile.openstreetmap.org/',
+  'https://server.arcgisonline.com/'
 ];
 
 export const OfflineController: React.FC = () => {
@@ -55,70 +61,75 @@ export const OfflineController: React.FC = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showPageSelector, setShowPageSelector] = useState(false);
+  const [cacheStatus, setCacheStatus] = useState<{
+    gpsReady: boolean;
+    mapsReady: boolean;
+    totalCached: number;
+    lastUpdated: Date | null;
+  }>({
+    gpsReady: false,
+    mapsReady: false,
+    totalCached: 0,
+    lastUpdated: null
+  });
   
   // Check if service worker is available
   const isServiceWorkerAvailable = typeof navigator !== 'undefined' && 
                                  'serviceWorker' in navigator;
-  
-  // Toggle a page selection
-  const togglePageSelection = (path: string) => {
-    setSelectedPages(prev => 
-      prev.includes(path)
-        ? prev.filter(p => p !== path)
-        : [...prev, path]
-    );
-  };
-  
-  // Check if a page is selected
-  const isPageSelected = (path: string) => {
-    return selectedPages.includes(path);
-  };
 
-  // Select all pages
-  const selectAllPages = () => {
-    setSelectedPages(AVAILABLE_PAGES.map(page => page.path));
-  };
+  // Move checkCacheStatus above useEffect
+  const checkCacheStatus = useCallback(async () => {
+    if (!isServiceWorkerAvailable) return;
+    try {
+      const caches = await window.caches.keys();
+      const gpsCache = caches.find(cache => cache.includes('gps'));
+      const staticCache = caches.find(cache => cache.includes('static'));
+      let totalCached = 0;
+      if (gpsCache) {
+        const cache = await window.caches.open(gpsCache);
+        const keys = await cache.keys();
+        totalCached += keys.length;
+      }
+      if (staticCache) {
+        const cache = await window.caches.open(staticCache);
+        const keys = await cache.keys();
+        totalCached += keys.length;
+      }
+      setCacheStatus({
+        gpsReady: !!gpsCache,
+        mapsReady: totalCached > 10, // Assume maps are ready if we have significant cache
+        totalCached,
+        lastUpdated: new Date()
+      });
+    } catch (error) {
+      console.error('Error checking cache status:', error);
+    }
+  }, [isServiceWorkerAvailable]);
 
-  // Clear page selection
-  const clearPageSelection = () => {
-    setSelectedPages([]);
-  };
+  // Check cache status on mount
+  useEffect(() => {
+    checkCacheStatus();
+  }, [checkCacheStatus]);
   
-  // Reset to default pages
-  const resetToDefaultPages = () => {
-    setSelectedPages(DEFAULT_CRITICAL_PAGES);
-  };
-  
-  // Cache selected pages for offline use
-  const cacheSelectedPages = async () => {
+  // Cache GPS resources for offline use
+  const cacheGPSResources = async () => {
     if (!isServiceWorkerAvailable) {
       toast.error("Offline mód není dostupný", {
-        description: "Váš prohlížeč nepodporuje service worker nebo není inicializován"
-      });
-      return;
-    }
-    
-    if (selectedPages.length === 0) {
-      toast.warning("Vyberte alespoň jednu stránku", {
-        description: "Pro uložení offline je potřeba vybrat alespoň jednu stránku"
+        description: "Váš prohlížeč nepodporuje service worker"
       });
       return;
     }
     
     setIsCaching(true);
-    setProgress(10);
+    setProgress(0);
     
     try {
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 300);
-      
-      // Pre-cache the critical pages by fetching them - using the same method as before
+      // Step 1: Cache critical GPS resources (20%)
+      setProgress(10);
       await Promise.all(
-        selectedPages.map(async (page) => {
+        GPS_CRITICAL_RESOURCES.map(async (resource) => {
           try {
-            const response = await fetch(page, { 
+            const response = await fetch(resource, { 
               method: 'GET',
               cache: 'force-cache',
               headers: {
@@ -127,40 +138,112 @@ export const OfflineController: React.FC = () => {
             });
             return response.ok;
           } catch (error) {
-            console.error(`Failed to cache ${page}:`, error);
+            console.error(`Failed to cache ${resource}:`, error);
             return false;
           }
         })
       );
       
-      clearInterval(progressInterval);
+      setProgress(30);
+      
+      // Step 2: Pre-load map tiles for common zoom levels (60%)
+      const zoomLevels = [10, 11, 12, 13, 14, 15];
+      const centerLat = 50.0755; // Prague center
+      const centerLng = 14.4378;
+      
+      for (const zoom of zoomLevels) {
+        const tiles = getTilesForArea(centerLat, centerLng, zoom, 0.1); // ~10km radius
+        for (const tile of tiles) {
+          try {
+            await fetch(tile, { 
+              method: 'GET',
+              cache: 'force-cache',
+              headers: {
+                'Service-Worker-Cache': 'true'
+              }
+            });
+          } catch (error) {
+            // Ignore tile fetch errors
+          }
+        }
+        setProgress(30 + (zoom - 10) * 5);
+      }
+      
+      setProgress(90);
+      
+      // Step 3: Cache additional offline resources
+      const additionalResources = [
+        '/api/gps/sessions',
+        '/api/gps/positions',
+        '/api/gps/sync'
+      ];
+      
+      await Promise.all(
+        additionalResources.map(async (resource) => {
+          try {
+            await fetch(resource, { 
+              method: 'GET',
+              cache: 'force-cache',
+              headers: {
+                'Service-Worker-Cache': 'true'
+              }
+            });
+          } catch (error) {
+            // Ignore API cache errors
+          }
+        })
+      );
+      
       setProgress(100);
       
       setTimeout(() => {
         setProgress(0);
         setIsCaching(false);
+        checkCacheStatus();
       }, 500);
       
-      toast.success("Stránky uloženy offline", {
-        description: `${selectedPages.length} stránek bylo uloženo pro offline použití`
+      toast.success("GPS offline cache připraven", {
+        description: "GPS sledování je nyní připraveno pro offline použití"
       });
     } catch (error) {
-      console.error('Error caching pages:', error);
+      console.error('Error caching GPS resources:', error);
       setProgress(0);
       setIsCaching(false);
       
-      toast.error("Chyba při ukládání stránek", {
-        description: "Nastala chyba při ukládání stránek offline"
+      toast.error("Chyba při přípravě offline cache", {
+        description: "Nastala chyba při ukládání GPS zdrojů"
       });
     }
   };
+
+  // Helper function to get map tiles for an area
+  const getTilesForArea = (lat: number, lng: number, zoom: number, radiusDegrees: number) => {
+    const tiles: string[] = [];
+    const latMin = lat - radiusDegrees;
+    const latMax = lat + radiusDegrees;
+    const lngMin = lng - radiusDegrees;
+    const lngMax = lng + radiusDegrees;
+    
+    // Convert to tile coordinates
+    const n = Math.pow(2, zoom);
+    const xtileMin = Math.floor((lngMin + 180) / 360 * n);
+    const xtileMax = Math.floor((lngMax + 180) / 360 * n);
+    const ytileMin = Math.floor((1 - Math.log(Math.tan(latMin * Math.PI / 180) + 1 / Math.cos(latMin * Math.PI / 180)) / Math.PI) / 2 * n);
+    const ytileMax = Math.floor((1 - Math.log(Math.tan(latMax * Math.PI / 180) + 1 / Math.cos(latMax * Math.PI / 180)) / Math.PI) / 2 * n);
+    
+    for (let x = xtileMin; x <= xtileMax; x++) {
+      for (let y = ytileMin; y <= ytileMax; y++) {
+        tiles.push(`https://api.maptiler.com/maps/outdoor-v2/256/${zoom}/${x}/${y}.png?key=a5w3EO45npvzNFzD6VoD`);
+      }
+    }
+    
+    return tiles;
+  };
   
-  // Clear the cache - using the same method as before
+  // Clear the cache
   const clearAllCache = async () => {
     if (!isServiceWorkerAvailable) {
-      toast.error("Offline mód není dostupný", {
-        description: "Váš prohlížeč nepodporuje service worker nebo není inicializován"
-      });
+      toast.error("Offline mód není dostupný");
       return;
     }
     
@@ -168,12 +251,10 @@ export const OfflineController: React.FC = () => {
     setProgress(10);
     
     try {
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 15, 90));
       }, 200);
       
-      // Use the Cache API to clear all caches
       if ('caches' in window) {
         const cacheNames = await window.caches.keys();
         await Promise.all(
@@ -187,6 +268,7 @@ export const OfflineController: React.FC = () => {
       setTimeout(() => {
         setProgress(0);
         setIsClearing(false);
+        checkCacheStatus();
       }, 500);
       
       toast.success("Cache byla vymazána", {
@@ -197,10 +279,15 @@ export const OfflineController: React.FC = () => {
       setProgress(0);
       setIsClearing(false);
       
-      toast.error("Chyba při mazání cache", {
-        description: "Nastala chyba při mazání cache"
-      });
+      toast.error("Chyba při mazání cache");
     }
+  };
+
+  // Refresh cache status
+  const refreshCacheStatus = async () => {
+    setIsLoading(true);
+    await checkCacheStatus();
+    setIsLoading(false);
   };
 
   return (
@@ -211,154 +298,170 @@ export const OfflineController: React.FC = () => {
           size="icon"
           onClick={() => setIsOpen(true)}
           className="bg-white shadow-sm"
-          aria-label="Offline nastavení"
+          aria-label="GPS offline nastavení"
         >
           <Settings className="h-4 w-4" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="z-100">
+      <SheetContent className="z-100 w-[400px] sm:w-[500px]">
         <SheetHeader>
-          <SheetTitle>Offline nastavení</SheetTitle>
+          <SheetTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            GPS Offline Nastavení
+          </SheetTitle>
           <SheetDescription>
-            Správa offline funkcionality aplikace
+            Správa offline GPS sledování a map
           </SheetDescription>
         </SheetHeader>
         
-        <div className="py-4">
-          <div className="flex items-center justify-between mb-4">
-            <span className="font-medium">Stav sítě:</span>
-            <NetworkStatus />
-          </div>
-          
-          <div className="space-y-4 mt-6">
-            <h4 className="font-medium mb-2">Akce</h4>
-            
-            {/* Conditional progress indicator */}
-            {(isCaching || isClearing) && (
-              <div className="mb-2">
-                <Progress value={progress} className="h-2" />
-                <p className="text-sm text-gray-500 mt-1">
-                  {isCaching ? 'Ukládání stránek...' : 'Mazání cache...'}
-                </p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-3">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                disabled={isCaching || isClearing || isOffline}
-                onClick={showPageSelector ? cacheSelectedPages : () => setShowPageSelector(true)}
-              >
-                {isCaching ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {showPageSelector ? "Uložit vybrané" : "Uložit offline"}
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full"
-                disabled={isCaching || isClearing}
-                onClick={clearAllCache}
-              >
-                {isClearing ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4 mr-2" />
-                )}
-                Vymazat cache
-              </Button>
-            </div>
-          </div>
+        <ScrollArea className="h-full py-4">
+          <div className="space-y-6">
+            {/* Network Status */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Signal className="h-5 w-5" />
+                  Stav sítě
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Připojení:</span>
+                  <NetworkStatus />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-sm font-medium">Service Worker:</span>
+                  <Badge variant={isServiceWorkerAvailable ? "default" : "destructive"}>
+                    {isServiceWorkerAvailable ? "Aktivní" : "Nedostupný"}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Page selector section */}
-          {showPageSelector && (
-            <div className="mt-6 border rounded-md p-3">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium">Vyberte stránky k uložení</h4>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={selectAllPages}
-                    className="text-xs h-7 px-2"
+            {/* Cache Status */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CloudOff className="h-5 w-5" />
+                  Stav cache
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={refreshCacheStatus}
+                    disabled={isLoading}
+                    className="ml-auto h-6 w-6 p-0"
                   >
-                    Vše
+                    <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={clearPageSelection}
-                    className="text-xs h-7 px-2"
-                  >
-                    Žádné
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={resetToDefaultPages}
-                    className="text-xs h-7 px-2"
-                  >
-                    Výchozí
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setShowPageSelector(false)}
-                    className="text-xs h-7"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <ScrollArea className="h-40">
-                <div className="space-y-2">
-                  {AVAILABLE_PAGES.map((page) => (
-                    <div key={page.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`page-${page.id}`} 
-                        checked={isPageSelected(page.path)}
-                        onCheckedChange={() => togglePageSelection(page.path)}
-                      />
-                      <Label 
-                        htmlFor={`page-${page.id}`}
-                        className="text-sm cursor-pointer"
-                      >
-                        {page.name}
-                      </Label>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-600 mb-1">
+                      {cacheStatus.gpsReady ? "✓" : "✗"}
                     </div>
-                  ))}
+                    <div className="text-xs text-blue-700">GPS Ready</div>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-2xl font-bold text-green-600 mb-1">
+                      {cacheStatus.mapsReady ? "✓" : "✗"}
+                    </div>
+                    <div className="text-xs text-green-700">Maps Ready</div>
+                  </div>
                 </div>
-              </ScrollArea>
-              
-              <div className="mt-3 text-right">
-                <Badge variant="outline">
-                  {selectedPages.length} stránek vybráno
-                </Badge>
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-6">
-            <h4 className="font-medium mb-2">Offline dostupnost</h4>
-            <p className="text-sm text-gray-500 mb-2">
-              Při použití offline máte přístup k základním stránkám a předem načteným datům.
-            </p>
-            
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm mt-4">
-              <p className="flex items-start">
-                <WifiOff className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                <span>
-                  Pro nejlepší offline zkušenost doporučujeme nejprve načíst všechny důležité stránky pomocí tlačítka &quot;Uložit offline&quot;.
-                </span>
-              </p>
-            </div>
+                
+                <div className="text-sm text-gray-600">
+                  <div>Celkem uloženo: {cacheStatus.totalCached} zdrojů</div>
+                  {cacheStatus.lastUpdated && (
+                    <div>Poslední aktualizace: {cacheStatus.lastUpdated.toLocaleTimeString()}</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Progress Indicator */}
+            {(isCaching || isClearing) && (
+              <Card>
+                <CardContent className="pt-6">
+                  <Progress value={progress} className="h-3" />
+                  <p className="text-sm text-gray-600 mt-2 text-center">
+                    {isCaching ? 'Ukládání GPS zdrojů...' : 'Mazání cache...'}
+                    <br />
+                    <span className="text-xs">{progress}%</span>
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Actions */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Akce</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  className="w-full"
+                  disabled={isCaching || isClearing || isOffline}
+                  onClick={cacheGPSResources}
+                >
+                  {isCaching ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Připravit GPS offline
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  className="w-full"
+                  disabled={isCaching || isClearing}
+                  onClick={clearAllCache}
+                >
+                  {isClearing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Vymazat cache
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Offline Info */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Offline GPS</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 mt-0.5 text-blue-600" />
+                    <div>
+                      <div className="font-medium">GPS sledování</div>
+                      <div className="text-gray-600">Funguje offline s uloženými mapami</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Battery className="h-4 w-4 mt-0.5 text-green-600" />
+                    <div>
+                      <div className="font-medium">Úspora baterie</div>
+                      <div className="text-gray-600">Optimalizované pro dlouhé sledování</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <WifiOff className="h-4 w-4 mt-0.5 text-amber-600" />
+                    <div>
+                      <div className="font-medium">Offline data</div>
+                      <div className="text-gray-600">Automatická synchronizace při připojení</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
+        </ScrollArea>
         
         <SheetFooter>
           <SheetClose asChild>
