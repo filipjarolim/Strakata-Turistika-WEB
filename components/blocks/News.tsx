@@ -186,7 +186,7 @@ export default function News() {
                                         />
                                         {isNew(item.createdAt) && (
                                             <span className="absolute top-2 right-2 z-20">
-                                                <IOSBadge label="Novinka" size={18} bgColor="bg-green-100/90" borderColor="border-green-300/80" textColor="text-green-900/90" className="px-3 py-0.5 min-h-0 text-xs" />
+                                                <IOSBadge label="Novinka" size="sm" bgColor="bg-green-100/90" borderColor="border-green-300/80" textColor="text-green-900/90" className="px-3 py-0.5 min-h-0 text-xs" />
                                             </span>
                                         )}
                                     </div>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
+import { IOSLabel } from './label';
 
 interface IOSSelectProps {
     value: string;
@@ -11,6 +12,7 @@ interface IOSSelectProps {
     className?: string;
     required?: boolean;
     name?: string;
+    label?: string;
 }
 
 export const IOSSelect = ({
@@ -20,10 +22,12 @@ export const IOSSelect = ({
     placeholder = "Select an option",
     className,
     required,
-    name
+    name,
+    label
 }: IOSSelectProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedLabel, setSelectedLabel] = useState('');
+    const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
     const triggerRef = useRef<HTMLButtonElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
 
@@ -44,72 +48,99 @@ export const IOSSelect = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    return (
-        <div className="relative">
-            <button
-                ref={triggerRef}
-                type="button"
-                name={name}
-                onClick={() => setIsOpen(!isOpen)}
-                className={cn(
-                    "w-full h-12 px-4 rounded-xl",
-                    "bg-white/50 backdrop-blur-sm",
-                    "border-0 shadow-sm",
-                    "focus:ring-2 focus:ring-offset-2 focus:ring-offset-white/50",
-                    "transition-all duration-200",
-                    "flex items-center justify-between",
-                    "text-left",
-                    className
-                )}
-            >
-                <span className={value ? "text-gray-900" : "text-gray-500"}>
-                    {selectedLabel || placeholder}
-                </span>
-                <ChevronDown 
-                    className={cn(
-                        "w-4 h-4 transition-transform duration-200",
-                        isOpen && "transform rotate-180"
-                    )} 
-                />
-            </button>
+    const handleToggle = () => {
+        if (!isOpen) {
+            // Calculate position before opening
+            if (triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const spaceBelow = viewportHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                const dropdownHeight = Math.min(options.length * 40 + 16, 300); // Approximate dropdown height
+                
+                setDropdownPosition(spaceBelow < dropdownHeight && spaceAbove > spaceBelow ? 'top' : 'bottom');
+            }
+        }
+        setIsOpen(!isOpen);
+    };
 
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        ref={contentRef}
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+    return (
+        <div className="w-full mb-4">
+            {label && (
+                <IOSLabel required={required}>
+                    {label}
+                </IOSLabel>
+            )}
+            <div className="relative">
+                <button
+                    ref={triggerRef}
+                    type="button"
+                    name={name}
+                    onClick={handleToggle}
+                    className={cn(
+                        "w-full h-12 px-4 rounded-xl",
+                        "bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-sm",
+                        "focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50",
+                        "transition-all duration-200",
+                        "flex items-center justify-between",
+                        "text-left",
+                        className
+                    )}
+                >
+                    <span className={value ? "text-gray-900" : "text-gray-400"}>
+                        {selectedLabel || placeholder}
+                    </span>
+                    <ChevronDown 
                         className={cn(
-                            "absolute z-[1000000000001] w-full mt-2",
-                            "bg-white/95 backdrop-blur-xl",
-                            "rounded-xl border shadow-lg",
-                            "max-h-[300px] overflow-y-auto",
-                            "py-2"
-                        )}
-                    >
-                        {options.map((option) => (
-                            <button
-                                key={option.value}
-                                type="button"
-                                onClick={() => {
-                                    onChange(option.value);
-                                    setIsOpen(false);
-                                }}
-                                className={cn(
-                                    "w-full px-4 py-2 text-left",
-                                    "hover:bg-gray-100/50",
-                                    "transition-colors duration-200",
-                                    value === option.value && "bg-gray-100/50"
-                                )}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                            "w-4 h-4 transition-transform duration-200",
+                            isOpen && "transform rotate-180"
+                        )} 
+                    />
+                </button>
+
+                <AnimatePresence>
+                    {isOpen && (
+                        <motion.div
+                            ref={contentRef}
+                            initial={{ opacity: 0, y: dropdownPosition === 'bottom' ? -10 : 10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: dropdownPosition === 'bottom' ? -10 : 10, scale: 0.98 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className={cn(
+                                "absolute z-[99999] w-full",
+                                dropdownPosition === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2',
+                                "bg-white/95 backdrop-blur-xl",
+                                "rounded-xl border shadow-lg",
+                                "max-h-[300px] overflow-y-auto",
+                                "py-2"
+                            )}
+                            style={{
+                                backdropFilter: 'blur(20px)',
+                                WebkitBackdropFilter: 'blur(20px)'
+                            }}
+                        >
+                            {options.map((option) => (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(option.value);
+                                        setIsOpen(false);
+                                    }}
+                                    className={cn(
+                                        "w-full px-4 py-2 text-left",
+                                        "hover:bg-gray-100/50",
+                                        "transition-colors duration-200",
+                                        value === option.value && "bg-gray-100/50"
+                                    )}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 }; 

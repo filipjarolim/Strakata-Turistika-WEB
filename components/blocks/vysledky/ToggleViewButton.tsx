@@ -1,38 +1,30 @@
+'use client';
+
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { IOSButton } from '@/components/ui/ios/button';
 import { ListFilter, LayoutList } from 'lucide-react';
 
-export interface ToggleViewButtonProps {
+interface ToggleViewButtonProps {
     isAggregatedView: boolean;
     onToggleView: () => void;
     aggregatedViewLabel?: string;
     detailedViewLabel?: string;
 }
 
-export const ToggleViewButton: React.FC<ToggleViewButtonProps> = ({
+export const ToggleViewButton = ({
     isAggregatedView,
     onToggleView,
     aggregatedViewLabel = "Přehled",
     detailedViewLabel = "Detaily",
-}) => {
+}: ToggleViewButtonProps) => {
     return (
-        <Button
+        <IOSButton
             variant="outline"
             size="sm"
             onClick={onToggleView}
-            className="flex items-center gap-2"
+            icon={isAggregatedView ? <LayoutList className="h-4 w-4" /> : <ListFilter className="h-4 w-4" />}
         >
-            {isAggregatedView ? (
-                <>
-                    <LayoutList className="h-4 w-4" />
-                    {detailedViewLabel}
-                </>
-            ) : (
-                <>
-                    <ListFilter className="h-4 w-4" />
-                    {aggregatedViewLabel}
-                </>
-            )}
-        </Button>
+            {isAggregatedView ? detailedViewLabel : aggregatedViewLabel}
+        </IOSButton>
     );
 };

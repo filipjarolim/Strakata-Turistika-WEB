@@ -113,14 +113,14 @@ model Season {
 model VisitData {
   id            String    @id @default(cuid()) @map("_id")
   visitDate     DateTime?
-  routeTitle    String
+  routeTitle    String?
   routeDescription String?
   dogName       String?
   points        Int
   visitedPlaces String
   dogNotAllowed String?
   routeLink     String?
-  route         Json      // This will store the full GPS points array
+  route         Json?     // Making route nullable
   year          Int       @map("seasonYear") // This remains for simplified queries
   extraPoints   Json
   state         VisitState @default(DRAFT)
@@ -134,7 +134,7 @@ model VisitData {
   
   // Relation to User
   userId   String?
-  user     User?   @relation("UserVisitData", fields: [userId], references: [id], onDelete: SetNull)
+  user     User?   @relation("UserVisitData", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Rules {

@@ -14,3 +14,12 @@ declare module "next-auth" {
         user: ExtendedUser;
     }
 }
+
+declare module "next-auth/jwt" {
+    interface JWT {
+        role: UserRole;
+        isTwoFactorEnabled: boolean;
+        isOAuth: boolean;
+        dogName?: string;
+    }
+}

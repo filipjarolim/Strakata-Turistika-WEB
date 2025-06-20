@@ -45,7 +45,7 @@ export function AdminRestrictedContent({
             return (
                 <IOSBadge
                     label={badgeText}
-                    size={20}
+                    size="md"
                     bgColor="bg-blue-50"
                     borderColor="border-blue-200"
                     textColor="text-blue-500"
@@ -69,7 +69,7 @@ export function AdminRestrictedContent({
             return (
                 <IOSBadge
                     label={badgeText}
-                    size={20}
+                    size="md"
                     bgColor="bg-blue-50"
                     borderColor="border-blue-200"
                     textColor="text-blue-500"

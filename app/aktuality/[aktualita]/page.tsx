@@ -145,7 +145,7 @@ export default function NewsDetail() {
                     />
                     {isNew(newsItem.createdAt) && (
                         <span className="absolute top-4 right-4 z-20">
-                            <IOSBadge label="Novinka" size={18} bgColor="bg-green-100/90" borderColor="border-green-300/80" textColor="text-green-900/90" className="px-3 py-0.5 min-h-0 text-xs" />
+                            <IOSBadge label="Novinka" size="sm" bgColor="bg-green-100/90" borderColor="border-green-300/80" textColor="text-green-900/90" className="px-3 py-0.5 min-h-0 text-xs" />
                         </span>
                     )}
                     <AdminRestrictedContent

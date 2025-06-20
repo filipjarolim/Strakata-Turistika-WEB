@@ -29,7 +29,7 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 py-8 px-4 md:px-8 relative">
                         {/* Brand/Info */}
                         <div className="flex flex-col space-y-4 items-start relative">
-                            <IOSBadge label={basicInfo.name} size={40} className="mb-2" />
+                            <IOSBadge label={basicInfo.name} size="lg" className="mb-2" />
                             <span className="text-sm text-blue-900/70 font-medium">{basicInfo.description}</span>
                             <span className="text-xs text-blue-900/50 mt-2">Průvodce pro milovníky strakatých psů a turistiky po České republice.</span>
                         </div>

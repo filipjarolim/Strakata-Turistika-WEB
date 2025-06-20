@@ -1,80 +1,76 @@
-import React, { ReactNode } from 'react';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { ChevronDown, ColumnsIcon } from 'lucide-react';
-import { Column, Table } from '@tanstack/react-table';
+'use client';
 
-export interface ColumnVisibilityMenuProps<TData> {
+import React, { useState, type ReactNode } from 'react';
+import { type Column, type Table } from '@tanstack/react-table';
+import { IOSButton } from '@/components/ui/ios/button';
+import { IOSSlidePanel } from '@/components/ui/ios/slide-panel';
+import { IOSSwitch } from '@/components/ui/ios/switch';
+import { cn } from '@/lib/utils';
+
+interface ColumnVisibilityMenuProps<TData> {
     table: Table<TData>;
     isAggregatedView?: boolean;
+    className?: string;
 }
 
-export function ColumnVisibilityMenu<TData>({ 
+export const ColumnVisibilityMenu = <TData,>({
     table,
-    isAggregatedView = false
-}: ColumnVisibilityMenuProps<TData>) {
+    isAggregatedView = false,
+    className
+}: ColumnVisibilityMenuProps<TData>) => {
+    const [isOpen, setIsOpen] = useState(false);
+
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
+        <>
+            <IOSButton
                     variant="outline"
                     size="sm"
-                    className="ml-auto flex items-center gap-2"
-                >
-                    <ColumnsIcon className="h-4 w-4" />
-                    <span>Sloupce</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Zobrazení sloupců</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {table
-                    .getAllColumns()
-                    .filter(
-                        (column) => 
-                            typeof column.accessorFn !== 'undefined' && 
-                            column.getCanHide()
-                    )
-                    .map((column) => {
+                onClick={() => setIsOpen(true)}
+                className={className}
+            >
+                Sloupce
+            </IOSButton>
+
+            <IOSSlidePanel
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+                side="right"
+                className="bg-white/80 backdrop-blur-lg border-l"
+            >
+                <div className="p-4 border-b bg-white/50">
+                    <h2 className="text-lg font-semibold text-gray-900">Viditelnost sloupců</h2>
+                    <p className="text-sm text-gray-500">Vyberte sloupce, které chcete zobrazit v tabulce</p>
+                </div>
+
+                <div className="p-4 space-y-4">
+                    {table.getAllColumns()
+                        .filter(column => column.getCanHide())
+                        .map(column => {
+                            const columnLabel = column.columnDef.header?.toString() || column.id;
                         return (
-                            <DropdownMenuCheckboxItem
-                                key={column.id}
-                                className="capitalize"
+                                <div key={column.id} className="flex items-center justify-between py-2">
+                                    <IOSSwitch
+                                        label={columnLabel}
                                 checked={column.getIsVisible()}
-                                onCheckedChange={(value) =>
-                                    column.toggleVisibility(!!value)
-                                }
-                            >
-                                {column.id === 'fullName' 
-                                    ? 'Jméno' 
-                                    : column.id === 'visitDate'
-                                    ? 'Datum návštěvy'
-                                    : column.id === 'dogName'
-                                    ? 'Jméno psa'
-                                    : column.id === 'points'
-                                    ? 'Body'
-                                    : column.id === 'visitedPlaces'
-                                    ? 'Navštívená místa'
-                                    : column.id === 'dogNotAllowed'
-                                    ? 'Psi povoleni'
-                                    : column.id === 'routeLink'
-                                    ? 'Odkaz na trasu'
-                                    : column.id}
-                            </DropdownMenuCheckboxItem>
+                                        onCheckedChange={value => column.toggleVisibility(!!value)}
+                                    />
+                                </div>
                         );
                     })}
-            </DropdownMenuContent>
-        </DropdownMenu>
+                </div>
+
+                <div className="p-4 border-t">
+                    <IOSButton
+                        onClick={() => setIsOpen(false)}
+                        className="w-full"
+                    >
+                        Hotovo
+                    </IOSButton>
+                </div>
+            </IOSSlidePanel>
+        </>
     );
-}
+};
 
 /**
  * Utility function:

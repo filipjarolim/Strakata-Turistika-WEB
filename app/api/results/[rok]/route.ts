@@ -11,10 +11,9 @@ export async function GET(request: Request, { params }: { params: tParams }) {
     const { rok } = await params;
     const url = new URL(request.url);
     
-    // Parse pagination parameters
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const pageSize = parseInt(url.searchParams.get('pageSize') || '100');
-    const skipCount = (page - 1) * pageSize;
+    // Parse sorting parameters
+    const sortField = url.searchParams.get('sortField') || 'visitDate';
+    const sortOrder = url.searchParams.get('sortOrder') || 'desc';
 
     try {
         const year = parseInt(rok);
@@ -25,20 +24,8 @@ export async function GET(request: Request, { params }: { params: tParams }) {
                 { status: 400 }
             );
         }
-        
-        // Generate cache key based on year and pagination
-        const cacheKey = `results_${year}_page${page}_size${pageSize}`;
-        const cachedData = resultsCache.get(cacheKey);
-        
-        // Return cached data if it exists and is not expired
-        if (cachedData && (Date.now() - cachedData.timestamp < CACHE_TTL)) {
-            return NextResponse.json({
-                data: cachedData.data,
-                pagination: cachedData.pagination
-            });
-        }
 
-        // First check if season exists to avoid unnecessary joins
+        // First check if season exists
         const seasonExists = await db.season.findUnique({
             where: { year },
             select: { id: true }
@@ -51,47 +38,48 @@ export async function GET(request: Request, { params }: { params: tParams }) {
             );
         }
         
-        // Get total count for pagination
-        const totalCount = await db.visitData.count({
-            where: { year }
-        });
-        
-        // Get data with pagination and select only needed fields
+        // Get all data for the year
         const visitData = await db.visitData.findMany({
             where: { year },
-            orderBy: { visitDate: 'asc' },
-            skip: skipCount,
-            take: pageSize,
+            orderBy: {
+                [sortField]: sortOrder
+            },
             select: {
                 id: true,
                 visitDate: true,
+                routeTitle: true,
+                routeDescription: true,
+                dogName: true,
                 points: true,
                 visitedPlaces: true,
                 dogNotAllowed: true,
                 routeLink: true,
-                year: true
-                // Note: we don't select extraPoints unless needed
+                route: true,
+                year: true,
+                extraPoints: true,
+                state: true,
+                rejectionReason: true,
+                createdAt: true,
+                photos: true,
+                user: {
+                    select: {
+                        name: true,
+                        dogName: true
+                    }
+                }
             }
-        });
-        
-        // Create pagination object
-        const pagination = {
-            totalItems: totalCount,
-            totalPages: Math.ceil(totalCount / pageSize),
-            currentPage: page,
-            pageSize: pageSize
-        };
-        
-        // Cache the result
-        resultsCache.set(cacheKey, {
-            data: visitData,
-            pagination: pagination,
-            timestamp: Date.now()
         });
 
         return NextResponse.json({
             data: visitData,
-            pagination: pagination
+            pagination: {
+                totalItems: visitData.length,
+                totalPages: 1,
+                currentPage: 1,
+                pageSize: visitData.length,
+                hasNextPage: false,
+                hasPreviousPage: false
+            }
         });
     } catch (error) {
         console.error("[GET_VISIT_DATA_ERROR]", error);

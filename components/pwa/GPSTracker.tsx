@@ -36,6 +36,7 @@ import {
   releaseWakeLock,
   BACKGROUND_TRACKING_INTERVAL
 } from './gps-tracker/backgroundTracking';
+import { GPSPosition } from './gps-tracker/backgroundTracking';
 
 // Define the extended interfaces for Background Sync
 interface SyncManager {
@@ -103,7 +104,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   // Tracking states
   const [tracking, setTracking] = useState<boolean>(false);
   const [paused, setPaused] = useState<boolean>(false);
-  const [positions, setPositions] = useState<[number, number][]>([]);
+  const [positions, setPositions] = useState<GPSPosition[]>([]);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -148,7 +149,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
   const [backgroundMode, setBackgroundMode] = useState<boolean>(false);
   const backgroundTimerRef = useRef<number | null>(null);
-  const positionsRef = useRef<[number, number][]>([]);
+  const positionsRef = useRef<GPSPosition[]>([]);
   const lastPositionRef = useRef<[number, number] | null>(null);
 
   const captureMapImage = useCallback(async () => {
@@ -223,10 +224,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       let total = 0;
       for (let i = 1; i < positions.length; i++) {
         total += haversineDistance(
-          positions[i - 1][0],
-          positions[i - 1][1],
-          positions[i][0],
-          positions[i][1]
+          positions[i - 1].latitude,
+          positions[i - 1].longitude,
+          positions[i].latitude,
+          positions[i].longitude
         );
       }
       return total.toFixed(2);
@@ -390,7 +391,15 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       toast.warning(`Low GPS accuracy: ${position.coords.accuracy.toFixed(1)}m. Try moving to a more open area.`);
       return;
     }
-    const newPos: [number, number] = [position.coords.latitude, position.coords.longitude];
+    const newPos: GPSPosition = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      timestamp: position.timestamp,
+      accuracy: position.coords.accuracy,
+      altitude: position.coords.altitude ?? undefined,
+      speed: position.coords.speed ?? undefined,
+      heading: position.coords.heading ?? undefined
+    };
     const currentTime = Date.now();
     
     // Handle elevation data
@@ -415,10 +424,10 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     // Calculate speed
     let computedSpeed = position.coords.speed;
     if (computedSpeed === null && positions.length > 0 && lastUpdateTime) {
-      const [lastLat, lastLon] = positions[positions.length - 1];
+      const { latitude: lastLat, longitude: lastLon } = positions[positions.length - 1];
       const timeDiff = (currentTime - lastUpdateTime) / 1000;
       if (timeDiff > 0) {
-        computedSpeed = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]) / timeDiff * 3600;
+        computedSpeed = haversineDistance(lastLat, lastLon, newPos.latitude, newPos.longitude) / timeDiff * 3600;
       }
     } else if (computedSpeed !== null) {
       computedSpeed *= 3.6;
@@ -434,15 +443,15 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     // Update positions array
     setPositions((prev) => {
       if (prev.length > 0) {
-        const [lastLat, lastLon] = prev[prev.length - 1];
-        const dist = haversineDistance(lastLat, lastLon, newPos[0], newPos[1]);
+        const { latitude: lastLat, longitude: lastLon } = prev[prev.length - 1];
+        const dist = haversineDistance(lastLat, lastLon, newPos.latitude, newPos.longitude);
         if (dist < MIN_DISTANCE_KM && lastUpdateTime && currentTime - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           return prev;
         }
       }
   
       setLastUpdateTime(currentTime);
-      setMapCenter(newPos);
+      setMapCenter([newPos.latitude, newPos.longitude]);
   
       const updatedPositions = [...prev, newPos];
       return updatedPositions;
@@ -479,12 +488,13 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       // and there might be new positions collected in the background
       if (session.positions.length > positions.length) {
         setPositions(session.positions);
-        setElapsedTime(session.elapsedTime);
-        setPauseDuration(session.pauseDuration);
+        setElapsedTime(session.elapsedTime ?? 0);
+        setPauseDuration(session.pauseDuration ?? 0);
         
         // Recenter map to the latest position
         if (session.positions.length > 0) {
-          setMapCenter(session.positions[session.positions.length - 1]);
+          const lastPos = session.positions[session.positions.length - 1];
+          setMapCenter([lastPos.latitude, lastPos.longitude]);
           setRecenterTrigger(prev => prev + 1);
         }
         
@@ -545,7 +555,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
           // Store current tracking state
           storeTrackingSession({
             positions: positionsRef.current,
-            startTime,
+            startTime: startTime ?? undefined,
             elapsedTime,
             pauseDuration,
             isActive: true,
@@ -664,7 +674,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     // Store initial tracking state
     storeTrackingSession({
       positions: [],
-      startTime: startTimeValue,
+      startTime: startTimeValue ?? undefined,
       elapsedTime: 0,
       pauseDuration: 0,
       isActive: true,
@@ -702,7 +712,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
     // Update stored state
     storeTrackingSession({
       positions,
-      startTime,
+      startTime: startTime ?? undefined,
       elapsedTime,
       pauseDuration,
       isActive: true,
@@ -721,7 +731,7 @@ const GpsTracker: React.FC<GPSTrackerProps> = ({ username, className = '' }) => 
       // Update stored state
       storeTrackingSession({
         positions,
-        startTime,
+        startTime: startTime ?? undefined,
         elapsedTime,
         pauseDuration: updatedPauseDuration,
         isActive: true,

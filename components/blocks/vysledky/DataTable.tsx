@@ -28,32 +28,44 @@ import { PaginationControls } from './PaginationControls';
 import { DownloadDataButton } from './DownloadDataButton';
 import { ToggleViewButton } from './ToggleViewButton';
 import { FilterButton } from './FilterButton';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Filter, Download, Table as TableIcon, List } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
+import { motion, AnimatePresence } from "framer-motion";
+import { IOSCard } from '@/components/ui/ios/card';
+import { IOSButton } from '@/components/ui/ios/button';
+import { IOSBadge } from '@/components/ui/ios/badge';
+import { IOSTextInput } from '@/components/ui/ios/text-input';
+import { IOSSelect } from '@/components/ui/ios/select';
 
 export interface VisitData {
     id: string;
     visitDate: string | null;
     points: number;
     visitedPlaces: string;
-    dogNotAllowed: string;
+    dogNotAllowed: string | null;
     routeLink: string | null;
+    routeTitle: string | null;
+    routeDescription: string | null;
+    dogName: string | null;
     year: number;
     extraPoints: {
         description: string;
         distance: number;
-        totalAscent: number;
         elapsedTime: number;
         averageSpeed: number;
     };
     state: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
-    routeTitle: string;
-    routeDescription: string | null;
     rejectionReason?: string | null;
     createdAt?: string | null;
+    photos?: { url: string; public_id: string; title: string }[];
+    route: string; // JSON string from schema
+    user?: {
+        name: string | null;
+        dogName: string | null;
+    } | null;
 }
 
 export interface AggregatedVisitData {
@@ -556,9 +568,11 @@ export const DataTable = <TData extends { id: string }>({
 
     return (
         <div className="w-full space-y-6">
-            <div className="flex flex-col gap-4 p-4 bg-muted/5 rounded-lg border">
-                {/* Search and Filters row */}
+            <IOSCard variant="elevated" className="backdrop-blur-md">
+                {/* Controls Section */}
+                <div className="p-4 space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        {/* Search and Filters */}
                     <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                         {enableSearch && (
                             <div className="w-full sm:w-[300px]">
@@ -585,177 +599,210 @@ export const DataTable = <TData extends { id: string }>({
                                     showNumberFilter={filterConfig.numberField ? isColumnVisible(filterConfig.numberField as string) : false}
                                 />
                                 {activeFilterCount > 0 && (
-                                    <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">
-                                        {activeFilterCount}
-                                    </span>
+                                        <IOSBadge
+                                            label={`${activeFilterCount}`}
+                                            size="md"
+                                            className={cn(
+                                                "absolute -top-2 -right-2",
+                                                activeFilterCount > 0 ? "bg-primary" : "bg-gray-400"
+                                            )}
+                                        />
                                 )}
                             </div>
                         )}
                     </div>
 
-                    {/* View controls */}
+                        {/* View Controls */}
                     <div className="flex flex-wrap gap-3 w-full sm:w-auto justify-end">
                         {enableColumnVisibility && (
-                            <ColumnVisibilityMenu
-                                table={table}
-                                isAggregatedView={isAggregatedView}
-                            />
+                                <IOSButton
+                                    variant="outline"
+                                    size="sm"
+                                    icon={<TableIcon className="h-4 w-4" />}
+                                    onClick={() => {
+                                        // Open column visibility menu
+                                    }}
+                                >
+                                    Sloupce
+                                </IOSButton>
                         )}
                         
                         {enableAggregatedView && (
-                            <ToggleViewButton
-                                isAggregatedView={isAggregatedView}
-                                onToggleView={handleToggleView}
-                                aggregatedViewLabel={aggregatedViewLabel}
-                                detailedViewLabel={detailedViewLabel}
-                            />
+                                <IOSButton
+                                    variant="outline"
+                                    size="sm"
+                                    icon={isAggregatedView ? <TableIcon className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                                    onClick={handleToggleView}
+                                >
+                                    {isAggregatedView ? detailedViewLabel : aggregatedViewLabel}
+                                </IOSButton>
                         )}
                         
                         {enableDownload && (
-                            <DownloadDataButton 
-                                data={filteredData}
-                                columns={table.getAllColumns().filter(column => column.getIsVisible())}
-                                filename={filename}
-                                summarySheetName={summarySheetName}
-                                mainSheetName={mainSheetName}
-                                generateSummarySheet={generateSummarySheet}
-                            />
+                                <IOSButton
+                                    variant="outline"
+                                    size="sm"
+                                    icon={<Download className="h-4 w-4" />}
+                                    onClick={() => {
+                                        // Handle download
+                                    }}
+                                >
+                                    Stáhnout
+                                </IOSButton>
                         )}
                     </div>
                 </div>
 
-                {/* Active filters display */}
+                    {/* Active Filters */}
+                    <AnimatePresence>
                 {(activeFilters.dateFilter || activeFilters.numberFilter || activeFilters.customFilterParams?.categories?.length) && (
-                    <div className="flex flex-wrap gap-2 items-center pt-2 border-t">
-                        {(activeFilters.dateFilter || 
-                          activeFilters.numberFilter || 
-                          (activeFilters.customFilterParams?.categories && 
-                           activeFilters.customFilterParams.categories.length > 0)) && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="flex flex-wrap gap-2 items-center pt-2 border-t"
+                            >
                             <div className="mt-2 flex flex-wrap gap-2 items-center">
                                 <span className="text-sm font-medium text-muted-foreground">Aktivní filtry:</span>
                                 
                                 {activeFilters.dateFilter && (
-                                    <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
-                                        <span>Datum:</span>
-                                        {activeFilters.dateFilter.type === 'before' ? 'Před ' : 
+                                        <IOSBadge
+                                            label={`Datum: ${activeFilters.dateFilter.type === 'before' ? 'Před ' : 
                                          activeFilters.dateFilter.type === 'after' ? 'Po ' : 'Mezi '}
-                                        {activeFilters.dateFilter.startDate?.toLocaleDateString('cs-CZ')}
-                                        {activeFilters.dateFilter.type === 'between' && activeFilters.dateFilter.endDate && 
-                                         ` - ${activeFilters.dateFilter.endDate.toLocaleDateString('cs-CZ')}`}
-                                    </Badge>
+                                                   ${activeFilters.dateFilter.startDate?.toLocaleDateString('cs-CZ')}
+                                                   ${activeFilters.dateFilter.type === 'between' && activeFilters.dateFilter.endDate ? 
+                                                   ` - ${activeFilters.dateFilter.endDate.toLocaleDateString('cs-CZ')}` : ''}`}
+                                            bgColor="bg-blue-100"
+                                            textColor="text-blue-900"
+                                            borderColor="border-blue-200"
+                                        />
                                 )}
                                 
                                 {activeFilters.numberFilter && (
-                                    <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
-                                        <span>Body:</span>
-                                        {activeFilters.numberFilter.min !== undefined && 
-                                         `min ${activeFilters.numberFilter.min}`}
-                                        {activeFilters.numberFilter.min !== undefined && 
-                                         activeFilters.numberFilter.max !== undefined && ' - '}
-                                        {activeFilters.numberFilter.max !== undefined && 
-                                         `max ${activeFilters.numberFilter.max}`}
-                                    </Badge>
+                                        <IOSBadge
+                                            label={`Body: ${activeFilters.numberFilter.min !== undefined ? 
+                                                   `min ${activeFilters.numberFilter.min}` : ''}
+                                                   ${activeFilters.numberFilter.min !== undefined && 
+                                                   activeFilters.numberFilter.max !== undefined ? ' - ' : ''}
+                                                   ${activeFilters.numberFilter.max !== undefined ? 
+                                                   `max ${activeFilters.numberFilter.max}` : ''}`}
+                                            bgColor="bg-blue-100"
+                                            textColor="text-blue-900"
+                                            borderColor="border-blue-200"
+                                        />
                                 )}
                                 
                                 {activeFilters.customFilterParams?.categories && 
                                  activeFilters.customFilterParams.categories.length > 0 && (
-                                    <Badge variant="outline" className="flex gap-1 items-center px-3 py-1">
-                                        <span>Kategorie:</span>
-                                        {activeFilters.customFilterParams.categories.join(', ')}
-                                    </Badge>
-                                )}
-                                
-                                <button
+                                        <IOSBadge
+                                            label={`Kategorie: ${activeFilters.customFilterParams.categories.join(', ')}`}
+                                            bgColor="bg-blue-100"
+                                            textColor="text-blue-900"
+                                            borderColor="border-blue-200"
+                                        />
+                                    )}
+                                    
+                                    <IOSButton
+                                        variant="outline"
+                                        size="sm"
                                     onClick={handleClearFilters}
-                                    className="text-xs px-2 py-1 rounded-full bg-muted hover:bg-muted/80 text-muted-foreground"
                                 >
                                     Vymazat filtry
-                                </button>
+                                    </IOSButton>
                             </div>
+                            </motion.div>
                         )}
-                    </div>
-                )}
+                    </AnimatePresence>
             </div>
 
-            {/* Table Container */}
-            {!loading && (
-                <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+                {/* Table Content */}
+                {!loading ? (
                     <div className="overflow-x-auto">
-                        <Table className="w-full">
-                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                                {table.getHeaderGroups().map((headerGroup) => (
-                                    <TableRow key={headerGroup.id} className="hover:bg-muted/50">
-                                        {headerGroup.headers.map((header) => (
-                                            <TableHead 
+                        <div className="min-w-full divide-y divide-gray-200">
+                            {/* Header */}
+                            <div className="bg-gray-50/50 sticky top-0 z-10">
+                                {table.getHeaderGroups().map(headerGroup => (
+                                    <div key={headerGroup.id} className="flex">
+                                        {headerGroup.headers.map(header => {
+                                            const isSortable = header.column.getCanSort();
+                                            return (
+                                                <div
                                                 key={header.id}
-                                                className="whitespace-nowrap font-medium text-muted-foreground py-3"
-                                                style={{
-                                                    width: header.column.columnDef.size ? `${header.column.columnDef.size}px` : 'auto',
-                                                    maxWidth: header.column.columnDef.maxSize ? `${header.column.columnDef.maxSize}px` : undefined
-                                                }}
-                                            >
-                                                {header.isPlaceholder
-                                                    ? null
-                                                    : flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
+                                                    className={cn(
+                                                        "flex-1 min-w-[150px] p-3 text-left text-sm font-medium text-gray-900",
+                                                        isSortable && "cursor-pointer select-none",
+                                                        header.column.getIsResizing() && "select-none"
                                                     )}
-                                            </TableHead>
-                                        ))}
-                                    </TableRow>
+                                                    onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {flexRender(header.column.columnDef.header, header.getContext())}
+                                                        {isSortable && (
+                                                            <div className="flex flex-col">
+                                                                <ChevronUp className={cn(
+                                                                    "h-3 w-3 -mb-1",
+                                                                    header.column.getIsSorted() === "asc" ? "text-blue-600" : "text-gray-400"
+                                                                )} />
+                                                                <ChevronDown className={cn(
+                                                                    "h-3 w-3",
+                                                                    header.column.getIsSorted() === "desc" ? "text-blue-600" : "text-gray-400"
+                                                                )} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 ))}
-                            </TableHeader>
-                            <TableBody className="relative">
-                                {table.getRowModel().rows?.length ? (
-                                    table.getRowModel().rows.map((row, index) => (
-                                        <TableRow 
+                            </div>
+
+                            {/* Body */}
+                            <div className="bg-white divide-y divide-gray-100">
+                                {table.getRowModel().rows.length > 0 ? (
+                                    table.getRowModel().rows.map(row => (
+                                        <div
                                             key={row.id}
                                             className={cn(
-                                                "transition-colors hover:bg-muted/30",
-                                                index % 2 === 0 ? "bg-background" : "bg-muted/5"
+                                                "flex hover:bg-gray-50/50 transition-colors",
+                                                row.getIsSelected() && "bg-blue-50/50"
                                             )}
                                         >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell 
+                                            {row.getVisibleCells().map(cell => (
+                                                <div
                                                     key={cell.id} 
-                                                    className="py-2.5"
-                                                    style={{
-                                                        width: cell.column.columnDef.size ? `${cell.column.columnDef.size}px` : 'auto',
-                                                        maxWidth: cell.column.columnDef.maxSize ? `${cell.column.columnDef.maxSize}px` : undefined
-                                                    }}
+                                                    className="flex-1 min-w-[150px] p-3 text-sm text-gray-900"
                                                 >
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
-                                                </TableCell>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </div>
                                             ))}
-                                        </TableRow>
+                                        </div>
                                     ))
                                 ) : (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={table.getAllColumns().length}
-                                            className="h-[400px] text-center"
-                                        >
-                                            <div className="flex flex-col items-center justify-center space-y-3">
-                                                <AlertCircle className="h-10 w-10 text-muted-foreground/60" />
-                                                <p className="text-lg text-muted-foreground">
+                                    <div className="h-[400px] flex items-center justify-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <AlertCircle className="h-10 w-10 text-gray-400" />
+                                            <p className="text-lg text-gray-500">
                                                     {emptyStateMessage}
                                                 </p>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
+                                    </div>
                                 )}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center h-[400px]">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                            <p className="text-sm text-gray-500">Načítání dat...</p>
                     </div>
                 </div>
             )}
 
             {/* Pagination */}
             {table.getRowModel().rows?.length > 0 && (
-                <div className="mt-4">
+                    <div className="p-4 border-t border-gray-100">
                     <PaginationControls
                         totalRows={table.getFilteredRowModel().rows.length}
                         pageIndex={table.getState().pagination.pageIndex}
@@ -766,6 +813,7 @@ export const DataTable = <TData extends { id: string }>({
                     />
                 </div>
             )}
+            </IOSCard>
         </div>
     );
 }

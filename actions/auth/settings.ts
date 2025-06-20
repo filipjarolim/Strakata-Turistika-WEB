@@ -3,7 +3,6 @@
 import * as z from "zod";
 import bcrypt from "bcryptjs";
 
-
 import { db } from "@/lib/db";
 import { SettingsSchema } from "@/schemas";
 import { getUserByEmail, getUserById } from "@/data/user";
@@ -69,11 +68,18 @@ export const settings = async (
         values.newPassword = undefined;
     }
 
+    // Prepare update data, excluding undefined values
+    const updateData: any = {};
+    if (values.name !== undefined) updateData.name = values.name;
+    if (values.dogName !== undefined) updateData.dogName = values.dogName;
+    if (values.email !== undefined) updateData.email = values.email;
+    if (values.role !== undefined) updateData.role = values.role;
+    if (values.isTwoFactorEnabled !== undefined) updateData.isTwoFactorEnabled = values.isTwoFactorEnabled;
+    if (values.password !== undefined) updateData.password = values.password;
+
     const updatedUser = await db.user.update({
         where: { id: dbUser.id },
-        data: {
-            ...values,
-        }
+        data: updateData
     });
     
     return { success: "Nastavení upraveno!" }

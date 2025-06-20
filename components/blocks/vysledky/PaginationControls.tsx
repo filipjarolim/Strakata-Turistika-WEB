@@ -1,106 +1,100 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+'use client';
 
-type Props = {
+import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IOSButton } from '@/components/ui/ios/button';
+import { IOSSelect } from '@/components/ui/ios/select';
+import { cn } from '@/lib/utils';
+
+interface PaginationControlsProps {
     totalRows: number;
     pageIndex: number;
     pageSize: number;
-    pageSizeOptions: number[];
+    pageSizeOptions?: number[];
     onPageChange: (page: number) => void;
     onPageSizeChange: (size: number) => void;
-};
+    className?: string;
+}
 
-export const PaginationControls: React.FC<Props> = ({
+export const PaginationControls = ({
     totalRows,
     pageIndex,
     pageSize,
-    pageSizeOptions,
+    pageSizeOptions = [10, 20, 50, 100],
     onPageChange,
     onPageSizeChange,
-}) => {
+    className
+}: PaginationControlsProps) => {
     const totalPages = Math.ceil(totalRows / pageSize);
-    const isFirstPage = pageIndex === 0;
-    const isLastPage = pageIndex === totalPages - 1 || totalPages === 0;
-    
-    const from = pageIndex * pageSize + 1;
-    const to = Math.min((pageIndex + 1) * pageSize, totalRows);
+    const canPreviousPage = pageIndex > 0;
+    const canNextPage = pageIndex < totalPages - 1;
+
+    const startRow = pageIndex * pageSize + 1;
+    const endRow = Math.min((pageIndex + 1) * pageSize, totalRows);
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-            <div className="text-sm text-muted-foreground">
-                {totalRows > 0 ? (
-                    <>
-                        Zobrazeno <span className="font-medium">{from}</span> až{' '}
-                        <span className="font-medium">{to}</span> z{' '}
-                        <span className="font-medium">{totalRows}</span> záznamů
-                    </>
-                ) : (
-                    'Žádné záznamy'
-                )}
-            </div>
-            
-            <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-1">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onPageChange(0)}
-                        disabled={isFirstPage}
-                    >
-                        <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onPageChange(pageIndex - 1)}
-                        disabled={isFirstPage}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    
-                    <span className="text-sm font-medium mx-2">
-                        Strana {pageIndex + 1} z {totalPages || 1}
-                    </span>
-                    
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onPageChange(pageIndex + 1)}
-                        disabled={isLastPage}
-                    >
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onPageChange(totalPages - 1)}
-                        disabled={isLastPage}
-                    >
-                        <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                </div>
-                
-                <Select
+        <div className={cn("flex flex-col sm:flex-row justify-between items-center gap-4", className)}>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>
+                    Zobrazeno {startRow} až {endRow} z {totalRows} záznamů
+                </span>
+                <IOSSelect
                     value={pageSize.toString()}
-                    onValueChange={(value) => onPageSizeChange(Number(value))}
+                    onChange={(value) => onPageSizeChange(Number(value))}
+                    options={pageSizeOptions.map(size => ({
+                        value: size.toString(),
+                        label: `${size} na stránku`
+                    }))}
+                    className="w-[140px]"
+                />
+            </div>
+
+            <div className="flex items-center gap-2">
+                <IOSButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(0)}
+                    disabled={!canPreviousPage}
+                    className="hidden sm:flex"
                 >
-                    <SelectTrigger className="h-8 w-[100px]">
-                        <SelectValue placeholder={pageSize.toString()} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {pageSizeOptions.map((size) => (
-                            <SelectItem key={size} value={size.toString()}>
-                                {size} na stránku
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    První
+                </IOSButton>
+
+                <IOSButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(pageIndex - 1)}
+                    disabled={!canPreviousPage}
+                    icon={<ChevronLeft className="h-4 w-4" />}
+                >
+                    Předchozí
+                </IOSButton>
+
+                <div className="flex items-center gap-1 px-2">
+                    <span className="text-sm font-medium">
+                        Stránka {pageIndex + 1} z {totalPages}
+                    </span>
+                </div>
+
+                <IOSButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(pageIndex + 1)}
+                    disabled={!canNextPage}
+                    icon={<ChevronRight className="h-4 w-4" />}
+                >
+                    Další
+                </IOSButton>
+
+                <IOSButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPageChange(totalPages - 1)}
+                    disabled={!canNextPage}
+                    className="hidden sm:flex"
+                >
+                    Poslední
+                </IOSButton>
             </div>
         </div>
     );

@@ -34,18 +34,18 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
     const cardRef = useRef<HTMLDivElement>(null);
 
     const baseStyles = {
-      default: "bg-white/80 backdrop-blur-sm border border-gray-200/50",
-      elevated: "bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200/50",
-      outlined: "border-2 border-gray-200/50 bg-transparent"
+      default: "bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-lg",
+      elevated: "bg-white/95 backdrop-blur-xl shadow-xl border border-gray-200/50",
+      outlined: "border-2 border-gray-200/50 bg-transparent backdrop-blur-sm"
     };
 
     const iconContainerStyles = cn(
-      "flex items-center justify-center rounded-xl w-10 h-10 shrink-0",
+      "flex items-center justify-center rounded-2xl w-12 h-12 shrink-0",
       iconBackground
     );
 
     const iconStyles = cn(
-      "w-5 h-5",
+      "w-6 h-6",
       iconColor
     );
 
@@ -53,7 +53,8 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-2xl overflow-hidden transition-all duration-200",
+          "rounded-3xl overflow-visible transition-all duration-300",
+          "hover:shadow-lg hover:scale-[1.002] transform",
           baseStyles[variant],
           className
         )}
@@ -73,7 +74,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
             )}
             <div className="flex-1 min-w-0">
               {title && (
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">
                   {title}
                 </h3>
               )}
@@ -94,7 +95,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
         </div>
         {footer && (
           <div className={cn(
-            "px-6 py-4 bg-gray-50/50 border-t border-gray-100/50",
+            "px-6 py-4 bg-gray-50/50 border-t border-gray-100/50 backdrop-blur-sm",
             footerClassName
           )}>
             {footer}

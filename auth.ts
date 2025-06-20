@@ -99,6 +99,7 @@ export const {
                 session.user.name = token.name;
                 session.user.email = token.email as string;
                 session.user.isOAuth = token.isOAuth as boolean;
+                session.user.dogName = token.dogName as string;
             }
 
             return session;
@@ -118,6 +119,7 @@ export const {
             token.email = existingUser.email;
             token.role = existingUser.role;
             token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
+            token.dogName = existingUser.dogName;
 
             return token;
         }

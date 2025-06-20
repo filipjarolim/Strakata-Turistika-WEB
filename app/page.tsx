@@ -64,7 +64,7 @@ const Home = async () => {
                             <IOSBadge
                                 label="Česko"
                                 icon={PinEmoji}
-                                size={100}
+                                specialStyle={{ iconSize: 32 }}
                                 bgColor="bg-red-200/80"
                                 borderColor="border-red-400/70"
                                 textColor="text-red-900/80"
@@ -75,7 +75,7 @@ const Home = async () => {
                             <IOSBadge
                                 label="psem"
                                 icon={DogEmoji}
-                                size={156}
+                                specialStyle={{ iconSize: 32 }}
                                 bgColor="bg-amber-200/80"
                                 borderColor="border-amber-400/70"
                                 textColor="text-amber-900/80"
@@ -109,7 +109,7 @@ const Home = async () => {
                         <IOSBadge
                                 label="Česko"
                                 icon={PinEmoji}
-                                size={32}
+                                specialStyle={{ iconSize: 24 }}
                                 bgColor="bg-red-200/80"
                                 borderColor="border-red-400/70"
                                 textColor="text-red-900/80"
@@ -120,7 +120,7 @@ const Home = async () => {
                             <IOSBadge
                                 label="psem"
                                 icon={DogEmoji}
-                                size={96}
+                                specialStyle={{ iconSize: 24 }}
                                 bgColor="bg-amber-200/80"
                                 borderColor="border-amber-400/70"
                                 textColor="text-amber-900/80"
@@ -136,7 +136,7 @@ const Home = async () => {
                 </div>
             </div>
             
-            # here add the content
+            {/* here add the content */}
             
             <Separator className="my-8" />
             
