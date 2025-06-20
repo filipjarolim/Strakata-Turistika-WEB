@@ -56,9 +56,9 @@ const GPX_EDITOR_MAP_STYLE = {
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
-  iconUrl: '/images/marker-icon.png',
-  iconRetinaUrl: '/images/marker-icon-2x.png',
-  shadowUrl: '/images/marker-shadow.png',
+  iconUrl: '/images/marker-icon.svg',
+  iconRetinaUrl: '/images/marker-icon-2x.svg',
+  shadowUrl: '/images/marker-shadow.svg',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],

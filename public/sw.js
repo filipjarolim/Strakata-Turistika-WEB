@@ -5,38 +5,50 @@ const CACHE_NAME = 'gps-tracker-v1';
 const OFFLINE_CACHE = 'gps-offline-v1';
 const STATIC_CACHE = 'gps-static-v1';
 
-// Cache URLs for offline functionality
+// Cache URLs for offline functionality - only include files that actually exist
 const STATIC_URLS = [
   '/',
   '/soutez/gps',
   '/offline',
   '/offline-map',
   '/manifest.json',
-  '/favicon.ico',
-  '/images/marker-icon.png',
-  '/images/marker-icon-2x.png',
-  '/images/marker-shadow.png'
+  '/favicon.ico'
 ];
 
+// Remove non-existent API endpoints
 const API_URLS = [
-  '/api/gps/sessions',
-  '/api/gps/positions',
-  '/api/gps/sync'
+  // These endpoints don't exist yet, so we'll remove them
+  // '/api/gps/sessions',
+  // '/api/gps/positions',
+  // '/api/gps/sync'
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets with error handling
 self.addEventListener('install', (event) => {
   event.waitUntil(
     Promise.all([
-      // Cache static assets
+      // Cache static assets with individual error handling
       caches.open(STATIC_CACHE).then(cache => {
-        return cache.addAll(STATIC_URLS);
+        return Promise.allSettled(
+          STATIC_URLS.map(url => 
+            cache.add(url).catch(error => {
+              console.warn(`Failed to cache ${url}:`, error);
+              return null;
+            })
+          )
+        );
       }),
       // Cache offline pages
       caches.open(OFFLINE_CACHE).then(cache => {
-        return cache.addAll([
-          '/offline',
-          '/offline-map'
+        return Promise.allSettled([
+          cache.add('/offline').catch(error => {
+            console.warn('Failed to cache /offline:', error);
+            return null;
+          }),
+          cache.add('/offline-map').catch(error => {
+            console.warn('Failed to cache /offline-map:', error);
+            return null;
+          })
         ]);
       })
     ]).then(() => {

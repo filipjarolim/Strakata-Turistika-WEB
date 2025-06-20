@@ -40,9 +40,9 @@ const GPS_CRITICAL_RESOURCES = [
   '/offline-map',
   '/manifest.json',
   '/sw.js',
-  '/images/marker-icon.png',
-  '/images/marker-icon-2x.png',
-  '/images/marker-shadow.png'
+  '/images/marker-icon.svg',
+  '/images/marker-icon-2x.svg',
+  '/images/marker-shadow.svg'
 ];
 
 // Map tiles and external resources
@@ -171,28 +171,29 @@ export const OfflineController: React.FC = () => {
       
       setProgress(90);
       
-      // Step 3: Cache additional offline resources
-      const additionalResources = [
-        '/api/gps/sessions',
-        '/api/gps/positions',
-        '/api/gps/sync'
-      ];
+      // Step 3: Cache additional offline resources (currently none)
+      // const additionalResources: string[] = [
+      //   // These endpoints don't exist yet, so we'll comment them out
+      //   // '/api/gps/sessions',
+      //   // '/api/gps/positions',
+      //   // '/api/gps/sync'
+      // ];
       
-      await Promise.all(
-        additionalResources.map(async (resource) => {
-          try {
-            await fetch(resource, { 
-              method: 'GET',
-              cache: 'force-cache',
-              headers: {
-                'Service-Worker-Cache': 'true'
-              }
-            });
-          } catch (error) {
-            // Ignore API cache errors
-          }
-        })
-      );
+      // await Promise.all(
+      //   additionalResources.map(async (resource) => {
+      //     try {
+      //       await fetch(resource, { 
+      //         method: 'GET',
+      //         cache: 'force-cache',
+      //         headers: {
+      //           'Service-Worker-Cache': 'true'
+      //         }
+      //       });
+      //     } catch (error) {
+      //       // Ignore API cache errors
+      //     }
+      //   })
+      // );
       
       setProgress(100);
       
