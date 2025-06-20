@@ -76,6 +76,9 @@ export const OfflineController: React.FC = () => {
   // Check if service worker is available
   const isServiceWorkerAvailable = typeof navigator !== 'undefined' && 
                                  'serviceWorker' in navigator;
+  
+  // State to track service worker registration status
+  const [swRegistrationStatus, setSwRegistrationStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
 
   // Move checkCacheStatus above useEffect
   const checkCacheStatus = useCallback(async () => {
@@ -111,11 +114,35 @@ export const OfflineController: React.FC = () => {
     checkCacheStatus();
   }, [checkCacheStatus]);
   
+  // Check service worker registration status
+  useEffect(() => {
+    const checkServiceWorkerStatus = async () => {
+      if (!isServiceWorkerAvailable) {
+        setSwRegistrationStatus('unavailable');
+        return;
+      }
+      
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration && registration.active) {
+          setSwRegistrationStatus('available');
+        } else {
+          setSwRegistrationStatus('unavailable');
+        }
+      } catch (error) {
+        console.error('Error checking service worker status:', error);
+        setSwRegistrationStatus('unavailable');
+      }
+    };
+    
+    checkServiceWorkerStatus();
+  }, [isServiceWorkerAvailable]);
+  
   // Cache GPS resources for offline use
   const cacheGPSResources = async () => {
-    if (!isServiceWorkerAvailable) {
+    if (swRegistrationStatus !== 'available') {
       toast.error("Offline mód není dostupný", {
-        description: "Váš prohlížeč nepodporuje service worker"
+        description: "Service worker není aktivní nebo není podporován"
       });
       return;
     }
@@ -243,7 +270,7 @@ export const OfflineController: React.FC = () => {
   
   // Clear the cache
   const clearAllCache = async () => {
-    if (!isServiceWorkerAvailable) {
+    if (swRegistrationStatus !== 'available') {
       toast.error("Offline mód není dostupný");
       return;
     }
@@ -332,8 +359,9 @@ export const OfflineController: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm font-medium">Service Worker:</span>
-                  <Badge variant={isServiceWorkerAvailable ? "default" : "destructive"}>
-                    {isServiceWorkerAvailable ? "Aktivní" : "Nedostupný"}
+                  <Badge variant={swRegistrationStatus === 'available' ? "default" : "destructive"}>
+                    {swRegistrationStatus === 'checking' ? "Kontroluji..." :
+                     swRegistrationStatus === 'available' ? "Aktivní" : "Nedostupný"}
                   </Badge>
                 </div>
               </CardContent>
@@ -403,7 +431,7 @@ export const OfflineController: React.FC = () => {
               <CardContent className="space-y-3">
                 <Button 
                   className="w-full"
-                  disabled={isCaching || isClearing || isOffline}
+                  disabled={isCaching || isClearing || isOffline || swRegistrationStatus !== 'available'}
                   onClick={cacheGPSResources}
                 >
                   {isCaching ? (

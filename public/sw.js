@@ -54,6 +54,10 @@ self.addEventListener('install', (event) => {
     ]).then(() => {
       // Skip waiting to activate immediately
       return self.skipWaiting();
+    }).catch(error => {
+      console.error('Service worker install failed:', error);
+      // Don't fail the install, just log the error
+      return self.skipWaiting();
     })
   );
 });
@@ -76,7 +80,11 @@ self.addEventListener('activate', (event) => {
       }),
       // Claim all clients
       self.clients.claim()
-    ])
+    ]).catch(error => {
+      console.error('Service worker activate failed:', error);
+      // Don't fail the activate, just log the error
+      return self.clients.claim();
+    })
   );
 });
 
@@ -84,6 +92,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+
+  // Skip caching for unsupported request methods
+  if (request.method === 'HEAD' || request.method === 'OPTIONS') {
+    return;
+  }
 
   // Handle API requests
   if (API_URLS.some(apiUrl => url.pathname.startsWith(apiUrl))) {
@@ -110,11 +123,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then(response => {
-        // Cache successful responses
-        if (response.status === 200) {
+        // Cache successful responses (only for GET requests)
+        if (response.status === 200 && request.method === 'GET') {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseClone);
+            cache.put(request, responseClone).catch(error => {
+              console.warn('Failed to cache response:', error);
+            });
           });
         }
         return response;
@@ -165,11 +180,13 @@ async function handleNavigationRequest(request) {
     // Try network first
     const response = await fetch(request);
     
-    // Cache successful responses
-    if (response.status === 200) {
+    // Cache successful responses (only for GET requests)
+    if (response.status === 200 && request.method === 'GET') {
       const responseClone = response.clone();
       caches.open(CACHE_NAME).then(cache => {
-        cache.put(request, responseClone);
+        cache.put(request, responseClone).catch(error => {
+          console.warn('Failed to cache navigation response:', error);
+        });
       });
     }
     
@@ -225,11 +242,13 @@ async function handleStaticRequest(request) {
     // Try network
     const response = await fetch(request);
     
-    // Cache successful responses
-    if (response.status === 200) {
+    // Cache successful responses (only for GET requests)
+    if (response.status === 200 && request.method === 'GET') {
       const responseClone = response.clone();
       caches.open(STATIC_CACHE).then(cache => {
-        cache.put(request, responseClone);
+        cache.put(request, responseClone).catch(error => {
+          console.warn('Failed to cache static response:', error);
+        });
       });
     }
     
