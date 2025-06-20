@@ -269,19 +269,19 @@ const handleServiceWorkerMessage = (
   onPositionUpdate?: (position: GPSPosition) => void
 ) => {
   if (event.data?.type === 'BACKGROUND_LOCATION_UPDATE') {
-    console.log('Received background location update:', event.data);
-    
-    const storedSession = getStoredTrackingSession();
-    if (storedSession.isActive && !storedSession.isPaused && event.data.position) {
+        console.log('Received background location update:', event.data);
+        
+        const storedSession = getStoredTrackingSession();
+        if (storedSession.isActive && !storedSession.isPaused && event.data.position) {
       const newPosition: GPSPosition = {
         ...event.data.position,
         timestamp: Date.now()
       };
       
       // Update stored positions
-      storeTrackingSession({
-        positions: [...storedSession.positions, newPosition]
-      });
+          storeTrackingSession({
+            positions: [...storedSession.positions, newPosition]
+          });
       
       // Notify callback
       onPositionUpdate?.(newPosition);

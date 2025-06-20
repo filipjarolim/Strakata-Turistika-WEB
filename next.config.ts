@@ -1,30 +1,55 @@
-const {
-    PHASE_DEVELOPMENT_SERVER,
-    PHASE_PRODUCTION_BUILD,
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-} = require("next/constants");
+import type { NextConfig } from "next";
 
-/**
- * @type {(phase: string, defaultConfig: import("next").NextConfig) => Promise<import("next").NextConfig>}
- */
-module.exports = async (phase: string): Promise<import("next").NextConfig> => {
-    /** @type {import("next").NextConfig} */
-    const nextConfig = {
-        images: {
-            domains: ["cdn.discordapp.com", "lh3.googleusercontent.com", "images.unsplash.com", "res.cloudinary.com"],
+const nextConfig: NextConfig = {
+    experimental: {
+        optimizePackageImports: ["lucide-react"],
+    },
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "res.cloudinary.com",
+                port: "",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "tile.openstreetmap.org",
+                port: "",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "server.arcgisonline.com",
+                port: "",
+                pathname: "/**",
+            },
+        ],
+    },
+    async headers() {
+        return [
+            {
+                source: "/sw.js",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=0, must-revalidate",
+                    },
+                ],
+            },
+        ];
+    },
+    webpack: (config, { dev, isServer }) => {
+        if (!dev && !isServer) {
+            config.resolve.fallback = {
+                ...config.resolve.fallback,
+                fs: false,
+                net: false,
+                tls: false,
+            };
         }
-    };
-
-    if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
-        const { default: withSerwist } = await import("@serwist/next");
-
-        const serwist = withSerwist({
-            swSrc: "service-worker/app-worker.ts",
-            swDest: "public/sw.js"
-        });
-
-        return serwist(nextConfig);
-    }
-
-    return nextConfig;
+        return config;
+    },
 };
+
+export default nextConfig;

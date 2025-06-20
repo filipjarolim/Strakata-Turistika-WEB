@@ -35,7 +35,9 @@ import {
   Timer,
   Route,
   Gauge,
-  TrendingUp
+  TrendingUp,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -91,12 +93,68 @@ const GPSPage = () => {
   const [showStats, setShowStats] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);
   
   // Refs
   const sessionRef = useRef<EnhancedTrackingSession | null>(null);
   const lastPositionRef = useRef<GPSPosition | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Register service worker for offline functionality
+  useEffect(() => {
+    const registerServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+          });
+          
+          if (registration.installing) {
+            console.log('Service worker installing');
+          } else if (registration.waiting) {
+            console.log('Service worker installed');
+          } else if (registration.active) {
+            console.log('Service worker active');
+            setIsServiceWorkerRegistered(true);
+          }
+        } catch (error) {
+          console.error('Service worker registration failed:', error);
+        }
+      }
+    };
+
+    registerServiceWorker();
+  }, []);
+
+  // Check online status and handle offline mode
+  useEffect(() => {
+    const updateOnlineStatus = () => {
+      const online = navigator.onLine;
+      setIsOnline(online);
+      setOfflineMode(!online);
+      
+      if (online) {
+        toast.success('Connection restored');
+        // Attempt to sync offline data
+        syncOfflineData().catch(console.error);
+      } else {
+        toast.info('Working in offline mode', {
+          description: 'GPS tracking will continue to work offline'
+        });
+      }
+    };
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+    
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
 
   // Initialize tracking session
   const initializeSession = useCallback(() => {
@@ -123,7 +181,7 @@ const GPSPage = () => {
           connectionType: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType
         }
       },
-      syncStatus: 'pending',
+      syncStatus: offlineMode ? 'pending' : 'pending',
       version: '2.0.0'
     };
     
@@ -134,7 +192,7 @@ const GPSPage = () => {
     storeTrackingSession(session);
     
     return session;
-  }, []);
+  }, [offlineMode]);
 
   // Start timer updates
   const startTimer = useCallback(() => {
@@ -264,14 +322,14 @@ const GPSPage = () => {
       // Start timer
       startTimer();
       
-      toast.success('GPS tracking started');
+      toast.success(offlineMode ? 'GPS tracking started (offline mode)' : 'GPS tracking started');
     } catch (error) {
       console.error('Failed to start tracking:', error);
       toast.error('Failed to start tracking');
     } finally {
       setIsLoading(false);
     }
-  }, [initializeSession, handlePositionUpdate, startTimer]);
+  }, [initializeSession, handlePositionUpdate, startTimer, offlineMode]);
 
   // Pause tracking
   const pauseTracking = useCallback(() => {
@@ -338,22 +396,6 @@ const GPSPage = () => {
     
     toast.success('Tracking stopped');
   }, [watchId, stopTimer]);
-
-  // Check online status
-  useEffect(() => {
-    const updateOnlineStatus = () => {
-      setIsOnline(navigator.onLine);
-    };
-    
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    updateOnlineStatus();
-    
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
-  }, []);
 
   // Check battery status
   useEffect(() => {
@@ -454,6 +496,12 @@ const GPSPage = () => {
                   <WifiOff className="h-3 w-3 text-red-500" />
                 )}
                 <span className="font-medium">{isOnline ? 'Online' : 'Offline'}</span>
+                {offlineMode && (
+                  <div className="flex items-center gap-1">
+                    <AlertCircle className="h-2 w-2 text-amber-500" />
+                    <span className="text-amber-600 text-xs">Offline Mode</span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {isCharging ? (
@@ -464,6 +512,21 @@ const GPSPage = () => {
                 <span className="font-medium">{batteryLevel}%</span>
               </div>
             </div>
+
+            {/* Offline Mode Notice */}
+            {offlineMode && (
+              <div className="bg-amber-50/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-200/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-amber-100/80">
+                    <WifiOff className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-amber-900 text-sm">Offline Mode</h3>
+                    <p className="text-amber-700 text-xs">GPS tracking continues offline. Data will sync when connection is restored.</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Current Position Display */}
             {currentPosition && (
@@ -685,6 +748,12 @@ const GPSPage = () => {
                     <WifiOff className="h-3 w-3 text-red-500" />
                   )}
                   <span className="font-medium">{isOnline ? 'Online' : 'Offline'}</span>
+                  {offlineMode && (
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-2 w-2 text-amber-500" />
+                      <span className="text-amber-600 text-xs">Offline Mode</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {isCharging ? (
@@ -695,6 +764,21 @@ const GPSPage = () => {
                   <span className="font-medium">{batteryLevel}%</span>
                 </div>
               </div>
+
+              {/* Offline Mode Notice */}
+              {offlineMode && (
+                <div className="bg-amber-50/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-200/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-amber-100/80">
+                      <WifiOff className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-amber-900 text-sm">Offline Mode</h3>
+                      <p className="text-amber-700 text-xs">GPS tracking continues offline. Data will sync when connection is restored.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Current Position Display */}
               {currentPosition && (
@@ -862,7 +946,7 @@ const GPSPage = () => {
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   {showStats ? 'Hide Stats' : 'Show Stats'}
-                </Button>
+                  </Button>
               </div>
 
               {/* Weather Info */}
@@ -908,4 +992,4 @@ const GPSPage = () => {
   );
 };
 
-export default GPSPage; 
+export default GPSPage;
