@@ -31,9 +31,9 @@ export const IOSBadge = ({
   specialStyle
 }: IOSBadgeProps) => {
   const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-sm px-2.5 py-1',
-    lg: 'text-base px-3 py-1.5'
+    sm: 'text-xs px-2 py-0.5 sm:px-2.5 sm:py-1',
+    md: 'text-sm px-2.5 py-1 sm:px-3 sm:py-1.5',
+    lg: 'text-base px-3 py-1.5 sm:px-4 sm:py-2'
   };
 
   // If specialStyle is provided, render the special badge design
@@ -64,7 +64,7 @@ export const IOSBadge = ({
         onClick={onClick}
         className={cn(
           "relative inline-flex items-center align-baseline font-bold",
-          "px-6 py-1 min-h-[44px] ml-[24px]",
+          "px-4 sm:px-6 py-1 min-h-[40px] sm:min-h-[44px] ml-[20px] sm:ml-[24px]",
           "rounded-full border-2",
           "shadow-sm",
           bgColor,
@@ -109,7 +109,7 @@ export const IOSBadge = ({
     <div
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border',
+        'inline-flex items-center gap-1 sm:gap-1.5 rounded-full border',
         'font-medium backdrop-blur-sm',
         sizeClasses[size],
         bgColor,
@@ -125,7 +125,7 @@ export const IOSBadge = ({
           alt=""
           width={20}
           height={20}
-          className="w-5 h-5"
+          className="w-4 h-4 sm:w-5 sm:h-5"
         />
       ) : (
         icon

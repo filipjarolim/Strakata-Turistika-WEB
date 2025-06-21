@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -64,24 +64,7 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isO
   ];
 
   // Check initial cache status
-  useEffect(() => {
-    checkInitialCacheStatus();
-  }, []);
-
-  // Skip timer
-  useEffect(() => {
-    if (skipTimer > 0 && !cacheStatus.gpsReady) {
-      const timer = setTimeout(() => {
-        setSkipTimer(skipTimer - 1);
-        if (skipTimer === 1) {
-          setCanSkip(true);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [skipTimer, cacheStatus.gpsReady]);
-
-  const checkInitialCacheStatus = async () => {
+  const checkInitialCacheStatus = useCallback(async () => {
     setCacheStatus(prev => ({ ...prev, currentStep: 'Kontrola cache...', progress: 10 }));
     
     if (!isServiceWorkerAvailable) {
@@ -143,7 +126,25 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isO
       }));
       setIsLoading(false);
     }
-  };
+  }, [isServiceWorkerAvailable, onReady]);
+
+  // Check initial cache status
+  useEffect(() => {
+    checkInitialCacheStatus();
+  }, [checkInitialCacheStatus]);
+
+  // Skip timer
+  useEffect(() => {
+    if (skipTimer > 0 && !cacheStatus.gpsReady) {
+      const timer = setTimeout(() => {
+        setSkipTimer(skipTimer - 1);
+        if (skipTimer === 1) {
+          setCanSkip(true);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [skipTimer, cacheStatus.gpsReady]);
 
   const loadGPSResources = async () => {
     setCacheStatus(prev => ({ ...prev, currentStep: 'Načítání GPS stránek...', progress: 40 }));

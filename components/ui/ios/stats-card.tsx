@@ -26,10 +26,10 @@ export const IOSStatsCard = ({
   className
 }: IOSStatsCardProps) => {
   const variantStyles = {
-    default: "bg-white/90 backdrop-blur-xl border-gray-200/50 shadow-lg",
-    success: "bg-green-50/90 backdrop-blur-xl border-green-200/50 shadow-lg",
-    warning: "bg-amber-50/90 backdrop-blur-xl border-amber-200/50 shadow-lg",
-    info: "bg-blue-50/90 backdrop-blur-xl border-blue-200/50 shadow-lg"
+    default: "bg-white/90 backdrop-blur-xl border-gray-200/50 shadow-md",
+    success: "bg-green-50/90 backdrop-blur-xl border-green-200/50 shadow-md",
+    warning: "bg-amber-50/90 backdrop-blur-xl border-amber-200/50 shadow-md",
+    info: "bg-blue-50/90 backdrop-blur-xl border-blue-200/50 shadow-md"
   };
 
   const iconColors = {

@@ -7,12 +7,16 @@ import { useEffect, useState } from 'react';
  * @returns {boolean} - Returns true if the browser is offline
  */
 export function useOfflineStatus(): boolean {
-  const [isOffline, setIsOffline] = useState<boolean>(
-    typeof navigator !== 'undefined' ? !navigator.onLine : false
-  );
+  // Start with false (online) to match server-side rendering
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // Mark as client-side after hydration
+    setIsClient(true);
+    
+    // Set initial state based on navigator.onLine
+    setIsOffline(!navigator.onLine);
 
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -28,5 +32,6 @@ export function useOfflineStatus(): boolean {
     };
   }, []);
 
-  return isOffline;
+  // Return false during SSR and initial client render to prevent hydration mismatch
+  return isClient ? isOffline : false;
 } 

@@ -4,6 +4,7 @@
 const CACHE_NAME = 'gps-tracker-v1';
 const OFFLINE_CACHE = 'gps-offline-v1';
 const STATIC_CACHE = 'gps-static-v1';
+const MAP_CACHE = 'gps-maps-v1';
 
 // Cache URLs for offline functionality - only include files that actually exist
 const STATIC_URLS = [
@@ -21,6 +22,13 @@ const API_URLS = [
   // '/api/gps/sessions',
   // '/api/gps/positions',
   // '/api/gps/sync'
+];
+
+// Map tile patterns for caching
+const MAP_TILE_PATTERNS = [
+  'https://api.maptiler.com/maps/outdoor-v2/256/',
+  'https://tile.openstreetmap.org/',
+  'https://server.arcgisonline.com/'
 ];
 
 // Install event - cache static assets with error handling
@@ -50,14 +58,21 @@ self.addEventListener('install', (event) => {
             return null;
           })
         ]);
+      }),
+      // Pre-cache some map tiles for common areas
+      caches.open(MAP_CACHE).then(cache => {
+        const mapTiles = getCommonMapTiles();
+        return Promise.allSettled(
+          mapTiles.map(tile => 
+            cache.add(tile).catch(error => {
+              console.warn(`Failed to cache map tile ${tile}:`, error);
+              return null;
+            })
+          )
+        );
       })
-    ]).then(() => {
-      // Skip waiting to activate immediately
-      return self.skipWaiting();
-    }).catch(error => {
+    ]).catch(error => {
       console.error('Service worker install failed:', error);
-      // Don't fail the install, just log the error
-      return self.skipWaiting();
     })
   );
 });
@@ -72,7 +87,8 @@ self.addEventListener('activate', (event) => {
           cacheNames.map(cacheName => {
             if (cacheName !== CACHE_NAME && 
                 cacheName !== OFFLINE_CACHE && 
-                cacheName !== STATIC_CACHE) {
+                cacheName !== STATIC_CACHE &&
+                cacheName !== MAP_CACHE) {
               return caches.delete(cacheName);
             }
           })
@@ -110,6 +126,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle map tile requests
+  if (MAP_TILE_PATTERNS.some(pattern => url.href.startsWith(pattern))) {
+    event.respondWith(handleMapTileRequest(request));
+    return;
+  }
+
   // Handle static assets
   if (request.destination === 'script' || 
       request.destination === 'style' || 
@@ -119,60 +141,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: try network first, fallback to cache
-  event.respondWith(
-    fetch(request)
-      .then(response => {
-        // Cache successful responses (only for GET requests)
-        if (response.status === 200 && request.method === 'GET') {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseClone).catch(error => {
-              console.warn('Failed to cache response:', error);
-            });
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Fallback to cache
-        return caches.match(request);
-      })
-  );
+  // Default: network first, cache fallback
+  event.respondWith(handleDefaultRequest(request));
 });
-
-// Handle API requests with offline queue
-async function handleApiRequest(request) {
-  try {
-    // Try network first
-    const response = await fetch(request);
-    
-    // If successful, sync any offline data
-    if (response.ok) {
-      await syncOfflineData();
-    }
-    
-    return response;
-  } catch (error) {
-    // Network failed, queue for later sync
-    await queueOfflineRequest(request);
-    
-    // Return cached response if available
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // Return offline response
-    return new Response(JSON.stringify({ 
-      error: 'Offline mode', 
-      message: 'Data will sync when connection is restored' 
-    }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
 
 // Handle navigation requests
 async function handleNavigationRequest(request) {
@@ -204,28 +175,11 @@ async function handleNavigationRequest(request) {
       return offlineResponse;
     }
     
-    // Fallback offline page
-    return new Response(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Offline - GPS Tracker</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { font-family: system-ui; padding: 2rem; text-align: center; }
-            .offline-icon { font-size: 4rem; margin-bottom: 1rem; }
-          </style>
-        </head>
-        <body>
-          <div class="offline-icon">📡</div>
-          <h1>You're Offline</h1>
-          <p>GPS tracking continues to work offline. Data will sync when connection is restored.</p>
-          <button onclick="window.location.reload()">Retry</button>
-        </body>
-      </html>
-    `, {
-      status: 200,
-      headers: { 'Content-Type': 'text/html' }
+    // Fallback to basic offline response
+    return new Response('Offline - No internet connection', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' }
     });
   }
 }
@@ -259,242 +213,223 @@ async function handleStaticRequest(request) {
   }
 }
 
-// Background sync event
+// Handle map tile requests
+async function handleMapTileRequest(request) {
+  // Try cache first for map tiles
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  
+  try {
+    // Try network
+    const response = await fetch(request);
+    
+    // Cache successful responses (only for GET requests)
+    if (response.status === 200 && request.method === 'GET') {
+      const responseClone = response.clone();
+      caches.open(MAP_CACHE).then(cache => {
+        cache.put(request, responseClone).catch(error => {
+          console.warn('Failed to cache map tile:', error);
+        });
+      });
+    }
+    
+    return response;
+  } catch (error) {
+    // Return a placeholder tile or empty response
+    return new Response('', { status: 404 });
+  }
+}
+
+// Handle API requests
+async function handleApiRequest(request) {
+  try {
+    // Try network first for API requests
+    const response = await fetch(request);
+    
+    // Cache successful responses (only for GET requests)
+    if (response.status === 200 && request.method === 'GET') {
+      const responseClone = response.clone();
+      caches.open(CACHE_NAME).then(cache => {
+        cache.put(request, responseClone).catch(error => {
+          console.warn('Failed to cache API response:', error);
+        });
+      });
+    }
+    
+    return response;
+  } catch (error) {
+    // Network failed, try cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Return error response for API requests
+    return new Response(JSON.stringify({ error: 'Offline - API unavailable' }), {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// Handle default requests
+async function handleDefaultRequest(request) {
+  try {
+    // Try network first
+    const response = await fetch(request);
+    
+    // Cache successful responses (only for GET requests)
+    if (response.status === 200 && request.method === 'GET') {
+      const responseClone = response.clone();
+      caches.open(CACHE_NAME).then(cache => {
+        cache.put(request, responseClone).catch(error => {
+          console.warn('Failed to cache response:', error);
+        });
+      });
+    }
+    
+    return response;
+  } catch (error) {
+    // Network failed, try cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Return error response
+    return new Response('Offline - No internet connection', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
+
+// Helper function to get common map tiles for pre-caching
+function getCommonMapTiles() {
+  const tiles = [];
+  const centerLat = 50.0755; // Prague center
+  const centerLng = 14.4378;
+  
+  // Pre-cache tiles for common zoom levels around Prague
+  const zoomLevels = [13, 14, 15];
+  const radiusDegrees = 0.05; // ~5km radius
+  
+  for (const zoom of zoomLevels) {
+    const tileCoords = getTileCoordinates(centerLat, centerLng, zoom, radiusDegrees);
+    for (const [x, y] of tileCoords) {
+      tiles.push(`https://api.maptiler.com/maps/outdoor-v2/256/${zoom}/${x}/${y}.png?key=a5w3EO45npvzNFzD6VoD`);
+    }
+  }
+  
+  return tiles.slice(0, 50); // Limit to 50 tiles to avoid overwhelming the cache
+}
+
+// Helper function to get tile coordinates for an area
+function getTileCoordinates(lat, lng, zoom, radiusDegrees) {
+  const tiles = [];
+  const latMin = lat - radiusDegrees;
+  const latMax = lat + radiusDegrees;
+  const lngMin = lng - radiusDegrees;
+  const lngMax = lng + radiusDegrees;
+  
+  // Convert to tile coordinates
+  const n = Math.pow(2, zoom);
+  const xtileMin = Math.floor((lngMin + 180) / 360 * n);
+  const xtileMax = Math.floor((lngMax + 180) / 360 * n);
+  const ytileMin = Math.floor((1 - Math.log(Math.tan(latMin * Math.PI / 180) + 1 / Math.cos(latMin * Math.PI / 180)) / Math.PI) / 2 * n);
+  const ytileMax = Math.floor((1 - Math.log(Math.tan(latMax * Math.PI / 180) + 1 / Math.cos(latMax * Math.PI / 180)) / Math.PI) / 2 * n);
+  
+  for (let x = xtileMin; x <= xtileMax; x++) {
+    for (let y = ytileMin; y <= ytileMax; y++) {
+      tiles.push([x, y]);
+    }
+  }
+  
+  return tiles;
+}
+
+// Background sync for offline data
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    event.waitUntil(syncOfflineData());
+  if (event.tag === 'gps-sync') {
+    event.waitUntil(syncGPSData());
   }
 });
 
-// Push notification event
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'GPS tracking update',
-    icon: '/images/marker-icon.png',
-    badge: '/images/marker-icon.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'View Route',
-        icon: '/images/marker-icon.png'
-      },
-      {
-        action: 'close',
-        title: 'Close',
-        icon: '/images/marker-icon.png'
+// Sync GPS data when back online
+async function syncGPSData() {
+  try {
+    // Get stored GPS data from IndexedDB or localStorage
+    const storedData = await getStoredGPSData();
+    
+    if (storedData && storedData.length > 0) {
+      // Send data to server
+      for (const data of storedData) {
+        try {
+          await fetch('/api/gps/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+          });
+          
+          // Remove synced data from storage
+          await removeStoredGPSData(data.id);
+        } catch (error) {
+          console.error('Failed to sync GPS data:', error);
+        }
       }
-    ]
-  };
+    }
+  } catch (error) {
+    console.error('Background sync failed:', error);
+  }
+}
 
-  event.waitUntil(
-    self.registration.showNotification('GPS Tracker', options)
-  );
+// Helper functions for GPS data storage (placeholder)
+async function getStoredGPSData() {
+  // This would typically use IndexedDB
+  return [];
+}
+
+async function removeStoredGPSData(id) {
+  // This would typically use IndexedDB
+  console.log('Removing GPS data:', id);
+}
+
+// Push notification handling
+self.addEventListener('push', (event) => {
+  if (event.data) {
+    const data = event.data.json();
+    const options = {
+      body: data.body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
+      data: data.data || {},
+      actions: data.actions || [],
+      requireInteraction: data.requireInteraction || false
+    };
+    
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+    );
+  }
 });
 
-// Notification click event
+// Notification click handling
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
-  if (event.action === 'explore') {
+  
+  if (event.action) {
+    // Handle specific action
+    console.log('Notification action clicked:', event.action);
+  } else {
+    // Default action - open the app
     event.waitUntil(
-      self.clients.openWindow('/soutez/gps')
+      clients.openWindow('/')
     );
   }
-});
-
-// Queue offline requests for later sync
-async function queueOfflineRequest(request) {
-  const offlineQueue = await getOfflineQueue();
-  
-  const queueItem = {
-    url: request.url,
-    method: request.method,
-    headers: Object.fromEntries(request.headers.entries()),
-    body: await request.clone().text(),
-    timestamp: Date.now()
-  };
-  
-  offlineQueue.push(queueItem);
-  await setOfflineQueue(offlineQueue);
-}
-
-// Sync offline data when online
-async function syncOfflineData() {
-  const offlineQueue = await getOfflineQueue();
-  
-  if (offlineQueue.length === 0) {
-    return;
-  }
-  
-  const syncedItems = [];
-  
-  for (const item of offlineQueue) {
-    try {
-      const response = await fetch(item.url, {
-        method: item.method,
-        headers: item.headers,
-        body: item.body
-      });
-      
-      if (response.ok) {
-        syncedItems.push(item);
-      }
-    } catch (error) {
-      console.error('Failed to sync item:', error);
-    }
-  }
-  
-  // Remove synced items from queue
-  const remainingItems = offlineQueue.filter(item => 
-    !syncedItems.some(synced => synced.timestamp === item.timestamp)
-  );
-  
-  await setOfflineQueue(remainingItems);
-  
-  // Notify clients of sync completion
-  const clients = await self.clients.matchAll();
-  clients.forEach(client => {
-    client.postMessage({
-      type: 'SYNC_COMPLETE',
-      syncedCount: syncedItems.length,
-      remainingCount: remainingItems.length
-    });
-  });
-}
-
-// Get offline queue from IndexedDB
-async function getOfflineQueue() {
-  return new Promise((resolve) => {
-    const request = indexedDB.open('GPSOfflineDB', 1);
-    
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('offlineQueue')) {
-        db.createObjectStore('offlineQueue', { keyPath: 'timestamp' });
-      }
-    };
-    
-    request.onsuccess = (event) => {
-      const db = event.target.result;
-      const transaction = db.transaction(['offlineQueue'], 'readonly');
-      const store = transaction.objectStore('offlineQueue');
-      const getAllRequest = store.getAll();
-      
-      getAllRequest.onsuccess = () => {
-        resolve(getAllRequest.result || []);
-      };
-      
-      getAllRequest.onerror = () => {
-        resolve([]);
-      };
-    };
-    
-    request.onerror = () => {
-      resolve([]);
-    };
-  });
-}
-
-// Set offline queue in IndexedDB
-async function setOfflineQueue(queue) {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('GPSOfflineDB', 1);
-    
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('offlineQueue')) {
-        db.createObjectStore('offlineQueue', { keyPath: 'timestamp' });
-      }
-    };
-    
-    request.onsuccess = (event) => {
-      const db = event.target.result;
-      const transaction = db.transaction(['offlineQueue'], 'readwrite');
-      const store = transaction.objectStore('offlineQueue');
-      
-      // Clear existing queue
-      store.clear();
-      
-      // Add new items
-      queue.forEach(item => {
-        store.add(item);
-      });
-      
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    };
-    
-    request.onerror = () => reject(request.error);
-  });
-}
-
-// Message event for communication with main thread
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'GET_OFFLINE_QUEUE') {
-    getOfflineQueue().then(queue => {
-      event.ports[0].postMessage({ queue });
-    });
-  }
-  
-  if (event.data && event.data.type === 'CLEAR_OFFLINE_QUEUE') {
-    setOfflineQueue([]).then(() => {
-      event.ports[0].postMessage({ success: true });
-    });
-  }
-  
-  // Handle GPS tracking updates
-  if (event.data && event.data.type === 'TRACKING_UPDATE') {
-    console.log('Received tracking update:', event.data);
-    // Store tracking data in cache for offline sync
-    caches.open('gps-tracking-cache').then(cache => {
-      cache.put('tracking-data', new Response(JSON.stringify(event.data)));
-    });
-  }
-});
-
-// Handle background sync for GPS data
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'gps-tracking-sync') {
-    event.waitUntil(
-      (async () => {
-        try {
-          const cache = await caches.open('gps-tracking-cache');
-          const response = await cache.match('tracking-data');
-          
-          if (!response) {
-            console.log('No tracking data found in cache');
-            return Promise.resolve();
-          }
-          
-          const data = await response.json();
-          console.log('Syncing tracking data:', data);
-          
-          // Here you would send the data to your server
-          // For now, just log it
-          return Promise.resolve();
-        } catch (error) {
-          console.error('Error syncing tracking data:', error);
-          return Promise.reject(error);
-        }
-      })()
-    );
-  }
-});
-
-// Periodic background sync (if supported)
-if ('periodicSync' in self.registration) {
-  self.addEventListener('periodicsync', (event) => {
-    if (event.tag === 'background-sync') {
-      event.waitUntil(syncOfflineData());
-    }
-  });
-} 
+}); 

@@ -29,7 +29,7 @@ export const UserButton = ({ role }: UserButtonProps) => {
     return (
         <IOSDropdownMenu
             trigger={
-                <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-2xl bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:bg-white/90 active:bg-white/95 transition-all duration-200 shadow-sm shadow-black/5">
+                <button className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 backdrop-blur-xl border border-gray-200/50 hover:bg-white/90 active:bg-white/95 transition-all duration-200 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10">
                     <Avatar className="w-7 h-7">
                         {user?.image ? (
                             <Image src={user.image} alt="User Image" width={28} height={28} className="rounded-full" />

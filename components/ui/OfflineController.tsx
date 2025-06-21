@@ -2,26 +2,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetDescription, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger,
-  SheetFooter,
-  SheetClose
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check, Settings, MapPin, Signal, Battery, CloudOff } from "lucide-react";
+import { IOSButton } from "@/components/ui/ios/button";
+import { IOSCard } from "@/components/ui/ios/card";
+import { IOSBadge } from "@/components/ui/ios/badge";
+import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
+import { IOSSection } from "@/components/ui/ios/section";
+import { IOSStatsCard } from "@/components/ui/ios/stats-card";
+import { Loader2, Wifi, WifiOff, RefreshCw, Trash2, Download, X, Check, Settings, MapPin, Signal, Battery, CloudOff, Globe, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { NetworkStatus } from './NetworkStatus';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion, AnimatePresence } from 'framer-motion';
 
 // List of critical pages that should always be cached for offline use
 const DEFAULT_CRITICAL_PAGES = [
@@ -61,6 +53,7 @@ export const OfflineController: React.FC = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showPageSelector, setShowPageSelector] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [cacheStatus, setCacheStatus] = useState<{
     gpsReady: boolean;
     mapsReady: boolean;
@@ -74,11 +67,16 @@ export const OfflineController: React.FC = () => {
   });
   
   // Check if service worker is available
-  const isServiceWorkerAvailable = typeof navigator !== 'undefined' && 
+  const isServiceWorkerAvailable = isClient && typeof navigator !== 'undefined' && 
                                  'serviceWorker' in navigator;
   
   // State to track service worker registration status
   const [swRegistrationStatus, setSwRegistrationStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
+
+  // Set client flag on mount to prevent hydration issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Move checkCacheStatus above useEffect
   const checkCacheStatus = useCallback(async () => {
@@ -111,11 +109,15 @@ export const OfflineController: React.FC = () => {
 
   // Check cache status on mount
   useEffect(() => {
-    checkCacheStatus();
-  }, [checkCacheStatus]);
+    if (isClient) {
+      checkCacheStatus();
+    }
+  }, [checkCacheStatus, isClient]);
   
   // Check service worker registration status
   useEffect(() => {
+    if (!isClient) return;
+    
     const checkServiceWorkerStatus = async () => {
       if (!isServiceWorkerAvailable) {
         setSwRegistrationStatus('unavailable');
@@ -136,13 +138,13 @@ export const OfflineController: React.FC = () => {
     };
     
     checkServiceWorkerStatus();
-  }, [isServiceWorkerAvailable]);
+  }, [isServiceWorkerAvailable, isClient]);
   
   // Cache GPS resources for offline use
   const cacheGPSResources = async () => {
     if (swRegistrationStatus !== 'available') {
-      toast.error("Offline mód není dostupný", {
-        description: "Service worker není aktivní nebo není podporován"
+      toast.error("Offline mod neni dostupny", {
+        description: "Service worker neni aktivni nebo neni podporovan"
       });
       return;
     }
@@ -198,30 +200,6 @@ export const OfflineController: React.FC = () => {
       
       setProgress(90);
       
-      // Step 3: Cache additional offline resources (currently none)
-      // const additionalResources: string[] = [
-      //   // These endpoints don't exist yet, so we'll comment them out
-      //   // '/api/gps/sessions',
-      //   // '/api/gps/positions',
-      //   // '/api/gps/sync'
-      // ];
-      
-      // await Promise.all(
-      //   additionalResources.map(async (resource) => {
-      //     try {
-      //       await fetch(resource, { 
-      //         method: 'GET',
-      //         cache: 'force-cache',
-      //         headers: {
-      //           'Service-Worker-Cache': 'true'
-      //         }
-      //       });
-      //     } catch (error) {
-      //       // Ignore API cache errors
-      //     }
-      //   })
-      // );
-      
       setProgress(100);
       
       setTimeout(() => {
@@ -230,20 +208,20 @@ export const OfflineController: React.FC = () => {
         checkCacheStatus();
       }, 500);
       
-      toast.success("GPS offline cache připraven", {
-        description: "GPS sledování je nyní připraveno pro offline použití"
+      toast.success("GPS offline cache pripraven", {
+        description: "GPS sledovani je nyni pripraveno pro offline pouziti"
       });
     } catch (error) {
       console.error('Error caching GPS resources:', error);
       setProgress(0);
       setIsCaching(false);
       
-      toast.error("Chyba při přípravě offline cache", {
-        description: "Nastala chyba při ukládání GPS zdrojů"
+      toast.error("Chyba pri priprave offline cache", {
+        description: "Nastala chyba pri ukladani GPS zdroju"
       });
     }
   };
-
+  
   // Helper function to get map tiles for an area
   const getTilesForArea = (lat: number, lng: number, zoom: number, radiusDegrees: number) => {
     const tiles: string[] = [];
@@ -271,7 +249,7 @@ export const OfflineController: React.FC = () => {
   // Clear the cache
   const clearAllCache = async () => {
     if (swRegistrationStatus !== 'available') {
-      toast.error("Offline mód není dostupný");
+      toast.error("Offline mod neni dostupny");
       return;
     }
     
@@ -299,15 +277,15 @@ export const OfflineController: React.FC = () => {
         checkCacheStatus();
       }, 500);
       
-      toast.success("Cache byla vymazána", {
-        description: "Všechna offline data byla smazána"
+      toast.success("Cache byla vymazana", {
+        description: "Vsechna offline data byla smazana"
       });
     } catch (error) {
       console.error('Error clearing cache:', error);
       setProgress(0);
       setIsClearing(false);
       
-      toast.error("Chyba při mazání cache");
+      toast.error("Chyba pri mazani cache");
     }
   };
 
@@ -318,188 +296,221 @@ export const OfflineController: React.FC = () => {
     setIsLoading(false);
   };
 
+  // Don't render anything until client-side hydration is complete
+  if (!isClient) {
+    return null;
+  }
+
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button 
-          variant="outline" 
+    <>
+      {/* Fixed position button - like bug report */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <IOSButton 
+          variant="outline"
           size="icon"
           onClick={() => setIsOpen(true)}
-          className="bg-white shadow-sm"
-          aria-label="GPS offline nastavení"
+          className="bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white/90 transition-all duration-200"
+          aria-label="GPS offline nastaveni"
         >
           <Settings className="h-4 w-4" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="z-100 w-[400px] sm:w-[500px]">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            GPS Offline Nastavení
-          </SheetTitle>
-          <SheetDescription>
-            Správa offline GPS sledování a map
-          </SheetDescription>
-        </SheetHeader>
-        
-        <ScrollArea className="h-full py-4">
-          <div className="space-y-6">
-            {/* Network Status */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Signal className="h-5 w-5" />
-                  Stav sítě
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Připojení:</span>
-                  <NetworkStatus />
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-medium">Service Worker:</span>
-                  <Badge variant={swRegistrationStatus === 'available' ? "default" : "destructive"}>
-                    {swRegistrationStatus === 'checking' ? "Kontroluji..." :
-                     swRegistrationStatus === 'available' ? "Aktivní" : "Nedostupný"}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+        </IOSButton>
+      </div>
 
-            {/* Cache Status */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CloudOff className="h-5 w-5" />
-                  Stav cache
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={refreshCacheStatus}
-                    disabled={isLoading}
-                    className="ml-auto h-6 w-6 p-0"
+      {/* Modal overlay - like bug report */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100]"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed inset-4 z-[101] flex items-center justify-center"
+            >
+              <div className="w-full max-w-md max-h-[90vh] bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center gap-3 p-6 border-b border-gray-200/50">
+                  <IOSCircleIcon variant="blue" size="md">
+                    <MapPin className="h-6 w-6" />
+                  </IOSCircleIcon>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-gray-900">GPS Offline</h2>
+                    <p className="text-sm text-gray-500">Sprava offline GPS sledovani</p>
+                  </div>
+                  <IOSButton
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsOpen(false)}
+                    className="h-8 w-8"
                   >
-                    <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="text-2xl font-bold text-blue-600 mb-1">
-                      {cacheStatus.gpsReady ? "✓" : "✗"}
-                    </div>
-                    <div className="text-xs text-blue-700">GPS Ready</div>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
-                    <div className="text-2xl font-bold text-green-600 mb-1">
-                      {cacheStatus.mapsReady ? "✓" : "✗"}
-                    </div>
-                    <div className="text-xs text-green-700">Maps Ready</div>
-                  </div>
+                    <X className="h-4 w-4" />
+                  </IOSButton>
                 </div>
                 
-                <div className="text-sm text-gray-600">
-                  <div>Celkem uloženo: {cacheStatus.totalCached} zdrojů</div>
-                  {cacheStatus.lastUpdated && (
-                    <div>Poslední aktualizace: {cacheStatus.lastUpdated.toLocaleTimeString()}</div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                {/* Content */}
+                <ScrollArea className="h-[60vh] p-6">
+                  <div className="space-y-6">
+                    {/* Network Status */}
+                    <IOSCard
+                      title="Stav site"
+                      icon={<Signal className="h-5 w-5" />}
+                      iconBackground="bg-blue-100"
+                      iconColor="text-blue-600"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Pripojeni:</span>
+                          <NetworkStatus />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Service Worker:</span>
+                          <IOSBadge 
+                            label={swRegistrationStatus === 'checking' ? "Kontroluji..." :
+                                   swRegistrationStatus === 'available' ? "Aktivni" : "Nedostupny"}
+                            bgColor={swRegistrationStatus === 'available' ? 'bg-green-100' : 'bg-red-100'}
+                            textColor={swRegistrationStatus === 'available' ? 'text-green-800' : 'text-red-800'}
+                            borderColor={swRegistrationStatus === 'available' ? 'border-green-200' : 'border-red-200'}
+                            size="sm"
+                          />
+                        </div>
+                      </div>
+                    </IOSCard>
 
-            {/* Progress Indicator */}
-            {(isCaching || isClearing) && (
-              <Card>
-                <CardContent className="pt-6">
-                  <Progress value={progress} className="h-3" />
-                  <p className="text-sm text-gray-600 mt-2 text-center">
-                    {isCaching ? 'Ukládání GPS zdrojů...' : 'Mazání cache...'}
-                    <br />
-                    <span className="text-xs">{progress}%</span>
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+                    {/* Cache Stats */}
+                    <IOSSection title="Stav cache">
+                      <div className="grid grid-cols-2 gap-4">
+                        <IOSStatsCard
+                          title="GPS Ready"
+                          value={cacheStatus.gpsReady ? "✓" : "✗"}
+                          variant={cacheStatus.gpsReady ? "success" : "warning"}
+                          icon={<Smartphone className="h-4 w-4" />}
+                        />
+                        <IOSStatsCard
+                          title="Maps Ready"
+                          value={cacheStatus.mapsReady ? "✓" : "✗"}
+                          variant={cacheStatus.mapsReady ? "success" : "warning"}
+                          icon={<Globe className="h-4 w-4" />}
+                        />
+                      </div>
+                      <div className="mt-4 text-sm text-gray-600">
+                        <div className="flex justify-between items-center">
+                          <span>Celkem ulozeno:</span>
+                          <span className="font-medium">{cacheStatus.totalCached} zdroju</span>
+                        </div>
+                        {cacheStatus.lastUpdated && (
+                          <div className="flex justify-between items-center mt-1">
+                            <span>Posledni aktualizace:</span>
+                            <span className="font-medium">{cacheStatus.lastUpdated.toLocaleTimeString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </IOSSection>
 
-            {/* Actions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Akce</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  className="w-full"
-                  disabled={isCaching || isClearing || isOffline || swRegistrationStatus !== 'available'}
-                  onClick={cacheGPSResources}
-                >
-                  {isCaching ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  Připravit GPS offline
-                </Button>
+                    {/* Progress Indicator */}
+                    {(isCaching || isClearing) && (
+                      <IOSCard>
+                        <div className="space-y-4">
+                          <Progress value={progress} className="h-3" />
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-900">
+                              {isCaching ? 'Ukladani GPS zdroju...' : 'Mazani cache...'}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">{progress}%</p>
+                          </div>
+                        </div>
+                      </IOSCard>
+                    )}
+
+                    {/* Actions */}
+                    <IOSSection title="Akce">
+                      <div className="space-y-3">
+                        <IOSButton 
+                          className="w-full h-12"
+                          disabled={isCaching || isClearing || isOffline || swRegistrationStatus !== 'available'}
+                          onClick={cacheGPSResources}
+                          loading={isCaching}
+                          icon={!isCaching ? <Download className="h-4 w-4" /> : undefined}
+                        >
+                          {isCaching ? 'Ukladani...' : 'Pripravit GPS offline'}
+                        </IOSButton>
+                        
+                        <IOSButton 
+                          variant="outline"
+                          className="w-full h-12"
+                          disabled={isCaching || isClearing}
+                          onClick={clearAllCache}
+                          loading={isClearing}
+                          icon={!isClearing ? <Trash2 className="h-4 w-4" /> : undefined}
+                        >
+                          {isClearing ? 'Mazani...' : 'Vymazat cache'}
+                        </IOSButton>
+                      </div>
+                    </IOSSection>
+
+                    {/* Offline Info */}
+                    <IOSCard
+                      title="Offline GPS"
+                      icon={<WifiOff className="h-5 w-5" />}
+                      iconBackground="bg-amber-100"
+                      iconColor="text-amber-600"
+                    >
+                      <div className="space-y-4 text-sm">
+                        <div className="flex items-start gap-3">
+                          <IOSCircleIcon variant="blue" size="sm">
+                            <MapPin className="h-4 w-4" />
+                          </IOSCircleIcon>
+                          <div>
+                            <div className="font-medium text-gray-900">GPS sledovani</div>
+                            <div className="text-gray-600">Funguje offline s ulozenymi mapami</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <IOSCircleIcon variant="amber" size="sm">
+                            <Battery className="h-4 w-4" />
+                          </IOSCircleIcon>
+                          <div>
+                            <div className="font-medium text-gray-900">Uspora baterie</div>
+                            <div className="text-gray-600">Optimalizovane pro dlouhe sledovani</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <IOSCircleIcon variant="blue" size="sm">
+                            <CloudOff className="h-4 w-4" />
+                          </IOSCircleIcon>
+                          <div>
+                            <div className="font-medium text-gray-900">Offline data</div>
+                            <div className="text-gray-600">Automaticka synchronizace pri pripojeni</div>
+                          </div>
+                        </div>
+                      </div>
+                    </IOSCard>
+                  </div>
+                </ScrollArea>
                 
-                <Button 
-                  variant="outline"
-                  className="w-full"
-                  disabled={isCaching || isClearing}
-                  onClick={clearAllCache}
-                >
-                  {isClearing ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 mr-2" />
-                  )}
-                  Vymazat cache
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Offline Info */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Offline GPS</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 mt-0.5 text-blue-600" />
-                    <div>
-                      <div className="font-medium">GPS sledování</div>
-                      <div className="text-gray-600">Funguje offline s uloženými mapami</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Battery className="h-4 w-4 mt-0.5 text-green-600" />
-                    <div>
-                      <div className="font-medium">Úspora baterie</div>
-                      <div className="text-gray-600">Optimalizované pro dlouhé sledování</div>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <WifiOff className="h-4 w-4 mt-0.5 text-amber-600" />
-                    <div>
-                      <div className="font-medium">Offline data</div>
-                      <div className="text-gray-600">Automatická synchronizace při připojení</div>
-                    </div>
-                  </div>
+                {/* Footer */}
+                <div className="p-6 border-t border-gray-200/50">
+                  <IOSButton 
+                    className="w-full h-12"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Zavrit
+                  </IOSButton>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </ScrollArea>
-        
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button type="button" className="w-full">
-              Zavřít
-            </Button>
-          </SheetClose>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }; 

@@ -34,18 +34,18 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
     const cardRef = useRef<HTMLDivElement>(null);
 
     const baseStyles = {
-      default: "bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-lg",
-      elevated: "bg-white/95 backdrop-blur-xl shadow-xl border border-gray-200/50",
+      default: "bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-md",
+      elevated: "bg-white/95 backdrop-blur-xl shadow-lg border border-gray-200/50",
       outlined: "border-2 border-gray-200/50 bg-transparent backdrop-blur-sm"
     };
 
     const iconContainerStyles = cn(
-      "flex items-center justify-center rounded-2xl w-12 h-12 shrink-0",
+      "flex items-center justify-center rounded-2xl w-10 h-10 sm:w-12 sm:h-12 shrink-0",
       iconBackground
     );
 
     const iconStyles = cn(
-      "w-6 h-6",
+      "w-5 h-5 sm:w-6 sm:h-6",
       iconColor
     );
 
@@ -54,7 +54,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
         ref={ref}
         className={cn(
           "rounded-3xl overflow-visible transition-all duration-300",
-          "hover:shadow-lg hover:scale-[1.002] transform",
+          "hover:shadow-xl hover:scale-[1.005] transform",
           baseStyles[variant],
           className
         )}
@@ -62,7 +62,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
       >
         {(title || subtitle || icon) && (
           <div className={cn(
-            "flex items-start gap-4 p-6",
+            "flex items-start gap-3 sm:gap-4 p-4 sm:p-6",
             headerClassName
           )}>
             {icon && (
@@ -74,7 +74,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
             )}
             <div className="flex-1 min-w-0">
               {title && (
-                <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">
                   {title}
                 </h3>
               )}
@@ -87,15 +87,15 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
           </div>
         )}
         <div className={cn(
-          "px-6 pb-6",
-          (title || subtitle || icon) ? "pt-0" : "pt-6",
+          "px-4 sm:px-6 pb-4 sm:pb-6",
+          (title || subtitle || icon) ? "pt-0" : "pt-4 sm:pt-6",
           contentClassName
         )}>
           {children}
         </div>
         {footer && (
           <div className={cn(
-            "px-6 py-4 bg-gray-50/50 border-t border-gray-100/50 backdrop-blur-sm",
+            "px-4 sm:px-6 py-3 sm:py-4 bg-gray-50/50 border-t border-gray-100/50 backdrop-blur-sm",
             footerClassName
           )}>
             {footer}

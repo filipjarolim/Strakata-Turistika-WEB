@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
-import { Badge } from "@/components/ui/badge";
-import { Wifi, WifiOff, MapPin, CloudOff, CheckCircle, AlertCircle } from "lucide-react";
+import { IOSBadge } from "@/components/ui/ios/badge";
+import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
+import { Wifi, WifiOff, MapPin, CloudOff, CheckCircle, AlertCircle, Signal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CacheStatus {
@@ -15,11 +16,17 @@ interface CacheStatus {
 export function OfflineIndicator() {
   const isOffline = useOfflineStatus();
   const [visible, setVisible] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [cacheStatus, setCacheStatus] = useState<CacheStatus>({
     gpsReady: false,
     mapsReady: false,
     totalCached: 0
   });
+  
+  // Set client flag after hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   // Check cache status
   const checkCacheStatus = async () => {
@@ -54,6 +61,8 @@ export function OfflineIndicator() {
   
   // Show the indicator when status changes or if offline
   useEffect(() => {
+    if (!isClient) return;
+    
     checkCacheStatus();
     
     if (isOffline) {
@@ -67,70 +76,59 @@ export function OfflineIndicator() {
       
       return () => clearTimeout(timer);
     }
-  }, [isOffline]);
+  }, [isOffline, isClient]);
 
   // Check cache status periodically
   useEffect(() => {
+    if (!isClient) return;
+    
     const interval = setInterval(checkCacheStatus, 30000); // Every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
   
-  if (!visible) {
+  // Don't render until client-side hydration is complete
+  if (!isClient || !visible) {
     return null;
   }
   
   const isGPSReady = cacheStatus.gpsReady && cacheStatus.mapsReady;
   
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       {/* Network Status */}
-      <Badge 
-        variant={!isOffline ? "outline" : "destructive"}
+      <IOSBadge 
+        label={!isOffline ? "Online" : "Offline"}
+        bgColor={!isOffline ? "bg-green-100" : "bg-red-100"}
+        textColor={!isOffline ? "text-green-800" : "text-red-800"}
+        borderColor={!isOffline ? "border-green-200" : "border-red-200"}
+        size="sm"
+        icon={!isOffline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
         className="animate-fade-in-out transition-all"
-      >
-        {!isOffline ? (
-          <>
-            <Wifi className="h-3 w-3 mr-1" />
-            Online
-          </>
-        ) : (
-          <>
-            <WifiOff className="h-3 w-3 mr-1" />
-            Offline
-          </>
-        )}
-      </Badge>
+      />
 
       {/* GPS Cache Status */}
-      <Badge 
-        variant={isGPSReady ? "default" : "secondary"}
+      <IOSBadge 
+        label={isGPSReady ? "GPS Ready" : "GPS Loading"}
+        bgColor={isGPSReady ? "bg-green-100" : "bg-amber-100"}
+        textColor={isGPSReady ? "text-green-800" : "text-amber-800"}
+        borderColor={isGPSReady ? "border-green-200" : "border-amber-200"}
+        size="sm"
+        icon={isGPSReady ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
         className={cn(
-          "animate-fade-in-out transition-all",
-          isGPSReady ? "bg-green-100 text-green-800 border-green-200" : "bg-amber-100 text-amber-800 border-amber-200"
+          "animate-fade-in-out transition-all"
         )}
-      >
-        {isGPSReady ? (
-          <>
-            <CheckCircle className="h-3 w-3 mr-1" />
-            GPS Ready
-          </>
-        ) : (
-          <>
-            <AlertCircle className="h-3 w-3 mr-1" />
-            GPS Loading
-          </>
-        )}
-      </Badge>
+      />
 
       {/* Cache Info */}
       {cacheStatus.totalCached > 0 && (
-        <Badge 
-          variant="outline"
-          className="text-xs"
-        >
-          <CloudOff className="h-2 w-2 mr-1" />
-          {cacheStatus.totalCached}
-        </Badge>
+        <IOSBadge 
+          label={`${cacheStatus.totalCached}`}
+          bgColor="bg-blue-100"
+          textColor="text-blue-800"
+          borderColor="border-blue-200"
+          size="sm"
+          icon={<CloudOff className="h-2 w-2" />}
+        />
       )}
     </div>
   );

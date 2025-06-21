@@ -8,6 +8,7 @@ import Image from "next/image"
 import FooterDog from "@/assets/img/footerdog.png";
 import { ExtendedUser } from "@/next-auth";
 import { BugReportPanel } from "@/components/bug-report/BugReportPanel";
+import { OfflineController } from "@/components/ui/OfflineController";
 
 const CommonPageTemplate = ({
     children,
@@ -16,7 +17,8 @@ const CommonPageTemplate = ({
     currentRole,
     contents,
     style,
-    headerMode = "fixed"
+    headerMode = "fixed",
+    showOfflineController = false
 }: {
     children: React.ReactNode;
     className?: string;
@@ -25,6 +27,7 @@ const CommonPageTemplate = ({
     contents?: { complete?: boolean; header?: boolean; footer?: boolean };
     style?: React.CSSProperties;
     headerMode?: "fixed" | "static" | "auto-hide";
+    showOfflineController?: boolean;
 }) => {
     return (
         <>
@@ -34,7 +37,10 @@ const CommonPageTemplate = ({
                 {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
             </main>
 
-            {/* <BugReportPanel currentUser={currentUser} currentRole={currentRole} /> */}
+            <BugReportPanel currentUser={currentUser} currentRole={currentRole} />
+
+            {/* Offline Controller - Fixed position like bug report */}
+            {showOfflineController && <OfflineController />}
 
             {(contents?.complete || contents?.footer) && (
                 <div className="relative" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>

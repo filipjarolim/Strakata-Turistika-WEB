@@ -9,6 +9,12 @@ export function NetworkStatus() {
   const isOffline = useOfflineStatus();
   const [latency, setLatency] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Set client flag after hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Check connection latency - using useCallback to avoid dependency issues
   const checkLatency = useCallback(async () => {
@@ -37,6 +43,8 @@ export function NetworkStatus() {
 
   // Check latency periodically when online
   useEffect(() => {
+    if (!isClient) return;
+    
     if (isOffline) {
       setLatency(null);
       return;
@@ -47,7 +55,7 @@ export function NetworkStatus() {
     const intervalId = setInterval(checkLatency, 60000); // Check every minute
     
     return () => clearInterval(intervalId);
-  }, [isOffline, checkLatency]);
+  }, [isOffline, checkLatency, isClient]);
 
   // Quality indicator based on latency
   const getConnectionQuality = () => {
@@ -72,6 +80,21 @@ export function NetworkStatus() {
       default: return 'bg-gray-100 text-gray-800 border-gray-300';
     }
   };
+
+  // Don't render until client-side hydration is complete
+  if (!isClient) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge 
+          className="bg-gray-100 text-gray-800 border-gray-300 transition-colors duration-300"
+          variant="outline"
+        >
+          <Wifi className="h-3 w-3 mr-1" />
+          Checking...
+        </Badge>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2">

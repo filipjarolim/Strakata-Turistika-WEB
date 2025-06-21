@@ -20,16 +20,16 @@ export const IOSButton = React.forwardRef<HTMLButtonElement, IOSButtonProps>(
           "disabled:pointer-events-none disabled:opacity-50",
           "active:scale-95 transform",
           // Variants
-          variant === 'default' && "bg-white/80 backdrop-blur-sm text-gray-900 hover:bg-white/90 border border-gray-200/50 shadow-sm",
-          variant === 'outline' && "border border-gray-200/50 bg-white/50 backdrop-blur-sm hover:bg-gray-50/80 hover:text-gray-900 shadow-sm",
-          variant === 'blue' && "bg-blue-500 text-white hover:bg-blue-600 shadow-md",
-          variant === 'primary' && "bg-blue-500 text-white hover:bg-blue-600 shadow-lg",
-          // Sizes
-          size === 'default' && "h-10 px-4 py-2 text-sm",
-          size === 'sm' && "h-9 px-3 text-sm",
-          size === 'md' && "h-11 px-6 py-2.5 text-base",
-          size === 'lg' && "h-12 px-8 text-lg",
-          size === 'icon' && "h-10 w-10",
+          variant === 'default' && "bg-white/80 backdrop-blur-xl text-gray-900 hover:bg-white/90 border border-gray-200/50 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10",
+          variant === 'outline' && "border border-gray-200/50 bg-white/50 backdrop-blur-xl hover:bg-gray-50/80 hover:text-gray-900 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10",
+          variant === 'blue' && "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30",
+          variant === 'primary' && "bg-blue-500 text-white hover:bg-blue-600 shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:shadow-blue-500/30",
+          // Sizes - Responsive design
+          size === 'default' && "h-10 px-4 py-2 text-sm sm:h-11 sm:px-5 sm:text-base",
+          size === 'sm' && "h-8 px-3 text-xs sm:h-9 sm:px-4 sm:text-sm",
+          size === 'md' && "h-11 px-6 py-2.5 text-base sm:h-12 sm:px-7 sm:text-lg",
+          size === 'lg' && "h-12 px-8 text-lg sm:h-14 sm:px-10 sm:text-xl",
+          size === 'icon' && "h-10 w-10 sm:h-11 sm:w-11",
           className
         )}
         ref={ref}
@@ -37,10 +37,10 @@ export const IOSButton = React.forwardRef<HTMLButtonElement, IOSButtonProps>(
         {...props}
       >
         {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin sm:h-5 sm:w-5" />
         ) : (
           <>
-            {icon && <span className="mr-2">{icon}</span>}
+            {icon && <span className="mr-2 sm:mr-3">{icon}</span>}
             {children}
           </>
         )}

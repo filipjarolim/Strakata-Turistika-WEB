@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GPSLoadingScreen } from "@/components/ui/GPSLoadingScreen";
+import { OfflineController } from "@/components/ui/OfflineController";
 import { 
   Play, 
   Pause, 
@@ -99,6 +100,18 @@ const GPSPage = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
+  
+  // Developer stats
+  const [developerStats, setDeveloperStats] = useState({
+    totalDistanceMeters: 0,
+    lastUpdateTime: null as Date | null,
+    updateCount: 0,
+    averageUpdateInterval: 0,
+    lastUpdateInterval: 0,
+    gpsAccuracy: 0,
+    gpsSpeed: 0,
+    gpsHeading: 0
+  });
   
   // Refs
   const sessionRef = useRef<EnhancedTrackingSession | null>(null);
@@ -243,6 +256,28 @@ const GPSPage = () => {
 
     setCurrentPosition(gpsPosition);
 
+    // Update developer stats
+    const now = new Date();
+    setDeveloperStats(prev => {
+      const lastUpdateTime = prev.lastUpdateTime;
+      const updateInterval = lastUpdateTime ? now.getTime() - lastUpdateTime.getTime() : 0;
+      const newUpdateCount = prev.updateCount + 1;
+      const newAverageInterval = lastUpdateTime 
+        ? (prev.averageUpdateInterval * (newUpdateCount - 1) + updateInterval) / newUpdateCount
+        : 0;
+
+      return {
+        ...prev,
+        lastUpdateTime: now,
+        updateCount: newUpdateCount,
+        averageUpdateInterval: newAverageInterval,
+        lastUpdateInterval: updateInterval,
+        gpsAccuracy: position.coords.accuracy,
+        gpsSpeed: position.coords.speed || 0,
+        gpsHeading: position.coords.heading || 0
+      };
+    });
+
     if (sessionRef.current && sessionRef.current.isActive && !sessionRef.current.isPaused) {
       const session = sessionRef.current;
       
@@ -256,6 +291,12 @@ const GPSPage = () => {
         );
         
         session.totalDistance += distance;
+        
+        // Update developer stats with precise distance in meters
+        setDeveloperStats(prev => ({
+          ...prev,
+          totalDistanceMeters: Math.round(prev.totalDistanceMeters + (distance * 1000))
+        }));
         
         // Calculate ascent/descent
         if (gpsPosition.altitude && lastPositionRef.current.altitude) {
@@ -315,12 +356,26 @@ const GPSPage = () => {
         handlePositionUpdate,
         (error) => {
           console.error('GPS Error:', error);
-          toast.error(`GPS Error: ${error.message}`);
+          let errorMessage = 'GPS Error';
+          switch (error.code) {
+            case 1:
+              errorMessage = 'GPS access denied. Please enable location services.';
+              break;
+            case 2:
+              errorMessage = 'GPS position unavailable. Please check your location settings.';
+              break;
+            case 3:
+              errorMessage = 'GPS timeout. Please try again or move to an open area.';
+              break;
+            default:
+              errorMessage = `GPS Error: ${error.message}`;
+          }
+          toast.error(errorMessage);
         },
         {
           enableHighAccuracy: true,
           maximumAge: 0,
-          timeout: 10000
+          timeout: 30000 // Increased timeout to 30 seconds
         }
       );
       
@@ -496,7 +551,7 @@ const GPSPage = () => {
   })) || [];
 
   return (
-    <CommonPageTemplate contents={{}} currentUser={undefined} currentRole={undefined} className='h-screen max-h-screen overflow-y-hidden p-0'>
+    <CommonPageTemplate contents={{}} currentUser={undefined} currentRole={undefined} className='h-screen max-h-screen overflow-y-hidden p-0' showOfflineController={true}>
       <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
         {/* Mobile layout (no border, full width) */}
         <div className="md:hidden w-full h-full bg-white/80 backdrop-blur-xl overflow-y-auto">
@@ -746,6 +801,62 @@ const GPSPage = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Developer Stats */}
+            {showStats && (
+              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 rounded-2xl bg-purple-100/80 backdrop-blur-sm">
+                    <BarChart3 className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-lg">Developer Stats</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center border border-purple-200/50">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {developerStats.totalDistanceMeters}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium">meters</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-200/50">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {developerStats.updateCount}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium">updates</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-200/50">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {developerStats.averageUpdateInterval > 0 ? Math.round(developerStats.averageUpdateInterval / 1000) : 0}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium">avg sec</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 text-center border border-orange-200/50">
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      {developerStats.gpsAccuracy.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium">accuracy m</div>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2 text-xs text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Last update:</span>
+                    <span>{developerStats.lastUpdateTime ? developerStats.lastUpdateTime.toLocaleTimeString() : 'Never'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Last interval:</span>
+                    <span>{developerStats.lastUpdateInterval > 0 ? Math.round(developerStats.lastUpdateInterval / 1000) : 0}s</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GPS Speed:</span>
+                    <span>{(developerStats.gpsSpeed * 3.6).toFixed(1)} km/h</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>GPS Heading:</span>
+                    <span>{developerStats.gpsHeading.toFixed(0)}°</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -998,6 +1109,62 @@ const GPSPage = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Developer Stats */}
+              {showStats && (
+                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-2xl bg-purple-100/80 backdrop-blur-sm">
+                      <BarChart3 className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 text-lg">Developer Stats</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center border border-purple-200/50">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {developerStats.totalDistanceMeters}
+                      </div>
+                      <div className="text-xs text-gray-600 font-medium">meters</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-200/50">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {developerStats.updateCount}
+                      </div>
+                      <div className="text-xs text-gray-600 font-medium">updates</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-200/50">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {developerStats.averageUpdateInterval > 0 ? Math.round(developerStats.averageUpdateInterval / 1000) : 0}
+                      </div>
+                      <div className="text-xs text-gray-600 font-medium">avg sec</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 text-center border border-orange-200/50">
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {developerStats.gpsAccuracy.toFixed(1)}
+                      </div>
+                      <div className="text-xs text-gray-600 font-medium">accuracy m</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2 text-xs text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Last update:</span>
+                      <span>{developerStats.lastUpdateTime ? developerStats.lastUpdateTime.toLocaleTimeString() : 'Never'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Last interval:</span>
+                      <span>{developerStats.lastUpdateInterval > 0 ? Math.round(developerStats.lastUpdateInterval / 1000) : 0}s</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>GPS Speed:</span>
+                      <span>{(developerStats.gpsSpeed * 3.6).toFixed(1)} km/h</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>GPS Heading:</span>
+                      <span>{developerStats.gpsHeading.toFixed(0)}°</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
         </div>
