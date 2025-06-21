@@ -293,10 +293,10 @@ export const GalleryClient = () => {
                                 >
                                     Masonry
                                 </IOSButton>
-                            </div>
-                            <UploadForm />
                         </div>
+                        <UploadForm />
                     </div>
+                </div>
                 </IOSCard>
             </motion.div>
 
@@ -306,24 +306,24 @@ export const GalleryClient = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
             >
-                {loading ? (
-                    // Skeleton loading state
+                    {loading ? (
+                        // Skeleton loading state
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                            <div key={i} className="animate-pulse">
+                                <div key={i} className="animate-pulse">
                                 <div className="bg-gray-200 rounded-3xl aspect-square"></div>
-                                <div className="h-4 bg-gray-200 rounded mt-3 w-3/4"></div>
-                                <div className="h-3 bg-gray-200 rounded mt-2 w-1/2"></div>
-                            </div>
-                        ))}
-                    </div>
-                ) : filteredImages.length === 0 ? (
-                    // Empty state
+                                    <div className="h-4 bg-gray-200 rounded mt-3 w-3/4"></div>
+                                    <div className="h-3 bg-gray-200 rounded mt-2 w-1/2"></div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredImages.length === 0 ? (
+                        // Empty state
                     <IOSCard
                         title="Žádné fotky nenalezeny"
                         subtitle={search 
-                            ? `Nepodařilo se najít žádné fotky odpovídající "${search}"`
-                            : "V této kategorii zatím nejsou žádné fotky"}
+                                    ? `Nepodařilo se najít žádné fotky odpovídající "${search}"`
+                                    : "V této kategorii zatím nejsou žádné fotky"}
                         icon={<Images className="h-6 w-6" />}
                         iconBackground="bg-gray-100"
                         iconColor="text-gray-400"
@@ -334,7 +334,7 @@ export const GalleryClient = () => {
                             </IOSCircleIcon>
                             {search && (
                                 <IOSButton
-                                    variant="outline"
+                                    variant="outline" 
                                     onClick={() => setSearch("")}
                                     className="mt-4"
                                 >
@@ -353,14 +353,14 @@ export const GalleryClient = () => {
                     )}>
                         {filteredImages.map((image, index) => (
                             <ImageCard key={image.public_id} image={image} index={index} />
-                        ))}
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    )}
             </motion.div>
 
             {/* Image Modal */}
             <AnimatePresence>
-                {selectedImage && (
+                    {selectedImage && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -397,7 +397,7 @@ export const GalleryClient = () => {
                             
                             <div className="p-6">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div>
+                                <div>
                                         <h3 className="text-xl font-semibold text-gray-900 mb-2">{selectedImage.title}</h3>
                                         <p className="text-gray-600 mb-3">{selectedImage.description}</p>
                                         <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -420,12 +420,12 @@ export const GalleryClient = () => {
                                             <Heart className="h-4 w-4 mr-2" />
                                             Líbí se mi
                                         </IOSButton>
-                                    </div>
+                                </div>
                                 </div>
                             </div>
                         </motion.div>
                     </motion.div>
-                )}
+                    )}
             </AnimatePresence>
         </div>
     );

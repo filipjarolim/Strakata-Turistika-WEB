@@ -58,16 +58,124 @@ import {
   GPSPosition
 } from "@/components/pwa/gps-tracker/backgroundTracking";
 import dynamic from 'next/dynamic';
+import { shouldEnableOffline } from '@/lib/dev-utils';
 
 // Dynamically import the map component to avoid SSR issues
-const MapComponent = dynamic(() => import('@/components/editor/GpxEditor'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-64 bg-gray-100 rounded-2xl flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+const MapComponent = dynamic(
+  () => import('@/components/editor/GpxEditor').then(mod => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-gray-100 rounded-2xl flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+);
+
+// Simple lightweight map component for GPS tracking
+const SimpleMapComponent = dynamic(
+  () => import('@/components/pwa/gps-tracker/SimpleMap'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-gray-100 rounded-2xl flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+);
+
+// Fallback map component in case the main map fails to load
+const FallbackMap = () => (
+  <div className="w-full h-64 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl flex items-center justify-center border border-blue-200/50">
+    <div className="text-center">
+      <MapPin className="h-12 w-12 text-blue-400 mx-auto mb-3" />
+      <p className="text-sm text-gray-600 font-medium">Map Loading...</p>
+      <p className="text-xs text-gray-500 mt-1">Please wait while the map initializes</p>
     </div>
-  )
-});
+  </div>
+);
+
+// Simple static map fallback
+const StaticMapFallback = ({ trackPoints }: { trackPoints: { lat: number; lng: number }[] }) => {
+  if (trackPoints.length === 0) {
+    return <FallbackMap />;
+  }
+
+  return (
+    <div className="w-full h-64 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl border border-blue-200/50 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-blue-600" />
+          <span className="text-sm font-medium text-gray-700">Route Overview</span>
+        </div>
+        <span className="text-xs text-gray-500">{trackPoints.length} points</span>
+      </div>
+      
+      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 h-32 overflow-hidden">
+        <div className="text-xs text-gray-600 mb-2">GPS Track</div>
+        <div className="flex items-center gap-1">
+          {trackPoints.slice(0, 20).map((point, index) => (
+            <div
+              key={index}
+              className="w-1 h-1 bg-blue-500 rounded-full"
+              style={{
+                opacity: index / Math.min(trackPoints.length, 20)
+              }}
+            />
+          ))}
+          {trackPoints.length > 20 && (
+            <span className="text-xs text-gray-400">...</span>
+          )}
+        </div>
+        
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div className="bg-white/40 rounded-lg p-2">
+            <div className="text-gray-500">Start</div>
+            <div className="font-mono text-gray-700">
+              {trackPoints[0]?.lat.toFixed(4)}, {trackPoints[0]?.lng.toFixed(4)}
+            </div>
+          </div>
+          <div className="bg-white/40 rounded-lg p-2">
+            <div className="text-gray-500">Current</div>
+            <div className="font-mono text-gray-700">
+              {trackPoints[trackPoints.length - 1]?.lat.toFixed(4)}, {trackPoints[trackPoints.length - 1]?.lng.toFixed(4)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Error boundary for map component
+class MapErrorBoundary extends React.Component<
+  { children: React.ReactNode; onError: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onError: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Map Error:', error, errorInfo);
+    this.props.onError();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <FallbackMap />;
+    }
+
+    return this.props.children;
+  }
+}
 
 // Weather data interface
 interface WeatherData {
@@ -100,6 +208,7 @@ const GPSPage = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false);
   const [offlineMode, setOfflineMode] = useState(false);
+  const [mapError, setMapError] = useState(false);
   
   // Developer stats
   const [developerStats, setDeveloperStats] = useState({
@@ -126,6 +235,12 @@ const GPSPage = () => {
 
   // Register service worker for offline functionality
   useEffect(() => {
+    // Disable service worker in development unless offline is enabled
+    if (!shouldEnableOffline()) {
+      console.log('Service worker registration disabled in development mode');
+      return;
+    }
+    
     const registerServiceWorker = async () => {
       if ('serviceWorker' in navigator) {
         try {
@@ -538,6 +653,28 @@ const GPSPage = () => {
     };
   }, []);
 
+  // Handle global errors for map loading
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      if (event.message.includes('chunk') || event.message.includes('4867')) {
+        console.warn('Map chunk loading error detected, showing fallback');
+        setMapError(true);
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  // Retry map loading
+  const retryMap = () => {
+    setMapError(false);
+    // Force a re-render by updating a state
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
   // Show loading screen if GPS is not ready
   if (!isGPSReady) {
     return <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />;
@@ -727,21 +864,29 @@ const GPSPage = () => {
                   <h3 className="font-semibold text-gray-900">Live Map</h3>
                 </div>
                 <div className="h-64 rounded-2xl overflow-hidden border border-gray-200/50">
-                  {mapTrackPoints.length > 0 ? (
-                    <MapComponent
-                      onSave={() => {}}
-                      initialTrack={mapTrackPoints}
-                      readOnly={true}
-                      hideControls={['editMode', 'undo', 'redo', 'add', 'delete', 'simplify']}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                      <div className="text-center">
-                        <MapPin className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">Start tracking to see your route</p>
+                  <MapErrorBoundary onError={() => setMapError(true)}>
+                    {mapError ? (
+                      <div className="w-full h-full bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl flex items-center justify-center border border-red-200/50">
+                        <div className="text-center">
+                          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
+                          <p className="text-sm text-gray-600 font-medium">Map Unavailable</p>
+                          <p className="text-xs text-gray-500 mt-1">Please try refreshing the page</p>
+                          <button 
+                            onClick={() => setMapError(false)}
+                            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                          >
+                            Retry
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : mapTrackPoints.length > 0 ? (
+                      <MapErrorBoundary onError={() => setMapError(true)}>
+                        <SimpleMapComponent trackPoints={mapTrackPoints} />
+                      </MapErrorBoundary>
+                    ) : (
+                      <StaticMapFallback trackPoints={mapTrackPoints} />
+                    )}
+                  </MapErrorBoundary>
                 </div>
               </div>
             )}
@@ -1035,21 +1180,29 @@ const GPSPage = () => {
                     <h3 className="font-semibold text-gray-900">Live Map</h3>
                   </div>
                   <div className="h-64 rounded-2xl overflow-hidden border border-gray-200/50">
-                    {mapTrackPoints.length > 0 ? (
-                      <MapComponent
-                        onSave={() => {}}
-                        initialTrack={mapTrackPoints}
-                        readOnly={true}
-                        hideControls={['editMode', 'undo', 'redo', 'add', 'delete', 'simplify']}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                        <div className="text-center">
-                          <MapPin className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-500">Start tracking to see your route</p>
+                    <MapErrorBoundary onError={() => setMapError(true)}>
+                      {mapError ? (
+                        <div className="w-full h-full bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl flex items-center justify-center border border-red-200/50">
+                          <div className="text-center">
+                            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
+                            <p className="text-sm text-gray-600 font-medium">Map Unavailable</p>
+                            <p className="text-xs text-gray-500 mt-1">Please try refreshing the page</p>
+                            <button 
+                              onClick={() => setMapError(false)}
+                              className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                            >
+                              Retry
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      ) : mapTrackPoints.length > 0 ? (
+                        <MapErrorBoundary onError={() => setMapError(true)}>
+                          <SimpleMapComponent trackPoints={mapTrackPoints} />
+                        </MapErrorBoundary>
+                      ) : (
+                        <StaticMapFallback trackPoints={mapTrackPoints} />
+                      )}
+                    </MapErrorBoundary>
                   </div>
                 </div>
               )}

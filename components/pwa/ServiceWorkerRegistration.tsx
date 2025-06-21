@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { shouldEnableOffline } from '@/lib/dev-utils';
 
 export default function ServiceWorkerRegistration() {
   const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
+    // Disable service worker in development unless offline is enabled
+    if (!shouldEnableOffline()) {
+      console.log('Service Worker disabled in development mode');
+      return;
+    }
+
     if (
       typeof window !== "undefined" &&
       "serviceWorker" in navigator &&

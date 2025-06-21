@@ -197,7 +197,7 @@ const MapComponent = () => {
 const ContactForm = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
+    
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -207,7 +207,7 @@ const ContactForm = () => {
             message: ""
         }
     });
-
+    
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
         setSubmitStatus('idle');
@@ -220,7 +220,7 @@ const ContactForm = () => {
                 },
                 body: JSON.stringify(data),
             });
-
+            
             if (response.ok) {
                 setSubmitStatus('success');
                 form.reset();
@@ -234,8 +234,8 @@ const ContactForm = () => {
             setIsSubmitting(false);
         }
     };
-
-    return (
+    
+        return (
         <IOSCard
             title="Kontaktní formulář"
             subtitle="Napište nám zprávu a my vám odpovíme co nejdříve"
@@ -332,10 +332,10 @@ const ContactForm = () => {
 
 const FaqSection = () => {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-
+    
     return (
         <IOSSection title="Často kladené otázky">
-            <div className="space-y-4">
+        <div className="space-y-4">
                 {FAQ_ITEMS.map((faq, index) => (
                     <motion.div
                         key={index}
@@ -356,14 +356,14 @@ const FaqSection = () => {
                                     <div className="flex-1">
                                         <h4 className="font-semibold text-gray-900 mb-2">{faq.question}</h4>
                                         <AnimatePresence>
-                                            {openFaq === index && (
+                        {openFaq === index && (
                                                 <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
+                                    initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
                                                     exit={{ opacity: 0, height: 0 }}
                                                     className="text-gray-600 text-sm leading-relaxed"
-                                                >
-                                                    {faq.answer}
+                                >
+                                    {faq.answer}
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -406,12 +406,12 @@ export const ContactClient = () => {
                     </p>
                 </div>
             </motion.div>
-
+            
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left Column - Contact Info & Map */}
                 <div className="space-y-8">
-                    <motion.div
+                    <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2, duration: 0.6 }}
@@ -423,11 +423,11 @@ export const ContactClient = () => {
                             iconBackground="bg-blue-100"
                             iconColor="text-blue-600"
                         >
-                            <ContactInfo />
+                                    <ContactInfo />
                         </IOSCard>
                     </motion.div>
-
-                    <motion.div
+                    
+                    <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4, duration: 0.6 }}
@@ -439,7 +439,7 @@ export const ContactClient = () => {
                             iconBackground="bg-green-100"
                             iconColor="text-green-600"
                         >
-                            <MapComponent />
+                                <MapComponent />
                         </IOSCard>
                     </motion.div>
                 </div>
@@ -492,13 +492,13 @@ export const ContactClient = () => {
             </motion.div>
 
             {/* FAQ Section */}
-            <motion.div
+                    <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.6 }}
             >
-                <FaqSection />
-            </motion.div>
+                                <FaqSection />
+                    </motion.div>
         </div>
     );
 }; 

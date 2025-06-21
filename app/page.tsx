@@ -11,8 +11,8 @@ import {useCurrentUser} from "@/hooks/use-current-user";
 import {useCurrentRole} from "@/hooks/use-current-role";
 import { currentUser } from "@/lib/auth";
 import { currentRole } from "@/lib/auth";
-import DogEmoji from "@/assets/img/dog_emoji.png";
-import PinEmoji from "@/assets/img/pin_emoji.png";
+import DogEmoji from "@/assets/img/dogEmoji.png";
+import PinEmoji from "@/assets/img/mapEmoji.png";
 import Showcase1 from "@/assets/img/showcase/1.png";
 import Showcase2 from "@/assets/img/showcase/3.png";
 import Showcase3 from "@/assets/img/showcase/2.png";
@@ -114,9 +114,9 @@ const Home = async () => {
     return (
         <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showOfflineController={true}>
             {/* Hero Section */}
-            <div className="animate-fadeIn">
-                <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full px-8"}>
-                    <div className={"p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
+            <div className="animate-fadeIn border-2 border-black">
+                <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[70vh] px-8 border-2 border-black"}>
+                    <div className={"p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full  border-2 border-black cursor-default"}>
                          <h1 className="text-[90px] font-semibold whitespace-nowrap overflow-visible">
                               {basicInfo.name}
                         </h1>   
@@ -126,7 +126,7 @@ const Home = async () => {
                             <IOSBadge
                                 label="Česko"
                                 icon={PinEmoji}
-                                specialStyle={{ iconSize: 100 }}
+                                specialStyle={{ iconSize: 120 }}
                                 bgColor="bg-red-200/80"
                                 borderColor="border-red-400/70"
                                 textColor="text-red-900/80"
@@ -198,17 +198,8 @@ const Home = async () => {
                 </div>
             </div>
             
-            <Separator className="my-8" />
-            
-            {/* News Section */}
-            <div className="animate-fadeIn animation-delay-300">
-                <News/>
-            </div>
-            
-            <Separator className="my-8" />
-            
-            {/* Stats Section */}
-            <div className="px-8 py-16 animate-fadeIn animation-delay-400 my-8 md:my-16">
+                 {/* Stats Section */}
+                <div className="px-8 py-16 animate-fadeIn animation-delay-400 my-8 md:my-16">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <IOSStatsCard
                         title="Aktivních uživatelů"
@@ -241,6 +232,17 @@ const Home = async () => {
                 </div>
             </div>
 
+            
+            <Separator className="my-8" />
+            
+            {/* News Section */}
+            <div className="animate-fadeIn animation-delay-300">
+                <News/>
+            </div>
+            
+            <Separator className="my-8" />
+            
+       
             {/* Tutorial Section */}
             <div className="px-8 py-20 bg-gradient-to-br from-blue-50/60 via-white/40 to-amber-50/60 rounded-[40px] mx-8 animate-fadeIn animation-delay-500 backdrop-blur-sm border border-white/20 shadow-2xl shadow-blue-500/5 my-8 md:my-16">
                 <div className="text-center mb-16">
@@ -350,8 +352,8 @@ const Home = async () => {
                         Prozkoumejte nejkrásnější místa
                     </h2>
                     <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-                        Od hustých lesů přes majestátní hory až po křišťálová jezera - objevte nejkrásnější místa České republiky se svým čtyřnohým společníkem.
-                    </p>
+                    Od hustých lesů přes majestátní hory až po křišťálová jezera - objevte nejkrásnější místa České republiky se svým čtyřnohým společníkem.
+                </p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative max-w-7xl mx-auto">
@@ -493,7 +495,7 @@ const Home = async () => {
                     ))}
                 </div>
             </div>
-
+            
             {/* Download CTA Section */}
             <div className="px-8 py-20 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 rounded-[40px] mx-8 animate-fadeIn animation-delay-1000 backdrop-blur-sm border border-white/20 shadow-2xl shadow-blue-500/20 my-8 md:my-16">
                 <div className="text-center text-white">

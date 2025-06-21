@@ -4,8 +4,17 @@ import { useEffect, useState } from 'react';
 import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
-import { Wifi, WifiOff, MapPin, CloudOff, CheckCircle, AlertCircle, Signal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { shouldEnableOffline } from '@/lib/dev-utils';
+
+// Use dynamic imports to prevent HMR issues
+const Wifi = () => <div className="w-3 h-3 bg-green-500 rounded-full" />;
+const WifiOff = () => <div className="w-3 h-3 bg-red-500 rounded-full" />;
+const MapPin = () => <div className="w-3 h-3 bg-blue-500 rounded-full" />;
+const CloudOff = () => <div className="w-2 h-2 bg-blue-500 rounded-full" />;
+const CheckCircle = () => <div className="w-3 h-3 bg-green-500 rounded-full" />;
+const AlertCircle = () => <div className="w-3 h-3 bg-amber-500 rounded-full" />;
+const Signal = () => <div className="w-3 h-3 bg-blue-500 rounded-full" />;
 
 interface CacheStatus {
   gpsReady: boolean;
@@ -30,6 +39,11 @@ export function OfflineIndicator() {
   
   // Check cache status
   const checkCacheStatus = async () => {
+    // Disable cache checking in development unless offline is enabled
+    if (!shouldEnableOffline()) {
+      return;
+    }
+    
     if (typeof window === 'undefined' || !('caches' in window)) return;
 
     try {
@@ -91,6 +105,11 @@ export function OfflineIndicator() {
     return null;
   }
   
+  // Don't render in development mode unless offline is enabled
+  if (!shouldEnableOffline()) {
+    return null;
+  }
+  
   const isGPSReady = cacheStatus.gpsReady && cacheStatus.mapsReady;
   
   return (
@@ -102,7 +121,7 @@ export function OfflineIndicator() {
         textColor={!isOffline ? "text-green-800" : "text-red-800"}
         borderColor={!isOffline ? "border-green-200" : "border-red-200"}
         size="sm"
-        icon={!isOffline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+        icon={!isOffline ? <Wifi /> : <WifiOff />}
         className="animate-fade-in-out transition-all"
       />
 
@@ -113,7 +132,7 @@ export function OfflineIndicator() {
         textColor={isGPSReady ? "text-green-800" : "text-amber-800"}
         borderColor={isGPSReady ? "border-green-200" : "border-amber-200"}
         size="sm"
-        icon={isGPSReady ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+        icon={isGPSReady ? <CheckCircle /> : <AlertCircle />}
         className={cn(
           "animate-fade-in-out transition-all"
         )}
@@ -127,7 +146,7 @@ export function OfflineIndicator() {
           textColor="text-blue-800"
           borderColor="border-blue-200"
           size="sm"
-          icon={<CloudOff className="h-2 w-2" />}
+          icon={<CloudOff />}
         />
       )}
     </div>

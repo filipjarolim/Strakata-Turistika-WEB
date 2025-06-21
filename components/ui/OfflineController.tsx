@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { NetworkStatus } from './NetworkStatus';
 import { motion, AnimatePresence } from 'framer-motion';
+import { shouldEnableOffline } from '@/lib/dev-utils';
 
 // List of critical pages that should always be cached for offline use
 const DEFAULT_CRITICAL_PAGES = [
@@ -68,7 +69,8 @@ export const OfflineController: React.FC = () => {
   
   // Check if service worker is available
   const isServiceWorkerAvailable = isClient && typeof navigator !== 'undefined' && 
-                                 'serviceWorker' in navigator;
+                                 'serviceWorker' in navigator && 
+                                 shouldEnableOffline();
   
   // State to track service worker registration status
   const [swRegistrationStatus, setSwRegistrationStatus] = useState<'checking' | 'available' | 'unavailable'>('checking');
@@ -121,9 +123,9 @@ export const OfflineController: React.FC = () => {
     const checkServiceWorkerStatus = async () => {
       if (!isServiceWorkerAvailable) {
         setSwRegistrationStatus('unavailable');
-        return;
-      }
-      
+      return;
+    }
+    
       try {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration && registration.active) {
@@ -306,7 +308,7 @@ export const OfflineController: React.FC = () => {
       {/* Fixed position button - like bug report */}
       <div className="fixed bottom-4 right-4 z-50">
         <IOSButton 
-          variant="outline"
+          variant="outline" 
           size="icon"
           onClick={() => setIsOpen(true)}
           className="bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white/90 transition-all duration-200"
@@ -314,8 +316,8 @@ export const OfflineController: React.FC = () => {
         >
           <Settings className="h-4 w-4" />
         </IOSButton>
-      </div>
-
+          </div>
+          
       {/* Modal overlay - like bug report */}
       <AnimatePresence>
         {isOpen && (
@@ -346,9 +348,9 @@ export const OfflineController: React.FC = () => {
                   <div className="flex-1">
                     <h2 className="text-xl font-bold text-gray-900">GPS Offline</h2>
                     <p className="text-sm text-gray-500">Sprava offline GPS sledovani</p>
-                  </div>
+              </div>
                   <IOSButton
-                    variant="outline"
+                variant="outline" 
                     size="icon"
                     onClick={() => setIsOpen(false)}
                     className="h-8 w-8"
@@ -382,8 +384,8 @@ export const OfflineController: React.FC = () => {
                             borderColor={swRegistrationStatus === 'available' ? 'border-green-200' : 'border-red-200'}
                             size="sm"
                           />
-                        </div>
-                      </div>
+                </div>
+              </div>
                     </IOSCard>
 
                     {/* Cache Stats */}
@@ -411,9 +413,9 @@ export const OfflineController: React.FC = () => {
                           <div className="flex justify-between items-center mt-1">
                             <span>Posledni aktualizace:</span>
                             <span className="font-medium">{cacheStatus.lastUpdated.toLocaleTimeString()}</span>
-                          </div>
+                    </div>
                         )}
-                      </div>
+                </div>
                     </IOSSection>
 
                     {/* Progress Indicator */}
@@ -426,8 +428,8 @@ export const OfflineController: React.FC = () => {
                               {isCaching ? 'Ukladani GPS zdroju...' : 'Mazani cache...'}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">{progress}%</p>
-                          </div>
-                        </div>
+              </div>
+            </div>
                       </IOSCard>
                     )}
 
@@ -490,9 +492,9 @@ export const OfflineController: React.FC = () => {
                           <div>
                             <div className="font-medium text-gray-900">Offline data</div>
                             <div className="text-gray-600">Automaticka synchronizace pri pripojeni</div>
-                          </div>
-                        </div>
-                      </div>
+            </div>
+          </div>
+        </div>
                     </IOSCard>
                   </div>
                 </ScrollArea>

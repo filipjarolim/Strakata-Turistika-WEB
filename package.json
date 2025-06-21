@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:clean": "npm run clear-cache && next dev --turbopack",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "test:offline": "node scripts/test-offline.js"
+    "test:offline": "node scripts/test-offline.js",
+    "clear-cache": "node scripts/clear-dev-cache.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

@@ -134,7 +134,7 @@ const RULES_SECTIONS = [
 const RuleCard = ({ rule, index }: { rule: { title: string; content: string; important: boolean }; index: number }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    return (
+  return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -178,7 +178,7 @@ const RuleCard = ({ rule, index }: { rule: { title: string; content: string; imp
                                 )}
                             </AnimatePresence>
                         </div>
-                    </div>
+          </div>
                     <ChevronDown 
                         className={cn(
                             "h-5 w-5 text-gray-400 transition-transform duration-200 mt-1",
@@ -270,7 +270,7 @@ const ContactInfo = () => {
                         Stáhnout pravidla
                     </IOSButton>
                 </div>
-            </div>
+      </div>
         </IOSCard>
     );
 };

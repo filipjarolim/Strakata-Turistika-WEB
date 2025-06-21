@@ -75,15 +75,15 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
             formDataToSend.append('category', formData.category);
 
             const response = await fetch('/api/gallery/upload', {
-                method: 'POST',
+        method: 'POST',
                 body: formDataToSend,
             });
 
             if (response.ok) {
                 setUploadStatus('success');
                 setUploadProgress(100);
-                
-                // Reset form
+
+      // Reset form
                 setFiles([]);
                 setFormData({
                     title: '',
@@ -105,10 +105,10 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
             } else {
                 throw new Error('Upload failed');
             }
-        } catch (error) {
-            console.error('Upload error:', error);
+    } catch (error) {
+      console.error('Upload error:', error);
             setUploadStatus('error');
-        } finally {
+    } finally {
             setUploading(false);
         }
     };
@@ -155,7 +155,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
         );
     };
 
-    return (
+  return (
         <>
             <IOSButton
                 onClick={() => setIsOpen(true)}
@@ -244,9 +244,9 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                         
                                         <input
                                             ref={fileInputRef}
-                                            type="file"
+              type="file"
                                             multiple
-                                            accept="image/*"
+              accept="image/*"
                                             onChange={handleFileSelect}
                                             className="hidden"
                                         />
@@ -261,8 +261,8 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 value={formData.title}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                                                 required
-                                            />
-                                        </div>
+                />
+              </div>
                                         <div>
                                             <IOSTextInput
                                                 label="Lokalita"
@@ -270,9 +270,9 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 value={formData.location}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                                                 required
-                                            />
-                                        </div>
-                                    </div>
+            />
+          </div>
+            </div>
 
                                     <div>
                                         <IOSTextarea
@@ -281,7 +281,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                             placeholder="Popis fotky..."
                                             required
                                         />
-                                    </div>
+        </div>
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -294,8 +294,8 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                     variant={formData.category === cat.value ? "primary" : "outline"}
                                                     size="sm"
                                                     onClick={() => setFormData(prev => ({ ...prev, category: cat.value }))}
-                                                    className="gap-2"
-                                                >
+            className="gap-2"
+          >
                                                     <span>{cat.icon}</span>
                                                     {cat.label}
                                                 </IOSButton>
@@ -376,9 +376,9 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                         >
                                             {uploading ? 'Nahrávání...' : 'Nahrát fotky'}
                                         </IOSButton>
-                                    </>
-                                )}
-                            </div>
+              </>
+            )}
+        </div>
                         </motion.div>
                     </motion.div>
                 )}
