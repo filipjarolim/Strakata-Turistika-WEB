@@ -218,12 +218,14 @@ const GPSPage = () => {
 
   // Set offlineMode safely in browser only
   useEffect(() => {
-    setOfflineMode(typeof window !== 'undefined' && shouldEnableOffline());
+    if (typeof window !== 'undefined') {
+      setOfflineMode(!navigator.onLine);
+    }
   }, []);
 
-  // Register service worker for offline functionality (browser only, offline enabled)
+  // Register service worker for offline functionality (browser only)
   useEffect(() => {
-    if (typeof window === 'undefined' || !shouldEnableOffline()) return;
+    if (typeof window === 'undefined') return;
     const registerServiceWorker = async () => {
       if ('serviceWorker' in navigator) {
         try {
@@ -247,12 +249,13 @@ const GPSPage = () => {
     const updateOnlineStatus = () => {
       const online = navigator.onLine;
       setIsOnline(online);
-      setOfflineMode(!online ? true : shouldEnableOffline());
-      if (online && shouldEnableOffline()) {
+      // Only enable offline mode when there's no internet connection
+      setOfflineMode(!online);
+      if (online) {
         toast.success('Connection restored');
-        // Attempt to sync offline data (only if offline enabled)
+        // Attempt to sync offline data
         syncOfflineData().catch(console.error);
-      } else if (!online) {
+      } else {
         toast.info('Working in offline mode', {
           description: 'GPS tracking will continue to work offline'
         });
