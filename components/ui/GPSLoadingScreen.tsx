@@ -66,6 +66,7 @@ const getTilesForArea = (lat: number, lng: number, zoom: number, radiusDegrees: 
 };
 
 export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isOnline }) => {
+  // Initialize all state to static values to prevent hydration issues
   const [cacheStatus, setCacheStatus] = useState<CacheStatus>({
     gpsReady: false,
     mapsReady: false,
@@ -76,13 +77,16 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isO
   const [isLoading, setIsLoading] = useState(true);
   const [canSkip, setCanSkip] = useState(false);
   const [skipTimer, setSkipTimer] = useState(5);
+  const [isServiceWorkerAvailable, setIsServiceWorkerAvailable] = useState(false);
 
-  // Check if service worker is available
-  const isServiceWorkerAvailable = typeof navigator !== 'undefined' && 
-                                 'serviceWorker' in navigator;
-
-  // Skip timer
+  // Check if service worker is available (client only)
   useEffect(() => {
+    setIsServiceWorkerAvailable(typeof navigator !== 'undefined' && 'serviceWorker' in navigator);
+  }, []);
+
+  // Skip timer (client only)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (skipTimer > 0 && !cacheStatus.gpsReady) {
       const timer = setTimeout(() => {
         setSkipTimer(skipTimer - 1);
@@ -95,6 +99,7 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isO
   }, [skipTimer, cacheStatus.gpsReady]);
 
   const loadGPSResources = useCallback(async () => {
+    if (typeof window === 'undefined') return;
     setCacheStatus(prev => ({ ...prev, currentStep: 'Načítání GPS stránek...', progress: 40 }));
     try {
       await Promise.all(
@@ -172,6 +177,7 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isO
   }, [onReady]);
 
   const checkInitialCacheStatus = useCallback(async () => {
+    if (typeof window === 'undefined') return;
     setCacheStatus(prev => ({ ...prev, currentStep: 'Kontrola cache...', progress: 10 }));
     if (!isServiceWorkerAvailable) {
       setCacheStatus(prev => ({ ...prev, currentStep: 'Service Worker nedostupný', progress: 100 }));
@@ -202,130 +208,153 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady, isO
           onReady();
         }, 1500);
       } else {
-        await loadGPSResources();
+        loadGPSResources();
       }
     } catch (error) {
       console.error('Error checking cache status:', error);
       setCacheStatus(prev => ({ ...prev, currentStep: 'Chyba při kontrole cache', progress: 100 }));
       setIsLoading(false);
     }
-  }, [isServiceWorkerAvailable, onReady, loadGPSResources]);
+  }, [isServiceWorkerAvailable, loadGPSResources, onReady]);
 
+  // Initialize cache check (client only)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     checkInitialCacheStatus();
   }, [checkInitialCacheStatus]);
 
   const handleSkip = () => {
+    if (typeof window === 'undefined') return;
     setIsLoading(false);
     onReady();
   };
 
-  const isGPSReady = cacheStatus.gpsReady && cacheStatus.mapsReady;
+  const handleRetry = () => {
+    if (typeof window === 'undefined') return;
+    setCacheStatus(prev => ({ ...prev, progress: 0, currentStep: 'Kontrola cache...' }));
+    setIsLoading(true);
+    setCanSkip(false);
+    setSkipTimer(5);
+    checkInitialCacheStatus();
+  };
 
-  return (
-    <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-2xl">
-          <CardContent className="p-8">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <MapPin className="h-10 w-10 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">GPS Tracker</h1>
-              <p className="text-gray-600">Příprava offline sledování</p>
+  // Simple loading screen for development or when cache is disabled
+  if (typeof window === 'undefined' || !isServiceWorkerAvailable) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="p-4 rounded-full bg-blue-100 w-fit mx-auto">
+              <MapPin className="h-8 w-8 text-blue-600" />
             </div>
-
-            {/* Status Indicators */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="text-center p-3 rounded-xl bg-blue-50 border border-blue-200">
-                <div className="text-2xl font-bold text-blue-600 mb-1">
-                  {isOnline ? <Wifi className="h-6 w-6 mx-auto" /> : <WifiOff className="h-6 w-6 mx-auto" />}
-                </div>
-                <div className="text-xs text-blue-700 font-medium">
-                  {isOnline ? 'Online' : 'Offline'}
-                </div>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-green-50 border border-green-200">
-                <div className="text-2xl font-bold text-green-600 mb-1">
-                  {isGPSReady ? <CheckCircle className="h-6 w-6 mx-auto" /> : <AlertCircle className="h-6 w-6 mx-auto" />}
-                </div>
-                <div className="text-xs text-green-700 font-medium">
-                  {isGPSReady ? 'Připraveno' : 'Načítání'}
-                </div>
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">GPS Tracker</h2>
+              <p className="text-sm text-gray-600">Loading GPS functionality...</p>
             </div>
-
-            {/* Progress */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Průběh</span>
-                <span className="text-sm text-gray-500">{cacheStatus.progress}%</span>
-              </div>
-              <Progress value={cacheStatus.progress} className="h-3" />
-              <p className="text-sm text-gray-600 mt-2 text-center">
-                {cacheStatus.currentStep}
-              </p>
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
             </div>
-
-            {/* Cache Info */}
-            {cacheStatus.totalCached > 0 && (
-              <div className="mb-6 p-3 rounded-xl bg-gray-50 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CloudOff className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Cache</span>
-                  </div>
-                  <Badge variant="outline">
-                    {cacheStatus.totalCached} zdrojů
-                  </Badge>
-                </div>
-              </div>
-            )}
-
-            {/* Service Worker Status */}
-            <div className="mb-6 p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-800">Service Worker</span>
-                </div>
-                <Badge variant={isServiceWorkerAvailable ? "default" : "destructive"}>
-                  {isServiceWorkerAvailable ? "Aktivní" : "Nedostupný"}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Skip Button */}
-            {canSkip && !isGPSReady && (
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={handleSkip}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Pokračovat bez cache ({skipTimer}s)
-              </Button>
-            )}
-
-            {/* Loading Animation */}
-            {!canSkip && !isGPSReady && (
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Příprava GPS sledování...</p>
-              </div>
-            )}
-
-            {/* Success State */}
-            {isGPSReady && (
-              <div className="text-center">
-                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-green-600 font-medium">GPS připraveno!</p>
-              </div>
-            )}
+            <Button onClick={onReady} className="w-full">
+              Continue to GPS
+            </Button>
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-6 space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <div className="p-4 rounded-full bg-blue-100 w-fit mx-auto">
+              <MapPin className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">GPS Tracker</h2>
+              <p className="text-sm text-gray-600">Připravujeme offline funkcionalitu</p>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Progress</span>
+              <span className="font-medium">{cacheStatus.progress}%</span>
+            </div>
+            <Progress value={cacheStatus.progress} className="h-2" />
+            <p className="text-xs text-gray-500 text-center">{cacheStatus.currentStep}</p>
+          </div>
+
+          {/* Status Indicators */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className={cn(
+              "flex items-center gap-2 p-3 rounded-lg border",
+              cacheStatus.gpsReady 
+                ? "bg-green-50 border-green-200 text-green-700" 
+                : "bg-gray-50 border-gray-200 text-gray-500"
+            )}>
+              {cacheStatus.gpsReady ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              <span className="text-xs font-medium">GPS Ready</span>
+            </div>
+            <div className={cn(
+              "flex items-center gap-2 p-3 rounded-lg border",
+              cacheStatus.mapsReady 
+                ? "bg-green-50 border-green-200 text-green-700" 
+                : "bg-gray-50 border-gray-200 text-gray-500"
+            )}>
+              {cacheStatus.mapsReady ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              <span className="text-xs font-medium">Maps Ready</span>
+            </div>
+          </div>
+
+          {/* Connection Status */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              {isOnline ? (
+                <Wifi className="h-4 w-4 text-green-600" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-600" />
+              )}
+              <span className="text-sm font-medium">
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+            </div>
+            <Badge variant={isOnline ? "default" : "secondary"}>
+              {cacheStatus.totalCached} cached
+            </Badge>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            {canSkip && (
+              <Button variant="outline" onClick={handleSkip} className="flex-1">
+                Skip
+              </Button>
+            )}
+            <Button onClick={handleRetry} className="flex-1">
+              Retry
+            </Button>
+          </div>
+
+          {/* Skip Timer */}
+          {!canSkip && skipTimer > 0 && (
+            <p className="text-xs text-gray-500 text-center">
+              Skip available in {skipTimer} seconds
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }; 

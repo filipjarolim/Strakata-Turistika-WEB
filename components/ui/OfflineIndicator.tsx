@@ -122,7 +122,7 @@ export function OfflineIndicator() {
         borderColor={!isOffline ? "border-green-200" : "border-red-200"}
         size="sm"
         icon={!isOffline ? <Wifi /> : <WifiOff />}
-        className="animate-fade-in-out transition-all"
+      className="animate-fade-in-out transition-all"
       />
 
       {/* GPS Cache Status */}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GPSLoadingScreen } from "@/components/ui/GPSLoadingScreen";
 import { OfflineController } from "@/components/ui/OfflineController";
+import { ClientOnly } from "@/components/ui/ClientOnly";
 import { 
   Play, 
   Pause, 
@@ -59,19 +60,6 @@ import {
 } from "@/components/pwa/gps-tracker/backgroundTracking";
 import dynamic from 'next/dynamic';
 import { shouldEnableOffline } from '@/lib/dev-utils';
-
-// Dynamically import the map component to avoid SSR issues
-const MapComponent = dynamic(
-  () => import('@/components/editor/GpxEditor').then(mod => mod.default),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-64 bg-gray-100 rounded-2xl flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-);
 
 // Simple lightweight map component for GPS tracking
 const SimpleMapComponent = dynamic(
@@ -228,32 +216,21 @@ const GPSPage = () => {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle GPS ready callback
-  const handleGPSReady = useCallback(() => {
-    setIsGPSReady(true);
+  // Set offlineMode safely in browser only
+  useEffect(() => {
+    setOfflineMode(typeof window !== 'undefined' && shouldEnableOffline());
   }, []);
 
-  // Register service worker for offline functionality
+  // Register service worker for offline functionality (browser only, offline enabled)
   useEffect(() => {
-    // Disable service worker in development unless offline is enabled
-    if (!shouldEnableOffline()) {
-      console.log('Service worker registration disabled in development mode');
-      return;
-    }
-    
+    if (typeof window === 'undefined' || !shouldEnableOffline()) return;
     const registerServiceWorker = async () => {
       if ('serviceWorker' in navigator) {
         try {
           const registration = await navigator.serviceWorker.register('/sw.js', {
             scope: '/',
           });
-          
-          if (registration.installing) {
-            console.log('Service worker installing');
-          } else if (registration.waiting) {
-            console.log('Service worker installed');
-          } else if (registration.active) {
-            console.log('Service worker active');
+          if (registration.active) {
             setIsServiceWorkerRegistered(true);
           }
         } catch (error) {
@@ -261,40 +238,45 @@ const GPSPage = () => {
         }
       }
     };
-
     registerServiceWorker();
   }, []);
 
-  // Check online status and handle offline mode
+  // Check online status and handle offline mode (browser only)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const updateOnlineStatus = () => {
       const online = navigator.onLine;
       setIsOnline(online);
-      setOfflineMode(!online);
-      
-      if (online) {
+      setOfflineMode(!online ? true : shouldEnableOffline());
+      if (online && shouldEnableOffline()) {
         toast.success('Connection restored');
-        // Attempt to sync offline data
+        // Attempt to sync offline data (only if offline enabled)
         syncOfflineData().catch(console.error);
-      } else {
+      } else if (!online) {
         toast.info('Working in offline mode', {
           description: 'GPS tracking will continue to work offline'
         });
       }
     };
-    
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
-    
     return () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
     };
   }, []);
 
+  // Handle GPS ready callback
+  const handleGPSReady = useCallback(() => {
+    setIsGPSReady(true);
+  }, []);
+
   // Initialize tracking session
   const initializeSession = useCallback(() => {
+    // Only create session on client side
+    if (typeof window === 'undefined') return null;
+    
     const session: EnhancedTrackingSession = {
       id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       startTime: Date.now(),
@@ -447,6 +429,7 @@ const GPSPage = () => {
 
   // Start tracking
   const startTracking = useCallback(async () => {
+    if (typeof window === 'undefined') return;
     if (!navigator.geolocation) {
       toast.error('GPS is not supported on this device');
       return;
@@ -456,6 +439,10 @@ const GPSPage = () => {
 
     try {
       const session = initializeSession();
+      if (!session) {
+        toast.error('Failed to initialize tracking session');
+        return;
+      }
       
       // Request wake lock to keep screen on
       if ('wakeLock' in navigator) {
@@ -512,6 +499,7 @@ const GPSPage = () => {
 
   // Pause tracking
   const pauseTracking = useCallback(() => {
+    if (typeof window === 'undefined') return;
     if (sessionRef.current) {
       sessionRef.current.isPaused = true;
       setCurrentSession({ ...sessionRef.current });
@@ -523,6 +511,7 @@ const GPSPage = () => {
 
   // Resume tracking
   const resumeTracking = useCallback(() => {
+    if (typeof window === 'undefined') return;
     if (sessionRef.current) {
       sessionRef.current.isPaused = false;
       setCurrentSession({ ...sessionRef.current });
@@ -534,6 +523,7 @@ const GPSPage = () => {
 
   // Stop tracking
   const stopTracking = useCallback(async () => {
+    if (typeof window === 'undefined') return;
     if (watchId) {
       navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
@@ -578,6 +568,7 @@ const GPSPage = () => {
 
   // Check battery status
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const updateBatteryInfo = async () => {
       const batteryInfo = await getBatteryInfo();
       if (batteryInfo) {
@@ -596,6 +587,7 @@ const GPSPage = () => {
 
   // Initialize background tracking
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     initBackgroundTracking(
       (session) => {
         // Resume tracking callback
@@ -627,6 +619,7 @@ const GPSPage = () => {
 
   // Load existing session on mount
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const savedSession = getStoredTrackingSession();
     if (savedSession && savedSession.isActive) {
       setCurrentSession(savedSession);
@@ -655,6 +648,7 @@ const GPSPage = () => {
 
   // Handle global errors for map loading
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const handleError = (event: ErrorEvent) => {
       if (event.message.includes('chunk') || event.message.includes('4867')) {
         console.warn('Map chunk loading error detected, showing fallback');
@@ -668,6 +662,7 @@ const GPSPage = () => {
 
   // Retry map loading
   const retryMap = () => {
+    if (typeof window === 'undefined') return;
     setMapError(false);
     // Force a re-render by updating a state
     setTimeout(() => {
@@ -677,7 +672,26 @@ const GPSPage = () => {
 
   // Show loading screen if GPS is not ready
   if (!isGPSReady) {
-    return <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />;
+    return (
+      <ClientOnly fallback={
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md p-6 text-center space-y-4">
+            <div className="p-4 rounded-full bg-blue-100 w-fit mx-auto">
+              <MapPin className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">GPS Tracker</h2>
+              <p className="text-sm text-gray-600">Loading...</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+          </div>
+        </div>
+      }>
+        <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />
+      </ClientOnly>
+    );
   }
 
   // Convert session positions to map format

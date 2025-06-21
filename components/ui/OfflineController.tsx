@@ -121,7 +121,7 @@ export const OfflineController: React.FC = () => {
     if (!isClient) return;
     
     const checkServiceWorkerStatus = async () => {
-      if (!isServiceWorkerAvailable) {
+    if (!isServiceWorkerAvailable) {
         setSwRegistrationStatus('unavailable');
       return;
     }
@@ -431,8 +431,8 @@ export const OfflineController: React.FC = () => {
               </div>
             </div>
                       </IOSCard>
-                    )}
-
+          )}
+          
                     {/* Actions */}
                     <IOSSection title="Akce">
                       <div className="space-y-3">

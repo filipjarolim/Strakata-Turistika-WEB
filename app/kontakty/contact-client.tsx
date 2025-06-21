@@ -290,7 +290,7 @@ const ContactForm = () => {
                         <p className="text-red-500 text-sm mt-1">{form.formState.errors.message.message}</p>
                     )}
                 </div>
-
+                
                 <AnimatePresence>
                     {submitStatus === 'success' && (
                         <motion.div
@@ -316,7 +316,7 @@ const ContactForm = () => {
                         </motion.div>
                     )}
                 </AnimatePresence>
-
+                
                 <IOSButton
                     type="submit"
                     className="w-full h-12"
@@ -496,7 +496,7 @@ export const ContactClient = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.6 }}
-            >
+                    >
                                 <FaqSection />
                     </motion.div>
         </div>

@@ -46,8 +46,8 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
         
         if (imageFiles.length > 0) {
             setFiles(prev => [...prev, ...imageFiles]);
-        }
-    };
+    }
+  };
 
     const removeFile = (index: number) => {
         setFiles(prev => prev.filter((_, i) => i !== index));
@@ -77,7 +77,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
             const response = await fetch('/api/gallery/upload', {
         method: 'POST',
                 body: formDataToSend,
-            });
+      });
 
             if (response.ok) {
                 setUploadStatus('success');
@@ -110,7 +110,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
             setUploadStatus('error');
     } finally {
             setUploading(false);
-        }
+    }
     };
 
     const FilePreview = ({ file, index }: { file: File; index: number }) => {
@@ -153,7 +153,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                 <p className="text-xs text-gray-500 mt-1 truncate">{file.name}</p>
             </motion.div>
         );
-    };
+  };
 
   return (
         <>
@@ -249,7 +249,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
               accept="image/*"
                                             onChange={handleFileSelect}
                                             className="hidden"
-                                        />
+            />
                                     </div>
 
                                     {/* Form Fields */}
@@ -360,7 +360,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                             {/* Footer */}
                             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">
                                 {!uploading && (
-                                    <>
+              <>
                                         <IOSButton
                                             variant="outline"
                                             onClick={() => setIsOpen(false)}
@@ -384,5 +384,5 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                 )}
             </AnimatePresence>
         </>
-    );
+  );
 };

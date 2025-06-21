@@ -107,4 +107,29 @@ export const toggleOfflineMode = () => {
   localStorage.setItem('enable-offline-dev', newValue);
   window.location.reload();
   return newValue === 'true';
+};
+
+/**
+ * Completely disable offline features in development
+ * This should be called early in the app to prevent hydration issues
+ */
+export const disableOfflineInDev = () => {
+  if (!isDevEnvironment) return;
+  
+  // Force disable offline mode
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('enable-offline-dev', 'false');
+  }
+  
+  // Unregister service workers
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(registration => {
+        registration.unregister();
+        console.log('🔌 Service worker unregistered for development');
+      });
+    });
+  }
+  
+  console.log('🚫 Offline features disabled for development');
 }; 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { currentRole, currentUser } from "@/lib/auth";
-import GPSTracker from "@/components/pwa/GPSTracker";
 import { Toaster } from "@/components/ui/sonner";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import Link from 'next/link';
