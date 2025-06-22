@@ -5,7 +5,6 @@ import { useOfflineStatus } from '@/hooks/useOfflineStatus';
 import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
 import { cn } from "@/lib/utils";
-import { shouldEnableOffline } from '@/lib/dev-utils';
 
 // Use dynamic imports to prevent HMR issues
 const Wifi = () => <div className="w-3 h-3 bg-green-500 rounded-full" />;
@@ -21,6 +20,11 @@ interface CacheStatus {
   mapsReady: boolean;
   totalCached: number;
 }
+
+// Replace with simple environment check
+const shouldEnableOffline = () => {
+  return process.env.NODE_ENV === 'production';
+};
 
 export function OfflineIndicator() {
   const isOffline = useOfflineStatus();

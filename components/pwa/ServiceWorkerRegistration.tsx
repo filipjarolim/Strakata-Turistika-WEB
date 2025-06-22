@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { shouldEnableOffline } from '@/lib/dev-utils';
+
+// Replace with simple environment check
+const shouldEnableOffline = () => {
+  return process.env.NODE_ENV === 'production';
+};
 
 export default function ServiceWorkerRegistration() {
   const [isRegistered, setIsRegistered] = useState(false);

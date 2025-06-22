@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Navigation, Play, Pause, Crosshair } from 'lucide-react'; 
+import { MapPin, Navigation, Play, Pause, Crosshair, AlertCircle } from 'lucide-react'; 
 import { cn } from '@/lib/utils';
 import { IOSToggleSwitch } from '@/components/ui/ios/toggle-switch';
 
@@ -52,6 +52,47 @@ const GPS_MAP_STYLE = {
   accuracyCircleOpacity: 0.2,
 };
 
+// Error boundary component for map
+class MapErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Map Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div className="w-full h-full bg-white flex items-center justify-center">
+          <div className="text-center p-6">
+            <AlertCircle className="h-12 w-12 text-red-400 mb-3 mx-auto" />
+            <p className="text-sm text-gray-600 font-medium">Map loading failed</p>
+            <p className="text-xs text-gray-500 mt-1">Please refresh the page</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // Component to fit bounds on track points
 function FitBoundsOnTrack({ trackPoints }: { trackPoints: { lat: number; lng: number }[] }) {
   const map = useMap();
@@ -59,12 +100,20 @@ function FitBoundsOnTrack({ trackPoints }: { trackPoints: { lat: number; lng: nu
   
   useEffect(() => {
     if (trackPoints.length > 1 && trackPoints.length !== prevCount.current) {
-      const bounds = L.latLngBounds(trackPoints);
-      map.fitBounds(bounds, { padding: [40, 40] });
-      prevCount.current = trackPoints.length;
+      try {
+        const bounds = L.latLngBounds(trackPoints);
+        map.fitBounds(bounds, { padding: [40, 40] });
+        prevCount.current = trackPoints.length;
+      } catch (error) {
+        console.error('Error fitting bounds:', error);
+      }
     } else if (trackPoints.length === 1 && trackPoints.length !== prevCount.current) {
-      map.setView(trackPoints[0], 15);
-      prevCount.current = trackPoints.length;
+      try {
+        map.setView(trackPoints[0], 15);
+        prevCount.current = trackPoints.length;
+      } catch (error) {
+        console.error('Error setting view:', error);
+      }
     }
   }, [trackPoints.length, map, trackPoints]);
   
@@ -81,7 +130,11 @@ function FollowCurrentPosition({ currentPosition, isTracking, followPosition }: 
   
   useEffect(() => {
     if (currentPosition && isTracking && followPosition) {
-      map.setView([currentPosition.latitude, currentPosition.longitude], 16);
+      try {
+        map.setView([currentPosition.latitude, currentPosition.longitude], 16);
+      } catch (error) {
+        console.error('Error following position:', error);
+      }
     }
   }, [currentPosition, isTracking, followPosition, map]);
   
@@ -99,24 +152,34 @@ function GetUserLocation({ onLocationFound }: { onLocationFound: (position: GPSP
       
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const userPosition: GPSPosition = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            altitude: position.coords.altitude || undefined,
-            accuracy: position.coords.accuracy,
-            speed: position.coords.speed || undefined,
-            heading: position.coords.heading || undefined,
-            timestamp: position.timestamp
-          };
-          
-          // Jump to user location
-          map.setView([userPosition.latitude, userPosition.longitude], 16);
-          onLocationFound(userPosition);
+          try {
+            const userPosition: GPSPosition = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              altitude: position.coords.altitude || undefined,
+              accuracy: position.coords.accuracy,
+              speed: position.coords.speed || undefined,
+              heading: position.coords.heading || undefined,
+              timestamp: position.timestamp
+            };
+            
+            // Jump to user location
+            map.setView([userPosition.latitude, userPosition.longitude], 16);
+            onLocationFound(userPosition);
+          } catch (error) {
+            console.error('Error setting user location:', error);
+            // Fallback to default location (Prague)
+            map.setView([50.0755, 14.4378], 10);
+          }
         },
         (error) => {
           console.log('Could not get user location:', error.message);
           // Fallback to default location (Prague)
-          map.setView([50.0755, 14.4378], 10);
+          try {
+            map.setView([50.0755, 14.4378], 10);
+          } catch (mapError) {
+            console.error('Error setting fallback location:', mapError);
+          }
         },
         {
           enableHighAccuracy: true,
@@ -232,7 +295,19 @@ export default function GPSMap({
 }: GPSMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>([50.0755, 14.4378]); // Prague default
   const [userLocation, setUserLocation] = useState<GPSPosition | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Update map center when we get the first position
   useEffect(() => {
@@ -247,18 +322,60 @@ export default function GPSMap({
 
   // Handle map ready
   const handleMapReady = useCallback((map: L.Map) => {
-    mapRef.current = map;
-    
-    // Disable zoom control on mobile for better UX
-    if (window.innerWidth < 768) {
-      map.zoomControl.remove();
+    try {
+      mapRef.current = map;
+      
+      // Mobile-specific optimizations
+      if (isMobile) {
+        // Disable zoom control on mobile for better UX
+        if (map.zoomControl) {
+          map.zoomControl.remove();
+        }
+        
+        // Reduce tile loading for better performance
+        map.options.minZoom = 8;
+        map.options.maxZoom = 16;
+        
+        // Disable some interactions on mobile for better performance
+        map.dragging.enable();
+        map.touchZoom.enable();
+        map.doubleClickZoom.disable();
+        map.scrollWheelZoom.disable();
+      }
+    } catch (error) {
+      console.error('Error in handleMapReady:', error);
+      setMapError('Failed to initialize map');
     }
-  }, []);
+  }, [isMobile]);
 
   // Handle user location found
   const handleLocationFound = useCallback((position: GPSPosition) => {
     setUserLocation(position);
   }, []);
+
+  // Handle map errors
+  const handleMapError = useCallback((error: Error) => {
+    console.error('Map error:', error);
+    setMapError(error.message);
+  }, []);
+
+  if (mapError) {
+    return (
+      <div className="w-full h-full bg-white flex items-center justify-center">
+        <div className="text-center p-6">
+          <AlertCircle className="h-12 w-12 text-red-400 mb-3 mx-auto" />
+          <p className="text-sm text-gray-600 font-medium">Map Error</p>
+          <p className="text-xs text-gray-500 mt-1">{mapError}</p>
+          <button 
+            onClick={() => setMapError(null)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (trackPoints.length === 0 && !currentPosition && !userLocation) {
     return (
@@ -273,85 +390,111 @@ export default function GPSMap({
   }
 
   return (
-    <div className="w-full h-full relative">
-      <MapContainer
-        center={mapCenter}
-        zoom={15}
-        minZoom={10}
-        maxZoom={18}
-        style={{ height: '100%', width: '100%' }}
-        className="rounded-lg"
-        zoomControl={false}
-        attributionControl={false}
-        preferCanvas={true}
-        ref={handleMapReady}
-      >
-        <TileLayer
-          url={`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=a5w3EO45npvzNFzD6VoD`}
-          attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+    <MapErrorBoundary>
+      <div className="w-full h-full relative">
+        <MapContainer
+          center={mapCenter}
+          zoom={isMobile ? 12 : 15}
+          minZoom={isMobile ? 8 : 10}
+          maxZoom={isMobile ? 16 : 18}
+          style={{ height: '100%', width: '100%' }}
+          className="rounded-lg"
+          zoomControl={false}
+          attributionControl={false}
+          preferCanvas={true}
+          ref={handleMapReady}
+          whenReady={() => console.log('Map ready')}
+        >
+          {/* Primary tile layer with fallback */}
+          <TileLayer
+            url={`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=a5w3EO45npvzNFzD6VoD`}
+            attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            maxZoom={18}
+            minZoom={1}
+            tileSize={256}
+            updateWhenZooming={false}
+            updateWhenIdle={true}
+            keepBuffer={2}
+            maxNativeZoom={18}
+          />
+          
+          {/* Fallback tile layer */}
+          <TileLayer
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            maxZoom={18}
+            minZoom={1}
+            tileSize={256}
+            updateWhenZooming={false}
+            updateWhenIdle={true}
+            keepBuffer={2}
+            maxNativeZoom={18}
+            opacity={0.5}
+            zIndex={-1}
+          />
+          
+          {/* Get user location on load */}
+          <GetUserLocation onLocationFound={handleLocationFound} />
+          
+          {/* Track polyline */}
+          {trackPoints.length > 1 && (
+            <Polyline
+              positions={trackPoints}
+              pathOptions={{
+                color: GPS_MAP_STYLE.polylineColor,
+                weight: GPS_MAP_STYLE.polylineWeight,
+                opacity: GPS_MAP_STYLE.polylineOpacity,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }}
+            />
+          )}
+          
+          {/* Start marker */}
+          {trackPoints.length > 0 && (
+            <StartMarker position={trackPoints[0]} />
+          )}
+          
+          {/* Current position marker */}
+          {currentPosition && (
+            <CurrentPositionMarker 
+              position={currentPosition} 
+              accuracy={currentPosition.accuracy}
+              isPaused={isPaused}
+            />
+          )}
+          
+          {/* User location marker (when not tracking) */}
+          {!isTracking && userLocation && !currentPosition && (
+            <CurrentPositionMarker 
+              position={userLocation} 
+              accuracy={userLocation.accuracy}
+              isPaused={false}
+            />
+          )}
+          
+          {/* Auto-fit bounds */}
+          <FitBoundsOnTrack trackPoints={trackPoints} />
+          
+          {/* Follow current position when tracking */}
+          {currentPosition && (
+            <FollowCurrentPosition 
+              currentPosition={currentPosition} 
+              isTracking={isTracking} 
+              followPosition={followPosition}
+            />
+          )}
+        </MapContainer>
         
-        {/* Get user location on load */}
-        <GetUserLocation onLocationFound={handleLocationFound} />
-        
-        {/* Track polyline */}
-        {trackPoints.length > 1 && (
-          <Polyline
-            positions={trackPoints}
-            pathOptions={{
-              color: GPS_MAP_STYLE.polylineColor,
-              weight: GPS_MAP_STYLE.polylineWeight,
-              opacity: GPS_MAP_STYLE.polylineOpacity,
-              lineCap: 'round',
-              lineJoin: 'round'
-            }}
+        {/* Follow position toggle */}
+        {onFollowPositionChange && (
+          <FollowPositionToggle 
+            followPosition={followPosition} 
+            onFollowPositionChange={onFollowPositionChange}
           />
         )}
-        
-        {/* Start marker */}
-        {trackPoints.length > 0 && (
-          <StartMarker position={trackPoints[0]} />
-        )}
-        
-        {/* Current position marker */}
-        {currentPosition && (
-          <CurrentPositionMarker 
-            position={currentPosition} 
-            accuracy={currentPosition.accuracy}
-            isPaused={isPaused}
-          />
-        )}
-        
-        {/* User location marker (when not tracking) */}
-        {!isTracking && userLocation && !currentPosition && (
-          <CurrentPositionMarker 
-            position={userLocation} 
-            accuracy={userLocation.accuracy}
-            isPaused={false}
-          />
-        )}
-        
-        {/* Auto-fit bounds */}
-        <FitBoundsOnTrack trackPoints={trackPoints} />
-        
-        {/* Follow current position when tracking */}
-        {currentPosition && (
-          <FollowCurrentPosition 
-            currentPosition={currentPosition} 
-            isTracking={isTracking} 
-            followPosition={followPosition}
-          />
-        )}
-      </MapContainer>
-      
-      {/* Follow position toggle */}
-      {onFollowPositionChange && (
-        <FollowPositionToggle 
-          followPosition={followPosition} 
-          onFollowPositionChange={onFollowPositionChange}
-        />
-      )}
-    </div>
+      </div>
+    </MapErrorBoundary>
   );
 }
 

@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Camera, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import Image from 'next/image';
 
 // iOS Components
 import { IOSButton } from "@/components/ui/ios/button";
@@ -130,10 +131,12 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
             >
                 <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
                     {preview && (
-                        <img
+                        <Image
                             src={preview}
                             alt={file.name}
                             className="w-full h-full object-cover"
+                            width={300}
+                            height={300}
                         />
                     )}
                     

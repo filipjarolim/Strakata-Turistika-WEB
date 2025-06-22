@@ -17,7 +17,6 @@ import { useCurrentRole } from '@/hooks/use-current-role';
 import { ExtendedUser } from "@/next-auth";
 import { IOSStepProgress } from '@/components/ui/ios/step-progress';
 import { ImageUpload, ImageSource } from "@/components/ui/ios/image-upload";
-import { useCloudinaryUpload } from "@/lib/hooks/use-cloudinary-upload";
 import { IOSButton } from '@/components/ui/ios/button';
 import { IOSTextInput } from '@/components/ui/ios/text-input';
 import { IOSTextarea } from '@/components/ui/ios/textarea';
@@ -172,13 +171,8 @@ export default function EditRoutePage() {
   const user = useCurrentUser();
   const role = useCurrentRole();
   const [images, setImages] = useState<ImageSource[]>([]);
-  const { upload, deleteImage, isUploading, error: cloudinaryError } = useCloudinaryUpload({
-    maxWidth: 1920,
-    maxHeight: 1080,
-    quality: "good",
-    format: "webp",
-    competitionId: Array.isArray(params.id) ? params.id[0] : params.id || ''
-  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [cloudinaryError, setCloudinaryError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     visitedPlaces: [],
@@ -347,13 +341,45 @@ export default function EditRoutePage() {
     }));
   };
 
+  const upload = async (file: File) => {
+    setIsUploading(true);
+    setCloudinaryError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'your_upload_preset'); // Replace with your actual upload preset
+      
+      const response = await fetch(`https://api.cloudinary.com/v1_1/your_cloud_name/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      return data.secure_url;
+    } catch (error) {
+      setCloudinaryError(error instanceof Error ? error.message : 'Upload failed');
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const deleteImage = async (publicId: string) => {
+    // Implement image deletion if needed
+    console.log('Delete image:', publicId);
+  };
+
   const handleImageUpload = async (file: File, title: string) => {
-    const result = await upload(file, title);
+    const result = await upload(file);
     setImages((prev) => [
       ...prev,
       {
-        url: result.url,
-        public_id: result.public_id,
+        url: result,
+        public_id: '',
         title: title,
       },
     ]);

@@ -20,7 +20,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import basicInfo from "@/lib/settings/basicInfo";
-import { cn } from "@/lib";
+import { cn } from "@/lib/utils";
 import { RegisterButton } from "../auth/register-button";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";

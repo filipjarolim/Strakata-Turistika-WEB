@@ -15,6 +15,7 @@ import { cs } from 'date-fns/locale';
 import dynamic from 'next/dynamic';
 import { VisitData } from '@/components/blocks/vysledky/DataTable';
 import { CardContent } from '@/components/ui/card';
+import Image from 'next/image';
 
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
@@ -240,10 +241,12 @@ export default function VisitDetailPage() {
                                     <h3 className="font-medium mb-4">Fotografie</h3>
                                     <div className="grid grid-cols-2 gap-2">
                                         {visitData.photos.map((photo: Photo, index: number) => (
-                                            <img
+                                            <Image
                                                 key={index}
                                                 src={photo.url}
                                                 alt={photo.title || `Photo ${index + 1}`}
+                                                width={100}
+                                                height={100}
                                                 className="rounded-lg object-cover aspect-square"
                                             />
                                         ))}

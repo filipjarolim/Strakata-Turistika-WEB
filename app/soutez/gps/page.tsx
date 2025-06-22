@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { ClientOnly } from "@/components/ui/ClientOnly";
 
 // Import custom components
 import { GPSStatusBar } from "@/components/pwa/gps-tracker/GPSStatusBar";
@@ -330,14 +331,25 @@ const GPSPage = () => {
           <motion.div className={cn("w-full h-full", isFullscreen && "max-w-6xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden")}>
             {/* Map Background */}
             <div className="absolute inset-0 z-0">
-              <GPSMapComponent 
-                trackPoints={mapTrackPoints} 
-                isTracking={isTracking}
-                isPaused={isPaused}
-                currentPosition={lastPositionRef.current}
-                followPosition={followPosition}
-                onFollowPositionChange={setFollowPosition}
-              />
+              <div className="flex-1 relative">
+                <ClientOnly fallback={
+                  <div className="w-full h-full bg-white flex items-center justify-center">
+                    <motion.div className="text-center">
+                      <MapPin className="h-16 w-16 text-blue-400 drop-shadow-lg" />
+                      <p className="text-sm text-gray-600 mt-4 font-medium">Loading GPS Map...</p>
+                    </motion.div>
+                  </div>
+                }>
+                  <GPSMapComponent
+                    trackPoints={mapTrackPoints}
+                    isTracking={isTracking}
+                    isPaused={isPaused}
+                    currentPosition={lastPositionRef.current}
+                    followPosition={followPosition}
+                    onFollowPositionChange={setFollowPosition}
+                  />
+                </ClientOnly>
+              </div>
             </div>
             
             {/* Status Bar */}

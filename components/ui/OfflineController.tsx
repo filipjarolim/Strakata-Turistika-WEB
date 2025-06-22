@@ -14,7 +14,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { NetworkStatus } from './NetworkStatus';
 import { motion, AnimatePresence } from 'framer-motion';
-import { shouldEnableOffline } from '@/lib/dev-utils';
 
 // List of critical pages that should always be cached for offline use
 const DEFAULT_CRITICAL_PAGES = [
@@ -44,6 +43,11 @@ const MAP_RESOURCES = [
   'https://tile.openstreetmap.org/',
   'https://server.arcgisonline.com/'
 ];
+
+// Replace with simple environment check
+const shouldEnableOffline = () => {
+  return process.env.NODE_ENV === 'production';
+};
 
 export const OfflineController: React.FC = () => {
   const isOffline = useOfflineStatus();
