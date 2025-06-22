@@ -4,8 +4,9 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Navigation, Play, Pause } from 'lucide-react'; 
+import { MapPin, Navigation, Play, Pause, Crosshair } from 'lucide-react'; 
 import { cn } from '@/lib/utils';
+import { IOSToggleSwitch } from '@/components/ui/ios/toggle-switch';
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -35,6 +36,8 @@ interface GPSMapProps {
   isTracking: boolean;
   isPaused: boolean;
   currentPosition: GPSPosition | null;
+  followPosition?: boolean;
+  onFollowPositionChange?: (follow: boolean) => void;
 }
 
 const GPS_MAP_STYLE = {
@@ -69,14 +72,60 @@ function FitBoundsOnTrack({ trackPoints }: { trackPoints: { lat: number; lng: nu
 }
 
 // Component to follow current position
-function FollowCurrentPosition({ currentPosition, isTracking }: { currentPosition: GPSPosition | null; isTracking: boolean }) {
+function FollowCurrentPosition({ currentPosition, isTracking, followPosition }: { 
+  currentPosition: GPSPosition | null; 
+  isTracking: boolean;
+  followPosition: boolean;
+}) {
   const map = useMap();
   
   useEffect(() => {
-    if (currentPosition && isTracking) {
+    if (currentPosition && isTracking && followPosition) {
       map.setView([currentPosition.latitude, currentPosition.longitude], 16);
     }
-  }, [currentPosition?.latitude, currentPosition?.longitude, isTracking, map]);
+  }, [currentPosition, isTracking, followPosition, map]);
+  
+  return null;
+}
+
+// Component to get user location on load
+function GetUserLocation({ onLocationFound }: { onLocationFound: (position: GPSPosition) => void }) {
+  const map = useMap();
+  const hasRequestedLocation = useRef(false);
+  
+  useEffect(() => {
+    if (!hasRequestedLocation.current && navigator.geolocation) {
+      hasRequestedLocation.current = true;
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userPosition: GPSPosition = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            altitude: position.coords.altitude || undefined,
+            accuracy: position.coords.accuracy,
+            speed: position.coords.speed || undefined,
+            heading: position.coords.heading || undefined,
+            timestamp: position.timestamp
+          };
+          
+          // Jump to user location
+          map.setView([userPosition.latitude, userPosition.longitude], 16);
+          onLocationFound(userPosition);
+        },
+        (error) => {
+          console.log('Could not get user location:', error.message);
+          // Fallback to default location (Prague)
+          map.setView([50.0755, 14.4378], 10);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    }
+  }, [map, onLocationFound]);
   
   return null;
 }
@@ -106,16 +155,17 @@ function StartMarker({ position }: { position: { lat: number; lng: number } }) {
 function CurrentPositionMarker({ position, accuracy, isPaused }: { position: GPSPosition; accuracy?: number; isPaused: boolean }) {
   return (
     <>
-      {/* Accuracy circle */}
-      {accuracy && (
+      {/* Accuracy circle - only show if accuracy is reasonable and not too large */}
+      {accuracy && accuracy < 100 && (
         <CircleMarker
           center={[position.latitude, position.longitude]}
-          radius={accuracy * 1000} // Convert to meters
+          radius={Math.min(accuracy * 10, 50)} // Much smaller radius, max 50px
           pathOptions={{
             color: GPS_MAP_STYLE.accuracyCircleColor,
             fillColor: GPS_MAP_STYLE.accuracyCircleColor,
-            fillOpacity: GPS_MAP_STYLE.accuracyCircleOpacity,
-            weight: 1
+            fillOpacity: 0.05, // Much more transparent
+            weight: 1,
+            opacity: 0.3
           }}
         />
       )}
@@ -150,31 +200,38 @@ function CurrentPositionMarker({ position, accuracy, isPaused }: { position: GPS
   );
 }
 
-// Status indicator component
-function StatusIndicator({ isTracking, isPaused }: { isTracking: boolean; isPaused: boolean }) {
-  if (!isTracking) return null;
-  
+// Follow position toggle component
+function FollowPositionToggle({ 
+  followPosition, 
+  onFollowPositionChange 
+}: { 
+  followPosition: boolean; 
+  onFollowPositionChange: (follow: boolean) => void;
+}) {
   return (
-    <div className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-white/40">
+    <div className="absolute top-4 right-4 z-[9999] bg-white/95 backdrop-blur-xl rounded-2xl px-3 py-2 shadow-xl border border-white/50 pointer-events-auto">
       <div className="flex items-center gap-2">
-        {isPaused ? (
-          <>
-            <Pause className="h-4 w-4 text-amber-500" />
-            <span className="text-sm font-medium text-gray-700">Paused</span>
-          </>
-        ) : (
-          <>
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-medium text-gray-700">Tracking</span>
-          </>
-        )}
+        <Crosshair className={cn("w-4 h-4", followPosition ? "text-blue-600" : "text-gray-400")} />
+        <IOSToggleSwitch
+          checked={followPosition}
+          onCheckedChange={onFollowPositionChange}
+          size="sm"
+        />
       </div>
     </div>
   );
 }
 
-export default function GPSMap({ trackPoints, isTracking, isPaused, currentPosition }: GPSMapProps) {
+export default function GPSMap({ 
+  trackPoints, 
+  isTracking, 
+  isPaused, 
+  currentPosition,
+  followPosition = true,
+  onFollowPositionChange
+}: GPSMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>([50.0755, 14.4378]); // Prague default
+  const [userLocation, setUserLocation] = useState<GPSPosition | null>(null);
   const mapRef = useRef<L.Map | null>(null);
 
   // Update map center when we get the first position
@@ -183,8 +240,10 @@ export default function GPSMap({ trackPoints, isTracking, isPaused, currentPosit
       setMapCenter([trackPoints[0].lat, trackPoints[0].lng]);
     } else if (currentPosition) {
       setMapCenter([currentPosition.latitude, currentPosition.longitude]);
+    } else if (userLocation) {
+      setMapCenter([userLocation.latitude, userLocation.longitude]);
     }
-  }, [trackPoints, currentPosition]);
+  }, [trackPoints, currentPosition, userLocation]);
 
   // Handle map ready
   const handleMapReady = useCallback((map: L.Map) => {
@@ -196,13 +255,18 @@ export default function GPSMap({ trackPoints, isTracking, isPaused, currentPosit
     }
   }, []);
 
-  if (trackPoints.length === 0 && !currentPosition) {
+  // Handle user location found
+  const handleLocationFound = useCallback((position: GPSPosition) => {
+    setUserLocation(position);
+  }, []);
+
+  if (trackPoints.length === 0 && !currentPosition && !userLocation) {
     return (
-      <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="w-full h-full bg-white flex items-center justify-center">
         <div className="text-center">
           <MapPin className="h-12 w-12 text-blue-400 mb-3" />
-          <p className="text-sm text-gray-600 font-medium">Start tracking to see your route</p>
-          <p className="text-xs text-gray-500 mt-1">Your GPS track will appear here</p>
+          <p className="text-sm text-gray-600 font-medium">Getting your location...</p>
+          <p className="text-xs text-gray-500 mt-1">Please allow location access</p>
         </div>
       </div>
     );
@@ -226,6 +290,9 @@ export default function GPSMap({ trackPoints, isTracking, isPaused, currentPosit
           url={`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=a5w3EO45npvzNFzD6VoD`}
           attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
+        
+        {/* Get user location on load */}
+        <GetUserLocation onLocationFound={handleLocationFound} />
         
         {/* Track polyline */}
         {trackPoints.length > 1 && (
@@ -255,32 +322,34 @@ export default function GPSMap({ trackPoints, isTracking, isPaused, currentPosit
           />
         )}
         
+        {/* User location marker (when not tracking) */}
+        {!isTracking && userLocation && !currentPosition && (
+          <CurrentPositionMarker 
+            position={userLocation} 
+            accuracy={userLocation.accuracy}
+            isPaused={false}
+          />
+        )}
+        
         {/* Auto-fit bounds */}
         <FitBoundsOnTrack trackPoints={trackPoints} />
         
         {/* Follow current position when tracking */}
         {currentPosition && (
-          <FollowCurrentPosition currentPosition={currentPosition} isTracking={isTracking} />
+          <FollowCurrentPosition 
+            currentPosition={currentPosition} 
+            isTracking={isTracking} 
+            followPosition={followPosition}
+          />
         )}
       </MapContainer>
       
-      {/* Status indicator */}
-      <StatusIndicator isTracking={isTracking} isPaused={isPaused} />
-      
-      {/* Track info overlay */}
-      {trackPoints.length > 0 && (
-        <div className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-white/40">
-          <div className="flex items-center gap-2 mb-1">
-            <Navigation className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-gray-700">Track Info</span>
-          </div>
-          <div className="text-xs text-gray-600">
-            <div>Points: {trackPoints.length}</div>
-            {trackPoints.length > 1 && (
-              <div>Distance: {calculateTrackDistance(trackPoints).toFixed(2)} km</div>
-            )}
-          </div>
-        </div>
+      {/* Follow position toggle */}
+      {onFollowPositionChange && (
+        <FollowPositionToggle 
+          followPosition={followPosition} 
+          onFollowPositionChange={onFollowPositionChange}
+        />
       )}
     </div>
   );

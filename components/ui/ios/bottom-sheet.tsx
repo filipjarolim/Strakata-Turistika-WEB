@@ -28,7 +28,7 @@ const IOSBottomSheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/10 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 z-50 bg-black/20 backdrop-blur-sm", className)}
     {...props}
   />
 ))
@@ -43,13 +43,14 @@ const IOSBottomSheetContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[24px] border-t border-gray-200/50 bg-white/80 backdrop-blur-xl",
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[32px] border-t border-gray-200/30 bg-white/90 backdrop-blur-2xl shadow-2xl",
+        "transition-all duration-300 ease-out",
         className
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-gray-300" />
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="mx-auto mt-4 h-1.5 w-12 flex-shrink-0 rounded-full bg-gray-300/60" />
+      <div className="flex-1 overflow-y-auto p-6">
         {children}
       </div>
     </DrawerPrimitive.Content>
@@ -73,7 +74,7 @@ const IOSBottomSheetFooter = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+    className={cn("mt-auto flex flex-col gap-2 p-6", className)}
     {...props}
   />
 )
@@ -86,7 +87,7 @@ const IOSBottomSheetTitle = React.forwardRef<
   <DrawerPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
+      "text-xl font-bold leading-none tracking-tight text-gray-900",
       className
     )}
     {...props}
@@ -100,7 +101,7 @@ const IOSBottomSheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-gray-600 leading-relaxed", className)}
     {...props}
   />
 ))
