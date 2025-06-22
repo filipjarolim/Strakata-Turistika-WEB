@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
     experimental: {
         optimizePackageImports: ["lucide-react"],
     },
-    images: {
+        images: {
         remotePatterns: [
             {
                 protocol: "https",
@@ -50,7 +50,7 @@ const nextConfig: NextConfig = {
                     headers: [
                         {
                             key: "Cache-Control",
-                            value: "no-cache, no-store, must-revalidate",
+                            value: "no-cache, no-store, must-revalidate, max-age=0",
                         },
                         {
                             key: "Pragma",
@@ -59,6 +59,10 @@ const nextConfig: NextConfig = {
                         {
                             key: "Expires",
                             value: "0",
+                        },
+                        {
+                            key: "Surrogate-Control",
+                            value: "no-store",
                         },
                     ],
                 },
@@ -78,6 +82,10 @@ const nextConfig: NextConfig = {
                             key: "Expires",
                             value: "0",
                         },
+                        {
+                            key: "Surrogate-Control",
+                            value: "no-store",
+                        },
                     ],
                 },
                 {
@@ -95,6 +103,20 @@ const nextConfig: NextConfig = {
                             key: "Expires",
                             value: "0",
                         },
+                        {
+                            key: "Surrogate-Control",
+                            value: "no-store",
+                        },
+                    ],
+                },
+                // Disable service worker caching
+                {
+                    source: "/manifest.json",
+                    headers: [
+                        {
+                            key: "Cache-Control",
+                            value: "no-cache, no-store, must-revalidate, max-age=0",
+                        },
                     ],
                 },
             ] : []),
@@ -109,6 +131,15 @@ const nextConfig: NextConfig = {
                 tls: false,
             };
         }
+        
+        // Disable service worker in development
+        if (dev) {
+            config.plugins = config.plugins.filter((plugin: any) => 
+                plugin.constructor.name !== 'GenerateSW' && 
+                plugin.constructor.name !== 'InjectManifest'
+            );
+        }
+        
         return config;
     },
     // Disable service worker in development
@@ -117,6 +148,10 @@ const nextConfig: NextConfig = {
             return [
                 {
                     source: '/sw.js',
+                    destination: '/api/dev-sw-disabled',
+                },
+                {
+                    source: '/manifest.json',
                     destination: '/api/dev-sw-disabled',
                 },
             ];

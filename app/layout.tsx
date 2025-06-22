@@ -7,6 +7,7 @@ import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { PwaRegistration } from "@/components/pwa/PwaRegistration";
+import { disableOfflineInDev } from "@/lib/dev-utils";
 
 import { Toaster } from "@/components/ui/toaster"
 
@@ -14,6 +15,10 @@ const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000"
 
+// Force disable offline features in development
+if (process.env.NODE_ENV === 'development') {
+  disableOfflineInDev();
+}
 
 export const metadata = {
     metadataBase: new URL(defaultUrl),

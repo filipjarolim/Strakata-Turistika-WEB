@@ -1,18 +1,27 @@
 #!/usr/bin/env node
 
 /**
- * Development Cache Clear Script
- * Run this script to clear all caches when developing locally
+ * Development Restart Script
+ * Clears all caches and restarts the development server
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('🧹 Clearing development caches...');
+console.log('🔄 Restarting development environment...');
+
+// Kill any existing Node processes
+try {
+  console.log('🛑 Stopping existing processes...');
+  execSync('taskkill /f /im node.exe', { stdio: 'ignore' });
+} catch (error) {
+  // Ignore errors if no processes to kill
+}
 
 // Clear Next.js cache
 const nextCacheDir = path.join(__dirname, '..', '.next');
@@ -44,5 +53,13 @@ cacheDirs.forEach(dir => {
   }
 });
 
-console.log('✅ Development caches cleared!');
-console.log('💡 Tip: You may need to restart your development server'); 
+console.log('✅ All caches cleared!');
+console.log('🚀 Starting development server...');
+
+// Start the development server
+try {
+  execSync('npm run dev', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+} catch (error) {
+  console.error('❌ Failed to start development server:', error.message);
+  process.exit(1);
+} 

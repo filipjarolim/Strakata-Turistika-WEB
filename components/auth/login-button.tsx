@@ -6,6 +6,7 @@ import {
     Dialog,
     DialogContent,
     DialogTrigger,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { LoginForm } from "@/components/auth/login-form";
 import {
@@ -43,6 +44,7 @@ export const LoginButton = ({
                     {children}
                 </DialogTrigger>
                 <DialogContent className="p-0 w-auto bg-transparent border-none">
+                    <DialogTitle className="sr-only">Login</DialogTitle>
                     <LoginForm />
                 </DialogContent>
             </Dialog>

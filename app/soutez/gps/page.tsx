@@ -1,287 +1,313 @@
 'use client';
 
+// GPS Page with enhanced iOS-style animations and interactions
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { currentRole, currentUser } from "@/lib/auth";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { GPSLoadingScreen } from "@/components/ui/GPSLoadingScreen";
-import { OfflineController } from "@/components/ui/OfflineController";
-import { ClientOnly } from "@/components/ui/ClientOnly";
 import { 
-  Play, 
-  Pause, 
-  Square, 
-  MapPin, 
-  Clock, 
-  Navigation, 
-  Activity, 
-  Zap,
-  Wifi,
-  WifiOff,
-  Battery,
-  BatteryCharging,
-  Settings,
-  Download,
-  Share2,
-  Target,
-  Compass,
-  BarChart3,
-  Layers,
-  Sun,
-  Moon,
-  Cloud,
-  CloudRain,
-  Thermometer,
-  Wind,
-  Timer,
-  Route,
-  Gauge,
-  TrendingUp,
-  RefreshCw,
-  AlertCircle
+  IOSBottomSheet, 
+  IOSBottomSheetContent, 
+  IOSBottomSheetTrigger,
+  IOSBottomSheetTitle,
+  IOSBottomSheetDescription
+} from "@/components/ui/ios/bottom-sheet";
+import { IOSButton } from "@/components/ui/ios/button";
+import { IOSCard } from "@/components/ui/ios/card";
+import { 
+  Play, Pause, Square, MapPin, Clock, Navigation, Activity, MoreHorizontal, Route, AlertTriangle, Phone, X, Maximize2, 
+  Zap, Target, TrendingUp, Wifi, WifiOff, Battery, BatteryCharging
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { 
-  initBackgroundTracking, 
   storeTrackingSession, 
   getStoredTrackingSession, 
   clearStoredTrackingSession,
   calculateDistance,
   formatTime,
-  getBatteryInfo,
-  getTrackingSettings,
-  saveTrackingSettings,
-  syncOfflineData,
   EnhancedTrackingSession,
   GPSPosition
 } from "@/components/pwa/gps-tracker/backgroundTracking";
 import dynamic from 'next/dynamic';
-import { shouldEnableOffline } from '@/lib/dev-utils';
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCurrentRole } from "@/hooks/use-current-role";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Simple lightweight map component for GPS tracking
-const SimpleMapComponent = dynamic(
-  () => import('@/components/pwa/gps-tracker/SimpleMap'),
+// Type declaration for BatteryManager
+interface BatteryManager extends EventTarget {
+  charging: boolean;
+  chargingTime: number;
+  dischargingTime: number;
+  level: number;
+}
+
+// Type declaration for Navigator with getBattery
+interface NavigatorWithBattery extends Navigator {
+  getBattery(): Promise<BatteryManager>;
+}
+
+// Import a proper map component inspired by GpxEditor
+const GPSMapComponent = dynamic(
+  () => import('@/components/pwa/gps-tracker/GPSMap'),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-64 bg-gray-100 rounded-2xl flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="w-full h-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <motion.div 
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
+          <motion.div
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: [0, 5, -5, 0]
+            }}
+            transition={{ 
+              duration: 2, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+          >
+            <MapPin className="h-16 w-16 text-blue-400 drop-shadow-lg" />
+          </motion.div>
+          <motion.p 
+            className="text-sm text-gray-600 mt-4 font-medium"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+          >
+            Loading GPS Map...
+          </motion.p>
+        </motion.div>
       </div>
     )
   }
 );
 
-// Fallback map component in case the main map fails to load
-const FallbackMap = () => (
-  <div className="w-full h-64 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl flex items-center justify-center border border-blue-200/50">
-    <div className="text-center">
-      <MapPin className="h-12 w-12 text-blue-400 mx-auto mb-3" />
-      <p className="text-sm text-gray-600 font-medium">Map Loading...</p>
-      <p className="text-xs text-gray-500 mt-1">Please wait while the map initializes</p>
+const StatCard = ({ title, value, icon, unit, trend }: {
+  title: string, 
+  value: string | number, 
+  icon: React.ReactNode, 
+  unit?: string,
+  trend?: { value: number; isPositive: boolean }
+}) => (
+  <motion.div 
+    className="bg-white/90 backdrop-blur-xl rounded-3xl p-4 text-center border border-white/50 shadow-xl shadow-black/10"
+    whileHover={{ scale: 1.03, y: -3, rotateY: 2 }}
+    whileTap={{ scale: 0.97 }}
+    transition={{ 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 20,
+      mass: 0.8
+    }}
+    style={{
+      transformStyle: "preserve-3d"
+    }}
+  >
+    <motion.div 
+      className="flex items-center justify-center gap-2 text-gray-500 mb-2"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+    >
+      <motion.div 
+        className="p-2 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/80 shadow-sm"
+        whileHover={{ scale: 1.1, rotate: 5 }}
+        transition={{ type: "spring", stiffness: 400 }}
+      >
+        {icon}
+      </motion.div>
+      <span className="text-xs font-semibold">{title}</span>
+    </motion.div>
+    <motion.div 
+      className="flex items-baseline justify-center gap-1"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.2 }}
+    >
+      <p className="text-2xl font-bold text-gray-900">
+        {value}
+      </p>
+      {unit && <span className="text-sm font-medium text-gray-500">{unit}</span>}
+    </motion.div>
+    {trend && (
+      <motion.div 
+        className={cn(
+          "flex items-center justify-center gap-1 text-xs font-medium px-2 py-1 rounded-full mt-2",
+          trend.isPositive ? "text-green-600 bg-green-100/60" : "text-red-600 bg-red-100/60"
+        )}
+        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+      >
+        <motion.div
+          animate={{ rotate: trend.isPositive ? [0, 10, -10, 0] : [0, -10, 10, 0] }}
+          transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <TrendingUp className={cn("w-3 h-3", trend.isPositive ? "rotate-0" : "rotate-180")} />
+        </motion.div>
+        {trend.value}%
+      </motion.div>
+    )}
+  </motion.div>
+);
+
+const ActionButton = ({ onClick, children, className = '', icon }: { 
+  onClick?: () => void, 
+  children: React.ReactNode, 
+  className?: string,
+  icon?: React.ReactNode
+}) => (
+  <motion.button 
+    onClick={onClick} 
+    className={cn(
+      "w-full flex items-center justify-between p-4 rounded-2xl bg-white/90 backdrop-blur-xl hover:bg-white/95 transition-all duration-300 border border-white/50 shadow-lg shadow-black/5",
+      className
+    )}
+    whileHover={{ scale: 1.02, y: -2, rotateY: 1 }}
+    whileTap={{ scale: 0.98 }}
+    transition={{ 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 25,
+      mass: 0.8
+    }}
+    style={{
+      transformStyle: "preserve-3d"
+    }}
+  >
+    <span className="font-medium text-gray-800">{children}</span>
+    <div className="flex items-center gap-2">
+      <motion.div
+        whileHover={{ scale: 1.1, rotate: 5 }}
+        transition={{ type: "spring", stiffness: 400 }}
+      >
+        {icon}
+      </motion.div>
+      <motion.div 
+        className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-sm"
+        whileHover={{ scale: 1.1 }}
+        transition={{ type: "spring", stiffness: 400 }}
+      >
+        <div className="w-2 h-2 rounded-full bg-gray-400" />
+      </motion.div>
     </div>
+  </motion.button>
+);
+
+const StatusIndicator = ({ isOnline, batteryLevel }: { isOnline: boolean, batteryLevel?: number }) => (
+  <div className="flex items-center gap-2">
+    <motion.div 
+      className={cn(
+        "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium shadow-sm",
+        isOnline ? "text-green-600 bg-green-100/60 border border-green-200/50" : "text-red-600 bg-red-100/60 border border-red-200/50"
+      )}
+      initial={{ opacity: 0, scale: 0.8, x: -20 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+      whileHover={{ scale: 1.05 }}
+    >
+      <motion.div
+        animate={{ 
+          scale: isOnline ? [1, 1.2, 1] : [1, 0.8, 1],
+          opacity: isOnline ? [1, 0.8, 1] : [1, 0.5, 1]
+        }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+      </motion.div>
+      {isOnline ? "Online" : "Offline"}
+    </motion.div>
+    {batteryLevel !== undefined && (
+      <motion.div 
+        className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 bg-gray-100/60 border border-gray-200/50 shadow-sm"
+        initial={{ opacity: 0, scale: 0.8, x: -20 }}
+        animate={{ opacity: 1, scale: 1, x: 0 }}
+        transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+        whileHover={{ scale: 1.05 }}
+      >
+        <motion.div
+          animate={{ 
+            scale: batteryLevel < 20 ? [1, 1.2, 1] : 1,
+            color: batteryLevel < 20 ? ["#ef4444", "#dc2626", "#ef4444"] : "#6b7280"
+          }}
+          transition={{ duration: 1.5, repeat: batteryLevel < 20 ? Infinity : 0 }}
+        >
+          {batteryLevel > 20 ? <Battery className="w-3 h-3" /> : <BatteryCharging className="w-3 h-3" />}
+        </motion.div>
+        {batteryLevel}%
+      </motion.div>
+    )}
   </div>
 );
 
-// Simple static map fallback
-const StaticMapFallback = ({ trackPoints }: { trackPoints: { lat: number; lng: number }[] }) => {
-  if (trackPoints.length === 0) {
-    return <FallbackMap />;
-  }
-
-  return (
-    <div className="w-full h-64 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl border border-blue-200/50 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-medium text-gray-700">Route Overview</span>
-        </div>
-        <span className="text-xs text-gray-500">{trackPoints.length} points</span>
-      </div>
-      
-      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 h-32 overflow-hidden">
-        <div className="text-xs text-gray-600 mb-2">GPS Track</div>
-        <div className="flex items-center gap-1">
-          {trackPoints.slice(0, 20).map((point, index) => (
-            <div
-              key={index}
-              className="w-1 h-1 bg-blue-500 rounded-full"
-              style={{
-                opacity: index / Math.min(trackPoints.length, 20)
-              }}
-            />
-          ))}
-          {trackPoints.length > 20 && (
-            <span className="text-xs text-gray-400">...</span>
-          )}
-        </div>
-        
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-white/40 rounded-lg p-2">
-            <div className="text-gray-500">Start</div>
-            <div className="font-mono text-gray-700">
-              {trackPoints[0]?.lat.toFixed(4)}, {trackPoints[0]?.lng.toFixed(4)}
-            </div>
-          </div>
-          <div className="bg-white/40 rounded-lg p-2">
-            <div className="text-gray-500">Current</div>
-            <div className="font-mono text-gray-700">
-              {trackPoints[trackPoints.length - 1]?.lat.toFixed(4)}, {trackPoints[trackPoints.length - 1]?.lng.toFixed(4)}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Error boundary for map component
-class MapErrorBoundary extends React.Component<
-  { children: React.ReactNode; onError: () => void },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode; onError: () => void }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Map Error:', error, errorInfo);
-    this.props.onError();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <FallbackMap />;
-    }
-
-    return this.props.children;
-  }
-}
-
-// Weather data interface
-interface WeatherData {
-  temperature: number;
-  condition: string;
-  humidity: number;
-  windSpeed: number;
-  pressure: number;
-}
-
 const GPSPage = () => {
-  // Loading state
   const [isGPSReady, setIsGPSReady] = useState(false);
-  
-  // Core tracking state
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentSession, setCurrentSession] = useState<EnhancedTrackingSession | null>(null);
-  const [currentPosition, setCurrentPosition] = useState<GPSPosition | null>(null);
-  const [watchId, setWatchId] = useState<number | null>(null);
-  
-  // UI state
-  const [isOnline, setIsOnline] = useState(true);
-  const [batteryLevel, setBatteryLevel] = useState(100);
-  const [isCharging, setIsCharging] = useState(false);
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [showMap, setShowMap] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isServiceWorkerRegistered, setIsServiceWorkerRegistered] = useState(false);
-  const [offlineMode, setOfflineMode] = useState(false);
-  const [mapError, setMapError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [watchId, setWatchId] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [batteryLevel, setBatteryLevel] = useState<number | undefined>();
   
-  // Developer stats
-  const [developerStats, setDeveloperStats] = useState({
-    totalDistanceMeters: 0,
-    lastUpdateTime: null as Date | null,
-    updateCount: 0,
-    averageUpdateInterval: 0,
-    lastUpdateInterval: 0,
-    gpsAccuracy: 0,
-    gpsSpeed: 0,
-    gpsHeading: 0
-  });
-  
-  // Refs
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionRef = useRef<EnhancedTrackingSession | null>(null);
   const lastPositionRef = useRef<GPSPosition | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const currentUser = useCurrentUser();
+  const currentRole = useCurrentRole();
+  
+  const handleGPSReady = useCallback(() => setIsGPSReady(true), []);
 
-  // Set offlineMode safely in browser only
+  // Monitor online status and battery
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOfflineMode(!navigator.onLine);
-    }
-  }, []);
-
-  // Register service worker for offline functionality (browser only)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const registerServiceWorker = async () => {
-      if ('serviceWorker' in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js', {
-            scope: '/',
-          });
-          if (registration.active) {
-            setIsServiceWorkerRegistered(true);
-          }
-        } catch (error) {
-          console.error('Service worker registration failed:', error);
-        }
-      }
-    };
-    registerServiceWorker();
-  }, []);
-
-  // Check online status and handle offline mode (browser only)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const updateOnlineStatus = () => {
-      const online = navigator.onLine;
-      setIsOnline(online);
-      // Only enable offline mode when there's no internet connection
-      setOfflineMode(!online);
-      if (online) {
-        toast.success('Connection restored');
-        // Attempt to sync offline data
-        syncOfflineData().catch(console.error);
-      } else {
-        toast.info('Working in offline mode', {
-          description: 'GPS tracking will continue to work offline'
-        });
-      }
-    };
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    updateOnlineStatus();
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
-  }, []);
-
-  // Handle GPS ready callback
-  const handleGPSReady = useCallback(() => {
-    setIsGPSReady(true);
-  }, []);
-
-  // Initialize tracking session
-  const initializeSession = useCallback(() => {
-    // Only create session on client side
-    if (typeof window === 'undefined') return null;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Get battery level if available
+    if ('getBattery' in navigator) {
+      const navigatorWithBattery = navigator as Navigator & { getBattery(): Promise<BatteryManager> };
+      navigatorWithBattery.getBattery().then((battery) => {
+        setBatteryLevel(Math.round(battery.level * 100));
+        battery.addEventListener('levelchange', () => {
+          setBatteryLevel(Math.round(battery.level * 100));
+        });
+      });
+    }
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const startTimer = useCallback(() => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    timerIntervalRef.current = setInterval(() => {
+      if (sessionRef.current?.isActive && !sessionRef.current.isPaused) {
+        const elapsed = Date.now() - sessionRef.current.startTime;
+        setElapsedTime(elapsed);
+      }
+    }, 1000);
+  }, []);
+
+  const stopTimer = useCallback(() => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+  }, []);
+
+  const initializeSession = useCallback(() => {
     const session: EnhancedTrackingSession = {
-      id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `session_${Date.now()}`,
       startTime: Date.now(),
       positions: [],
       totalDistance: 0,
@@ -294,1051 +320,425 @@ const GPSPage = () => {
       isPaused: false,
       lastUpdate: Date.now(),
       metadata: {
-        deviceInfo: {
-          userAgent: navigator.userAgent,
-          platform: navigator.platform,
-          language: navigator.language,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          screenResolution: `${screen.width}x${screen.height}`,
-          connectionType: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType
-        }
+          deviceInfo: {
+              userAgent: navigator.userAgent,
+              platform: navigator.platform,
+              language: navigator.language,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              screenResolution: `${screen.width}x${screen.height}`
+          }
       },
-      syncStatus: offlineMode ? 'pending' : 'pending',
+      syncStatus: 'pending',
       version: '2.0.0'
     };
-    
     setCurrentSession(session);
     sessionRef.current = session;
-    
-    // Store in localStorage for offline persistence
-    storeTrackingSession(session);
-    
     return session;
-  }, [offlineMode]);
-
-  // Start timer updates
-  const startTimer = useCallback(() => {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-    }
-    
-    timerIntervalRef.current = setInterval(() => {
-      if (sessionRef.current && sessionRef.current.isActive && !sessionRef.current.isPaused) {
-        const elapsed = Date.now() - sessionRef.current.startTime;
-        setElapsedTime(elapsed);
-        
-        // Update session total time
-        sessionRef.current.totalTime = elapsed;
-        setCurrentSession({ ...sessionRef.current });
-      }
-    }, 1000);
   }, []);
 
-  // Stop timer
-  const stopTimer = useCallback(() => {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-  }, []);
-
-  // Handle position updates
   const handlePositionUpdate = useCallback((position: GeolocationPosition) => {
     const gpsPosition: GPSPosition = {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      altitude: position.coords.altitude || undefined,
-      accuracy: position.coords.accuracy,
-      speed: position.coords.speed ? position.coords.speed * 3.6 : undefined, // Convert m/s to km/h
-      heading: position.coords.heading || undefined,
-      timestamp: position.timestamp
+      latitude: position.coords.latitude, longitude: position.coords.longitude,
+      altitude: position.coords.altitude ?? undefined, accuracy: position.coords.accuracy,
+      speed: position.coords.speed ? position.coords.speed * 3.6 : undefined, // km/h
+      heading: position.coords.heading ?? undefined, timestamp: position.timestamp
     };
 
-    setCurrentPosition(gpsPosition);
-
-    // Update developer stats
-    const now = new Date();
-    setDeveloperStats(prev => {
-      const lastUpdateTime = prev.lastUpdateTime;
-      const updateInterval = lastUpdateTime ? now.getTime() - lastUpdateTime.getTime() : 0;
-      const newUpdateCount = prev.updateCount + 1;
-      const newAverageInterval = lastUpdateTime 
-        ? (prev.averageUpdateInterval * (newUpdateCount - 1) + updateInterval) / newUpdateCount
-        : 0;
-
-      return {
-        ...prev,
-        lastUpdateTime: now,
-        updateCount: newUpdateCount,
-        averageUpdateInterval: newAverageInterval,
-        lastUpdateInterval: updateInterval,
-        gpsAccuracy: position.coords.accuracy,
-        gpsSpeed: position.coords.speed || 0,
-        gpsHeading: position.coords.heading || 0
-      };
-    });
-
-    if (sessionRef.current && sessionRef.current.isActive && !sessionRef.current.isPaused) {
+    if (sessionRef.current?.isActive && !sessionRef.current.isPaused) {
       const session = sessionRef.current;
-      
-      // Calculate distance if we have a previous position
       if (lastPositionRef.current) {
-        const distance = calculateDistance(
-          lastPositionRef.current.latitude,
-          lastPositionRef.current.longitude,
-          gpsPosition.latitude,
-          gpsPosition.longitude
-        );
-        
-        session.totalDistance += distance;
-        
-        // Update developer stats with precise distance in meters
-        setDeveloperStats(prev => ({
-          ...prev,
-          totalDistanceMeters: Math.round(prev.totalDistanceMeters + (distance * 1000))
-        }));
-        
-        // Calculate ascent/descent
-        if (gpsPosition.altitude && lastPositionRef.current.altitude) {
-          const elevationDiff = gpsPosition.altitude - lastPositionRef.current.altitude;
-          if (elevationDiff > 0) {
-            session.totalAscent += elevationDiff;
-          } else {
-            session.totalDescent += Math.abs(elevationDiff);
-          }
-        }
-        
-        // Update max speed
-        if (gpsPosition.speed && gpsPosition.speed > session.maxSpeed) {
-          session.maxSpeed = gpsPosition.speed;
-        }
+        session.totalDistance += calculateDistance(lastPositionRef.current.latitude, lastPositionRef.current.longitude, gpsPosition.latitude, gpsPosition.longitude);
       }
-      
-      // Add position to session
+      if (gpsPosition.speed && gpsPosition.speed > session.maxSpeed) session.maxSpeed = gpsPosition.speed;
       session.positions.push(gpsPosition);
       session.totalTime = Date.now() - session.startTime;
-      session.averageSpeed = session.totalDistance / (session.totalTime / 3600000); // km/h
-      
-      // Update session state
+      session.averageSpeed = session.totalDistance > 0 ? session.totalDistance / (session.totalTime / 3600000) : 0;
       setCurrentSession({ ...session });
-      sessionRef.current = session;
-      
-      // Store updated session
       storeTrackingSession(session);
     }
-    
     lastPositionRef.current = gpsPosition;
   }, []);
 
-  // Start tracking
   const startTracking = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    if (!navigator.geolocation) {
-      toast.error('GPS is not supported on this device');
-      return;
-    }
-
+    if (!navigator.geolocation) return toast.error('GPS is not supported.');
     setIsLoading(true);
-
-    try {
-      const session = initializeSession();
-      if (!session) {
-        toast.error('Failed to initialize tracking session');
-        return;
-      }
-      
-      // Request wake lock to keep screen on
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLockRef.current = await navigator.wakeLock.request('screen');
-          console.log('Wake lock acquired');
-        } catch (error) {
-          console.warn('Failed to acquire wake lock:', error);
-        }
-      }
-      
-      const id = navigator.geolocation.watchPosition(
-        handlePositionUpdate,
-        (error) => {
-          console.error('GPS Error:', error);
-          let errorMessage = 'GPS Error';
-          switch (error.code) {
-            case 1:
-              errorMessage = 'GPS access denied. Please enable location services.';
-              break;
-            case 2:
-              errorMessage = 'GPS position unavailable. Please check your location settings.';
-              break;
-            case 3:
-              errorMessage = 'GPS timeout. Please try again or move to an open area.';
-              break;
-            default:
-              errorMessage = `GPS Error: ${error.message}`;
-          }
-          toast.error(errorMessage);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 30000 // Increased timeout to 30 seconds
-        }
-      );
-      
-      setWatchId(id);
-      setIsTracking(true);
-      setIsPaused(false);
-      
-      // Start timer
-      startTimer();
-      
-      toast.success(offlineMode ? 'GPS tracking started (offline mode)' : 'GPS tracking started');
-    } catch (error) {
-      console.error('Failed to start tracking:', error);
-      toast.error('Failed to start tracking');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [initializeSession, handlePositionUpdate, startTimer, offlineMode]);
-
-  // Pause tracking
-  const pauseTracking = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    if (sessionRef.current) {
-      sessionRef.current.isPaused = true;
-      setCurrentSession({ ...sessionRef.current });
-      setIsPaused(true);
-      storeTrackingSession(sessionRef.current);
-      toast.info('Tracking paused');
-    }
-  }, []);
-
-  // Resume tracking
-  const resumeTracking = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    if (sessionRef.current) {
-      sessionRef.current.isPaused = false;
-      setCurrentSession({ ...sessionRef.current });
-      setIsPaused(false);
-      storeTrackingSession(sessionRef.current);
-      toast.info('Tracking resumed');
-    }
-  }, []);
-
-  // Stop tracking
-  const stopTracking = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    if (watchId) {
-      navigator.geolocation.clearWatch(watchId);
-      setWatchId(null);
-    }
-    
-    // Stop timer
-    stopTimer();
-    
-    // Release wake lock
-    if (wakeLockRef.current) {
+    initializeSession();
+    if ('wakeLock' in navigator) {
       try {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-        console.log('Wake lock released');
-      } catch (error) {
-        console.error('Error releasing wake lock:', error);
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        console.warn('Failed to acquire wake lock:', err);
       }
     }
-    
-    if (sessionRef.current) {
-      sessionRef.current.isActive = false;
-      sessionRef.current.endTime = Date.now();
-      setCurrentSession({ ...sessionRef.current });
-      
-      // Save completed session
-      const completedSessions = JSON.parse(localStorage.getItem('completedSessions') || '[]');
-      completedSessions.push(sessionRef.current);
-      localStorage.setItem('completedSessions', JSON.stringify(completedSessions));
-      
-      // Clear current session
+    const id = navigator.geolocation.watchPosition(handlePositionUpdate, (e) => toast.error(`GPS Error: ${e.message}`), { enableHighAccuracy: true });
+    setWatchId(id);
+    setIsTracking(true);
+    setIsPaused(false);
+    startTimer();
+    toast.success('GPS Tracking Started', {
+      description: 'Your route is now being recorded',
+      icon: <Target className="w-4 h-4" />
+    });
+    setIsLoading(false);
+  }, [initializeSession, handlePositionUpdate, startTimer]);
+
+  const controlTracking = (action: 'pause' | 'resume' | 'stop') => async () => {
+    const session = sessionRef.current;
+    if (!session) return;
+
+    if (action === 'pause') {
+      session.isPaused = true;
+      setIsPaused(true);
+      toast.info('Tracking Paused', {
+        description: 'Your route recording has been paused',
+        icon: <Pause className="w-4 h-4" />
+      });
+    } else if (action === 'resume') {
+      session.isPaused = false;
+      setIsPaused(false);
+      toast.success('Tracking Resumed', {
+        description: 'Your route recording has been resumed',
+        icon: <Play className="w-4 h-4" />
+      });
+    } else if (action === 'stop') {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      stopTimer();
+      if (wakeLockRef.current) await wakeLockRef.current.release();
+      session.isActive = false;
+      session.endTime = Date.now();
+      const completed = JSON.parse(localStorage.getItem('completedSessions') || '[]');
+      completed.push(session);
+      localStorage.setItem('completedSessions', JSON.stringify(completed));
       clearStoredTrackingSession();
       sessionRef.current = null;
+      setIsTracking(false);
+      setIsPaused(false);
+      setElapsedTime(0);
+      setCurrentSession(null);
+      toast.success('Tracking Completed', {
+        description: 'Your route has been saved successfully',
+        icon: <Zap className="w-4 h-4" />
+      });
+      return;
     }
-    
-    setIsTracking(false);
-    setIsPaused(false);
-    setCurrentPosition(null);
-    setElapsedTime(0);
-    
-    toast.success('Tracking stopped');
-  }, [watchId, stopTimer]);
+    setCurrentSession({ ...session });
+    storeTrackingSession(session);
+  };
 
-  // Check battery status
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const updateBatteryInfo = async () => {
-      const batteryInfo = await getBatteryInfo();
-      if (batteryInfo) {
-        setBatteryLevel(batteryInfo.level);
-        setIsCharging(batteryInfo.charging);
-      }
-    };
-    
-    updateBatteryInfo();
-    
-    // Update battery info periodically
-    const batteryInterval = setInterval(updateBatteryInfo, 30000); // Every 30 seconds
-    
-    return () => clearInterval(batteryInterval);
-  }, []);
-
-  // Initialize background tracking
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    initBackgroundTracking(
-      (session) => {
-        // Resume tracking callback
-        setCurrentSession(session);
-        sessionRef.current = session;
-        setIsTracking(true);
-        setIsPaused(session.isPaused);
-        if (!session.isPaused) {
-          startTimer();
-        }
-      },
-      (position) => {
-        // Position update callback from background
-        setCurrentPosition(position);
-        handlePositionUpdate({
-          coords: {
-            latitude: position.latitude,
-            longitude: position.longitude,
-            altitude: position.altitude,
-            accuracy: position.accuracy,
-            speed: position.speed ? position.speed / 3.6 : undefined, // Convert back to m/s
-            heading: position.heading
-          },
-          timestamp: position.timestamp
-        } as GeolocationPosition);
-      }
-    );
-  }, [handlePositionUpdate, startTimer]);
-
-  // Load existing session on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
     const savedSession = getStoredTrackingSession();
-    if (savedSession && savedSession.isActive) {
-      setCurrentSession(savedSession);
+    if (savedSession?.isActive) {
       sessionRef.current = savedSession;
+      setCurrentSession(savedSession);
       setIsTracking(true);
       setIsPaused(savedSession.isPaused);
-      
-      // Resume tracking if not paused
-      if (!savedSession.isPaused) {
-        startTracking();
-      }
+      if (!savedSession.isPaused) startTracking();
     }
   }, [startTracking]);
 
-  // Cleanup on unmount
+  // Fullscreen handler
   useEffect(() => {
-    return () => {
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release().catch(console.error);
-      }
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+    if (!isFullscreen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
     };
-  }, []);
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
+  
+  if (!isGPSReady) return <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />;
 
-  // Handle global errors for map loading
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleError = (event: ErrorEvent) => {
-      if (event.message.includes('chunk') || event.message.includes('4867')) {
-        console.warn('Map chunk loading error detected, showing fallback');
-        setMapError(true);
-      }
-    };
-
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-
-  // Retry map loading
-  const retryMap = () => {
-    if (typeof window === 'undefined') return;
-    setMapError(false);
-    // Force a re-render by updating a state
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  };
-
-  // Show loading screen if GPS is not ready
-  if (!isGPSReady) {
-    return (
-      <ClientOnly fallback={
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 text-center space-y-4">
-            <div className="p-4 rounded-full bg-blue-100 w-fit mx-auto">
-              <MapPin className="h-8 w-8 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">GPS Tracker</h2>
-              <p className="text-sm text-gray-600">Loading...</p>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            </div>
-          </div>
-        </div>
-      }>
-        <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />
-      </ClientOnly>
-    );
-  }
-
-  // Convert session positions to map format
-  const mapTrackPoints = currentSession?.positions.map(pos => ({
-    lat: pos.latitude,
-    lng: pos.longitude,
-    ele: pos.altitude
-  })) || [];
+  const mapTrackPoints = currentSession?.positions.map(pos => ({ lat: pos.latitude, lng: pos.longitude })) || [];
 
   return (
-    <CommonPageTemplate contents={{}} currentUser={undefined} currentRole={undefined} className='h-screen max-h-screen overflow-y-hidden p-0' showOfflineController={true}>
-      <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
-        {/* Mobile layout (no border, full width) */}
-        <div className="md:hidden w-full h-full bg-white/80 backdrop-blur-xl overflow-y-auto">
-          <div className="p-4 space-y-6">
+    <CommonPageTemplate currentUser={currentUser} currentRole={currentRole} mobileLayout={true} className="p-0 overflow-hidden">
+      <IOSBottomSheet shouldScaleBackground={true}>
+        <motion.div 
+          className={cn("w-full h-full", isFullscreen && "fixed inset-0 z-[2000] bg-black/70 flex items-center justify-center")}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div 
+            className={cn("w-full h-full", isFullscreen && "max-w-6xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden")}
+            initial={isFullscreen ? { scale: 0.9, opacity: 0 } : {}}
+            animate={isFullscreen ? { scale: 1, opacity: 1 } : {}}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <div className="absolute inset-0 z-0">
+              <GPSMapComponent 
+                trackPoints={mapTrackPoints} 
+                isTracking={isTracking}
+                isPaused={isPaused}
+                currentPosition={lastPositionRef.current}
+              />
+            </div>
+            
             {/* Status Bar */}
-            <div className="flex items-center justify-between text-xs text-gray-600 bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-2 border border-gray-200/50">
-              <div className="flex items-center gap-2">
-                {isOnline ? (
-                  <Wifi className="h-3 w-3 text-green-500" />
-                ) : (
-                  <WifiOff className="h-3 w-3 text-red-500" />
-                )}
-                <span className="font-medium">{isOnline ? 'Online' : 'Offline'}</span>
-                {offlineMode && (
-                  <div className="flex items-center gap-1">
-                    <AlertCircle className="h-2 w-2 text-amber-500" />
-                    <span className="text-amber-600 text-xs">Offline Mode</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {isCharging ? (
-                  <BatteryCharging className="h-3 w-3 text-green-500" />
-                ) : (
-                  <Battery className="h-3 w-3" />
-                )}
-                <span className="font-medium">{batteryLevel}%</span>
-              </div>
-            </div>
-
-            {/* Offline Mode Notice */}
-            {offlineMode && (
-              <div className="bg-amber-50/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-200/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-amber-100/80">
-                    <WifiOff className="h-4 w-4 text-amber-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-amber-900 text-sm">Offline Mode</h3>
-                    <p className="text-amber-700 text-xs">GPS tracking continues offline. Data will sync when connection is restored.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Current Position Display */}
-            {currentPosition && (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-6 border border-blue-200/50 shadow-lg">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 rounded-2xl bg-blue-100/80 backdrop-blur-sm">
-                    <MapPin className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Current Position</h3>
-                    <p className="text-sm text-gray-600">GPS Active</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                    <span className="text-gray-500 text-xs font-medium">Latitude</span>
-                    <p className="font-mono text-gray-900 font-semibold">{currentPosition.latitude.toFixed(6)}</p>
-                  </div>
-                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                    <span className="text-gray-500 text-xs font-medium">Longitude</span>
-                    <p className="font-mono text-gray-900 font-semibold">{currentPosition.longitude.toFixed(6)}</p>
-                  </div>
-                  {currentPosition.altitude && (
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                      <span className="text-gray-500 text-xs font-medium">Altitude</span>
-                      <p className="font-mono text-gray-900 font-semibold">{currentPosition.altitude.toFixed(0)}m</p>
-                    </div>
-                  )}
-                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                    <span className="text-gray-500 text-xs font-medium">Accuracy</span>
-                    <p className="font-mono text-gray-900 font-semibold">{currentPosition.accuracy.toFixed(1)}m</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tracking Controls */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
-              <div className="flex items-center justify-center gap-6">
-                {!isTracking ? (
-                  <Button
-                    onClick={startTracking}
-                    disabled={isLoading}
-                    className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-xl disabled:opacity-50 transition-all duration-300 transform hover:scale-105 active:scale-95"
+            <motion.div 
+              className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between"
+              initial={{ opacity: 0, y: -30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6, type: "spring", stiffness: 300 }}
+            >
+              <StatusIndicator isOnline={isOnline} batteryLevel={batteryLevel} />
+              
+              {/* Fullscreen toggle button */}
+              <motion.button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="w-12 h-12 bg-white/95 backdrop-blur-xl rounded-full flex items-center justify-center shadow-xl shadow-black/10 border border-white/50 transition-all duration-300"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                whileTap={{ scale: 0.9, rotate: -5 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              >
+                <motion.div
+                  animate={{ rotate: isFullscreen ? 180 : 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  {isFullscreen ? <X className="h-5 w-5 text-gray-700" /> : <Maximize2 className="h-5 w-5 text-gray-700" />}
+                </motion.div>
+              </motion.button>
+            </motion.div>
+            
+            {/* Live Stats Overlay */}
+            <AnimatePresence mode="wait">
+              {isTracking && (
+                <motion.div 
+                  className="absolute top-20 left-4 right-4 z-10"
+                  initial={{ opacity: 0, y: -30, scale: 0.9, rotateX: -15 }}
+                  animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+                  exit={{ opacity: 0, y: -30, scale: 0.9, rotateX: -15 }}
+                  transition={{ 
+                    duration: 0.5, 
+                    ease: "easeOut",
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 25
+                  }}
+                  style={{
+                    transformStyle: "preserve-3d"
+                  }}
+                >
+                  <motion.div 
+                    className="grid grid-cols-3 gap-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
                   >
-                    {isLoading ? (
-                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
-                    ) : (
-                      <Play className="h-10 w-10" />
-                    )}
-                  </Button>
-                ) : (
-                  <>
-                    {isPaused ? (
-                      <Button
-                        onClick={resumeTracking}
-                        className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                      >
-                        <Play className="h-10 w-10" />
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={pauseTracking}
-                        className="h-20 w-20 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                      >
-                        <Pause className="h-10 w-10" />
-                      </Button>
-                    )}
-                    <Button
-                      onClick={stopTracking}
-                      className="h-20 w-20 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
                     >
-                      <Square className="h-10 w-10" />
-                    </Button>
-                  </>
-                )}
+                      <StatCard 
+                        title="Distance" 
+                        icon={<Navigation size={16}/>} 
+                        value={currentSession?.totalDistance.toFixed(2) || '0.00'} 
+                        unit="km" 
+                      />
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                    >
+                      <StatCard 
+                        title="Time" 
+                        icon={<Clock size={16}/>} 
+                        value={formatTime(elapsedTime || currentSession?.totalTime || 0)} 
+                        unit="" 
+                      />
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                    >
+                      <StatCard 
+                        title="Avg. Speed" 
+                        icon={<Activity size={16}/>} 
+                        value={currentSession?.averageSpeed.toFixed(1) || '0.0'} 
+                        unit="km/h" 
+                      />
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Control Buttons */}
+            <motion.div 
+              className="absolute bottom-4 left-4 right-4 z-10"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6, type: "spring", stiffness: 300 }}
+            >
+              {!isTracking ? (
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98, y: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <IOSButton 
+                    size="lg" 
+                    className="w-full h-16 text-xl font-bold bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/40" 
+                    onClick={startTracking} 
+                    loading={isLoading}
+                  >
+                    <motion.div
+                      animate={{ 
+                        scale: isLoading ? [1, 1.1, 1] : 1,
+                        rotate: isLoading ? [0, 5, -5, 0] : 0
+                      }}
+                      transition={{ duration: 1, repeat: isLoading ? Infinity : 0 }}
+                    >
+                      <Play className="mr-3 h-6 w-6" />
+                    </motion.div>
+                    Start GPS Tracking
+                  </IOSButton>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  className="flex gap-3"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {isPaused ? (
+                    <motion.div
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98, y: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="flex-1"
+                    >
+                      <IOSButton 
+                        size="lg" 
+                        className="w-full h-16 text-xl font-bold bg-gradient-to-r from-green-500 via-green-600 to-green-700 shadow-2xl shadow-green-500/30 hover:shadow-green-500/40" 
+                        onClick={controlTracking('resume')}
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <Play className="mr-3 h-6 w-6" />
+                        </motion.div>
+                        Resume
+                      </IOSButton>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98, y: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="flex-1"
+                    >
+                      <IOSButton 
+                        size="lg" 
+                        variant="outline" 
+                        className="w-full h-16 text-xl font-bold bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 border-amber-500/50 text-white shadow-2xl shadow-amber-500/30 hover:shadow-amber-500/40" 
+                        onClick={controlTracking('pause')}
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <Pause className="mr-3 h-6 w-6" />
+                        </motion.div>
+                        Pause
+                      </IOSButton>
+                    </motion.div>
+                  )}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95, y: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    <IOSButton 
+                      size="icon" 
+                      variant="outline" 
+                      className="h-16 w-16 bg-gradient-to-r from-red-500 via-red-600 to-red-700 border-red-600/50 text-white shadow-2xl shadow-red-500/30 hover:shadow-red-500/40" 
+                      onClick={controlTracking('stop')}
+                    >
+                      <motion.div
+                        animate={{ rotate: [0, 5, -5, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <Square className="h-8 w-8" />
+                      </motion.div>
+                    </IOSButton>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95, y: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  >
+                    <IOSBottomSheetTrigger asChild>
+                      <IOSButton 
+                        size="icon" 
+                        variant="outline" 
+                        className="h-16 w-16 bg-white/95 border-white/50 text-gray-700 shadow-2xl shadow-black/10 hover:shadow-black/20"
+                      >
+                        <motion.div
+                          animate={{ rotate: [0, 10, -10, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <MoreHorizontal className="h-8 w-8" />
+                        </motion.div>
+                      </IOSButton>
+                    </IOSBottomSheetTrigger>
+                  </motion.div>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+        </motion.div>
+        
+        <IOSBottomSheetContent>
+          <IOSBottomSheetTitle className="text-xl font-bold mb-2">
+            GPS Tracking Details
+          </IOSBottomSheetTitle>
+          <IOSBottomSheetDescription className="mb-4">
+            View your current tracking session statistics and options.
+          </IOSBottomSheetDescription>
+          <div className="space-y-4 pb-16">
+            <IOSCard variant="outlined">
+              <div className="grid grid-cols-3 gap-3">
+                <StatCard title="Distance" icon={<Navigation size={14}/>} value={currentSession?.totalDistance.toFixed(2) || '0.00'} unit="km" />
+                <StatCard title="Time" icon={<Clock size={14}/>} value={formatTime(elapsedTime || currentSession?.totalTime || 0)} unit="" />
+                <StatCard title="Avg. Speed" icon={<Activity size={14}/>} value={currentSession?.averageSpeed.toFixed(1) || '0.0'} unit="km/h" />
               </div>
-              <p className="text-center text-sm text-gray-600 mt-4 font-medium">
-                {!isTracking ? 'Start tracking your route' : 
-                 isPaused ? 'Tracking paused' : 'Tracking active'}
-              </p>
+            </IOSCard>
+
+            <h3 className="text-lg font-semibold text-gray-800 pt-4">Quick Actions</h3>
+            <div className="space-y-2">
+              <ActionButton icon={<Route size={20} className="text-gray-500"/>}>
+                Route Details
+              </ActionButton>
+              <ActionButton icon={<AlertTriangle size={20} className="text-gray-500"/>}>
+                Report Issue
+              </ActionButton>
+              <ActionButton icon={<Phone size={20} className="text-gray-500"/>}>
+                Contact Support
+              </ActionButton>
             </div>
 
-            {/* Live Stats */}
-            {currentSession && (
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 rounded-2xl bg-purple-100/80 backdrop-blur-sm">
-                    <Activity className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 text-lg">Live Stats</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {currentSession.totalDistance.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">km</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {formatTime(elapsedTime || currentSession.totalTime)}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">time</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center border border-purple-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {currentSession.averageSpeed.toFixed(1)}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">km/h avg</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 text-center border border-orange-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {currentSession.maxSpeed.toFixed(1)}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">km/h max</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Map Section */}
-            {showMap && (
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-4 border border-gray-200/50 shadow-lg">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-xl bg-blue-100/80">
-                    <Layers className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Live Map</h3>
-                </div>
-                <div className="h-64 rounded-2xl overflow-hidden border border-gray-200/50">
-                  <MapErrorBoundary onError={() => setMapError(true)}>
-                    {mapError ? (
-                      <div className="w-full h-full bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl flex items-center justify-center border border-red-200/50">
-                        <div className="text-center">
-                          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
-                          <p className="text-sm text-gray-600 font-medium">Map Unavailable</p>
-                          <p className="text-xs text-gray-500 mt-1">Please try refreshing the page</p>
-                          <button 
-                            onClick={() => setMapError(false)}
-                            className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      </div>
-                    ) : mapTrackPoints.length > 0 ? (
-                      <MapErrorBoundary onError={() => setMapError(true)}>
-                        <SimpleMapComponent trackPoints={mapTrackPoints} />
-                      </MapErrorBoundary>
-                    ) : (
-                      <StaticMapFallback trackPoints={mapTrackPoints} />
-                    )}
-                  </MapErrorBoundary>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowMap(!showMap)}
-                className="h-12 bg-white/60 backdrop-blur-sm border-gray-200/50 hover:bg-white/80 transition-all duration-300 rounded-2xl"
+            <div className="pt-4">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <Layers className="h-4 w-4 mr-2" />
-                {showMap ? 'Hide Map' : 'Show Map'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowStats(!showStats)}
-                className="h-12 bg-white/60 backdrop-blur-sm border-gray-200/50 hover:bg-white/80 transition-all duration-300 rounded-2xl"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                {showStats ? 'Hide Stats' : 'Show Stats'}
-              </Button>
+                <IOSButton 
+                  variant="outline" 
+                  className="w-full border-red-500/50 text-red-600 hover:bg-red-500/10 shadow-lg" 
+                  onClick={controlTracking('stop')}
+                >
+                  <X className="mr-2" /> Stop Tracking
+                </IOSButton>
+              </motion.div>
             </div>
-
-            {/* Weather Info */}
-            {weather && (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-6 border border-blue-200/50 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-2xl bg-blue-100/80 backdrop-blur-sm">
-                      <Thermometer className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-gray-900">{weather.temperature}°C</div>
-                      <div className="text-sm text-gray-600">{weather.condition}</div>
-                    </div>
-                  </div>
-                  <div className="text-right text-sm text-gray-600 space-y-1">
-                    <div>Humidity: {weather.humidity}%</div>
-                    <div>Wind: {weather.windSpeed} km/h</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Settings */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-4 border border-gray-200/50 shadow-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gray-100/80 backdrop-blur-sm">
-                    <Settings className="h-4 w-4 text-gray-600" />
-                  </div>
-                  <span className="font-medium text-gray-900">Settings</span>
-                </div>
-                <Button variant="ghost" size="sm" className="rounded-xl">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Developer Stats */}
-            {showStats && (
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 rounded-2xl bg-purple-100/80 backdrop-blur-sm">
-                    <BarChart3 className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 text-lg">Developer Stats</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center border border-purple-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {developerStats.totalDistanceMeters}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">meters</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {developerStats.updateCount}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">updates</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {developerStats.averageUpdateInterval > 0 ? Math.round(developerStats.averageUpdateInterval / 1000) : 0}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">avg sec</div>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 text-center border border-orange-200/50">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {developerStats.gpsAccuracy.toFixed(1)}
-                    </div>
-                    <div className="text-xs text-gray-600 font-medium">accuracy m</div>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-2 text-xs text-gray-600">
-                  <div className="flex justify-between">
-                    <span>Last update:</span>
-                    <span>{developerStats.lastUpdateTime ? developerStats.lastUpdateTime.toLocaleTimeString() : 'Never'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Last interval:</span>
-                    <span>{developerStats.lastUpdateInterval > 0 ? Math.round(developerStats.lastUpdateInterval / 1000) : 0}s</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>GPS Speed:</span>
-                    <span>{(developerStats.gpsSpeed * 3.6).toFixed(1)} km/h</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>GPS Heading:</span>
-                    <span>{developerStats.gpsHeading.toFixed(0)}°</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-        </div>
-
-        {/* Desktop layout (phone-like design with border) */}
-        <div className="hidden md:block mx-auto max-w-sm w-full h-full max-h-screen bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border-8 border-gray-800 overflow-hidden">
-          <ScrollArea className="h-full w-full p-4">
-            <div className="space-y-6">
-              {/* Status Bar */}
-              <div className="flex items-center justify-between text-xs text-gray-600 bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-2 border border-gray-200/50">
-                <div className="flex items-center gap-2">
-                  {isOnline ? (
-                    <Wifi className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <WifiOff className="h-3 w-3 text-red-500" />
-                  )}
-                  <span className="font-medium">{isOnline ? 'Online' : 'Offline'}</span>
-                  {offlineMode && (
-                    <div className="flex items-center gap-1">
-                      <AlertCircle className="h-2 w-2 text-amber-500" />
-                      <span className="text-amber-600 text-xs">Offline Mode</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {isCharging ? (
-                    <BatteryCharging className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <Battery className="h-3 w-3" />
-                  )}
-                  <span className="font-medium">{batteryLevel}%</span>
-                </div>
-              </div>
-
-              {/* Offline Mode Notice */}
-              {offlineMode && (
-                <div className="bg-amber-50/80 backdrop-blur-sm rounded-2xl p-4 border border-amber-200/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-amber-100/80">
-                      <WifiOff className="h-4 w-4 text-amber-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-amber-900 text-sm">Offline Mode</h3>
-                      <p className="text-amber-700 text-xs">GPS tracking continues offline. Data will sync when connection is restored.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Current Position Display */}
-              {currentPosition && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-6 border border-blue-200/50 shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-2xl bg-blue-100/80 backdrop-blur-sm">
-                      <MapPin className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-lg">Current Position</h3>
-                      <p className="text-sm text-gray-600">GPS Active</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                      <span className="text-gray-500 text-xs font-medium">Latitude</span>
-                      <p className="font-mono text-gray-900 font-semibold">{currentPosition.latitude.toFixed(6)}</p>
-                    </div>
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                      <span className="text-gray-500 text-xs font-medium">Longitude</span>
-                      <p className="font-mono text-gray-900 font-semibold">{currentPosition.longitude.toFixed(6)}</p>
-                    </div>
-                    {currentPosition.altitude && (
-                      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                        <span className="text-gray-500 text-xs font-medium">Altitude</span>
-                        <p className="font-mono text-gray-900 font-semibold">{currentPosition.altitude.toFixed(0)}m</p>
-                      </div>
-                    )}
-                    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                      <span className="text-gray-500 text-xs font-medium">Accuracy</span>
-                      <p className="font-mono text-gray-900 font-semibold">{currentPosition.accuracy.toFixed(1)}m</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tracking Controls */}
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
-                <div className="flex items-center justify-center gap-6">
-                  {!isTracking ? (
-                    <Button
-                      onClick={startTracking}
-                      disabled={isLoading}
-                      className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-xl disabled:opacity-50 transition-all duration-300 transform hover:scale-105 active:scale-95"
-                    >
-                      {isLoading ? (
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
-                      ) : (
-                        <Play className="h-10 w-10" />
-                      )}
-                    </Button>
-                  ) : (
-                    <>
-                      {isPaused ? (
-                        <Button
-                          onClick={resumeTracking}
-                          className="h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                        >
-                          <Play className="h-10 w-10" />
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={pauseTracking}
-                          className="h-20 w-20 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                        >
-                          <Pause className="h-10 w-10" />
-                        </Button>
-                      )}
-                      <Button
-                        onClick={stopTracking}
-                        className="h-20 w-20 rounded-full bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                      >
-                        <Square className="h-10 w-10" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-                <p className="text-center text-sm text-gray-600 mt-4 font-medium">
-                  {!isTracking ? 'Start tracking your route' : 
-                   isPaused ? 'Tracking paused' : 'Tracking active'}
-                </p>
-              </div>
-
-              {/* Live Stats */}
-              {currentSession && (
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 rounded-2xl bg-purple-100/80 backdrop-blur-sm">
-                      <Activity className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Live Stats</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {currentSession.totalDistance.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">km</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {formatTime(elapsedTime || currentSession.totalTime)}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">time</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center border border-purple-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {currentSession.averageSpeed.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">km/h avg</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 text-center border border-orange-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {currentSession.maxSpeed.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">km/h max</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Map Section */}
-              {showMap && (
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-4 border border-gray-200/50 shadow-lg">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-xl bg-blue-100/80">
-                      <Layers className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900">Live Map</h3>
-                  </div>
-                  <div className="h-64 rounded-2xl overflow-hidden border border-gray-200/50">
-                    <MapErrorBoundary onError={() => setMapError(true)}>
-                      {mapError ? (
-                        <div className="w-full h-full bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl flex items-center justify-center border border-red-200/50">
-                          <div className="text-center">
-                            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
-                            <p className="text-sm text-gray-600 font-medium">Map Unavailable</p>
-                            <p className="text-xs text-gray-500 mt-1">Please try refreshing the page</p>
-                            <button 
-                              onClick={() => setMapError(false)}
-                              className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        </div>
-                      ) : mapTrackPoints.length > 0 ? (
-                        <MapErrorBoundary onError={() => setMapError(true)}>
-                          <SimpleMapComponent trackPoints={mapTrackPoints} />
-                        </MapErrorBoundary>
-                      ) : (
-                        <StaticMapFallback trackPoints={mapTrackPoints} />
-                      )}
-                    </MapErrorBoundary>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowMap(!showMap)}
-                  className="h-12 bg-white/60 backdrop-blur-sm border-gray-200/50 hover:bg-white/80 transition-all duration-300 rounded-2xl"
-                >
-                  <Layers className="h-4 w-4 mr-2" />
-                  {showMap ? 'Hide Map' : 'Show Map'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowStats(!showStats)}
-                  className="h-12 bg-white/60 backdrop-blur-sm border-gray-200/50 hover:bg-white/80 transition-all duration-300 rounded-2xl"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  {showStats ? 'Hide Stats' : 'Show Stats'}
-                </Button>
-              </div>
-
-              {/* Weather Info */}
-              {weather && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-6 border border-blue-200/50 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-2xl bg-blue-100/80 backdrop-blur-sm">
-                        <Thermometer className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-gray-900">{weather.temperature}°C</div>
-                        <div className="text-sm text-gray-600">{weather.condition}</div>
-                      </div>
-                    </div>
-                    <div className="text-right text-sm text-gray-600 space-y-1">
-                      <div>Humidity: {weather.humidity}%</div>
-                      <div>Wind: {weather.windSpeed} km/h</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Settings */}
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-4 border border-gray-200/50 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-gray-100/80 backdrop-blur-sm">
-                      <Settings className="h-4 w-4 text-gray-600" />
-                    </div>
-                    <span className="font-medium text-gray-900">Settings</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="rounded-xl">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Developer Stats */}
-              {showStats && (
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 shadow-lg">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 rounded-2xl bg-purple-100/80 backdrop-blur-sm">
-                      <BarChart3 className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 text-lg">Developer Stats</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center border border-purple-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {developerStats.totalDistanceMeters}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">meters</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center border border-blue-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {developerStats.updateCount}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">updates</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center border border-green-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {developerStats.averageUpdateInterval > 0 ? Math.round(developerStats.averageUpdateInterval / 1000) : 0}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">avg sec</div>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 text-center border border-orange-200/50">
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {developerStats.gpsAccuracy.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">accuracy m</div>
-                    </div>
-                  </div>
-                  <div className="mt-4 space-y-2 text-xs text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Last update:</span>
-                      <span>{developerStats.lastUpdateTime ? developerStats.lastUpdateTime.toLocaleTimeString() : 'Never'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Last interval:</span>
-                      <span>{developerStats.lastUpdateInterval > 0 ? Math.round(developerStats.lastUpdateInterval / 1000) : 0}s</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>GPS Speed:</span>
-                      <span>{(developerStats.gpsSpeed * 3.6).toFixed(1)} km/h</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>GPS Heading:</span>
-                      <span>{developerStats.gpsHeading.toFixed(0)}°</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
+        </IOSBottomSheetContent>
+      </IOSBottomSheet>
     </CommonPageTemplate>
   );
 };
