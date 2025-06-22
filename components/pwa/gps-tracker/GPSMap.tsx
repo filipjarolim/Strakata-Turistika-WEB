@@ -285,6 +285,26 @@ function FollowPositionToggle({
   );
 }
 
+// Map initializer component
+function MapInitializer({ isMobile }: { isMobile: boolean }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    console.log('Map initializer triggered');
+    try {
+      // Simple mobile optimization - only remove zoom control
+      if (isMobile && map.zoomControl) {
+        console.log('Removing zoom control for mobile');
+        map.zoomControl.remove();
+      }
+    } catch (error) {
+      console.error('Error in map initializer:', error);
+    }
+  }, [map, isMobile]);
+  
+  return null;
+}
+
 export default function GPSMap({ 
   trackPoints, 
   isTracking, 
@@ -320,43 +340,21 @@ export default function GPSMap({
     }
   }, [trackPoints, currentPosition, userLocation]);
 
-  // Handle map ready
+  // Handle map ready - simplified
   const handleMapReady = useCallback((map: L.Map) => {
+    console.log('Map ready callback triggered');
     try {
       mapRef.current = map;
-      
-      // Mobile-specific optimizations
-      if (isMobile) {
-        // Disable zoom control on mobile for better UX
-        if (map.zoomControl) {
-          map.zoomControl.remove();
-        }
-        
-        // Reduce tile loading for better performance
-        map.options.minZoom = 8;
-        map.options.maxZoom = 16;
-        
-        // Disable some interactions on mobile for better performance
-        map.dragging.enable();
-        map.touchZoom.enable();
-        map.doubleClickZoom.disable();
-        map.scrollWheelZoom.disable();
-      }
+      console.log('Map reference set successfully');
     } catch (error) {
       console.error('Error in handleMapReady:', error);
-      setMapError('Failed to initialize map');
+      setMapError(`Failed to initialize map: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [isMobile]);
+  }, []);
 
   // Handle user location found
   const handleLocationFound = useCallback((position: GPSPosition) => {
     setUserLocation(position);
-  }, []);
-
-  // Handle map errors
-  const handleMapError = useCallback((error: Error) => {
-    console.error('Map error:', error);
-    setMapError(error.message);
   }, []);
 
   if (mapError) {
@@ -399,38 +397,18 @@ export default function GPSMap({
           maxZoom={isMobile ? 16 : 18}
           style={{ height: '100%', width: '100%' }}
           className="rounded-lg"
-          zoomControl={false}
+          zoomControl={!isMobile}
           attributionControl={false}
           preferCanvas={true}
           ref={handleMapReady}
-          whenReady={() => console.log('Map ready')}
         >
-          {/* Primary tile layer with fallback */}
+          {/* Map initializer */}
+          <MapInitializer isMobile={isMobile} />
+          
+          {/* Primary tile layer */}
           <TileLayer
             url={`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=a5w3EO45npvzNFzD6VoD`}
             attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            maxZoom={18}
-            minZoom={1}
-            tileSize={256}
-            updateWhenZooming={false}
-            updateWhenIdle={true}
-            keepBuffer={2}
-            maxNativeZoom={18}
-          />
-          
-          {/* Fallback tile layer */}
-          <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            maxZoom={18}
-            minZoom={1}
-            tileSize={256}
-            updateWhenZooming={false}
-            updateWhenIdle={true}
-            keepBuffer={2}
-            maxNativeZoom={18}
-            opacity={0.5}
-            zIndex={-1}
           />
           
           {/* Get user location on load */}

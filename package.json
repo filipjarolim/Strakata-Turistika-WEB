@@ -15,6 +15,12 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/app": "^7.0.1",
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/geolocation": "^7.1.2",
+    "@capacitor/ios": "^7.4.0",
     "@geoman-io/leaflet-geoman-free": "^2.18.3",
     "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "^6.2.1",
