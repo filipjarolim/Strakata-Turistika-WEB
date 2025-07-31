@@ -6,33 +6,27 @@ import {
     CardHeader,
     CardFooter
 } from "@/components/ui/card";
-import {Header} from "@/components/auth/header";
-import {Social} from "@/components/auth/social";
+
 import {BackButton} from "@/components/auth/back-button";
 import {Separator} from "@/components/ui/separator";
 
 interface CardWrapperProps {
     children: React.ReactNode;
-    headerLabel: string;
     backButtonLabel: {
         message: string,
         link: string
     };
     backButtonHref: string;
-    showSocial?: boolean;
 };
 
 export const CardWrapper = ({
     children,
-    headerLabel,
     backButtonLabel,
-    backButtonHref,
-    showSocial
+    backButtonHref
 }: CardWrapperProps) => {
     return (
         <Card className={"w-[90%] md:w-[80%] border-0 shadow-none bg-transparent"}>
             <CardHeader>
-               <Header label={headerLabel} />
                <BackButton label={backButtonLabel} href={backButtonHref} />
             </CardHeader>
             <CardContent>
@@ -40,23 +34,7 @@ export const CardWrapper = ({
             </CardContent>
 
 
-            {showSocial && (
-                <>
-                    <div
-                        className={"grid grid-cols-3 mx-8 mb-4 font-semibold text-[12px] text-[#666] place-items-center"}
-                        style={{gridTemplateColumns: "1fr 40px 1fr"}}>
-                        <Separator className={"w-full"}/>
-                        <div>
-                            NEBO
-                        </div>
-                        <Separator/>
-                    </div>
-                    <CardFooter className={"w-full"}>
-                        <Social />
-                    </CardFooter>
 
-                </>
-                )}
         </Card>
     )
 }

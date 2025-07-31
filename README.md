@@ -43,7 +43,7 @@
   <li>🗺️ Interactive map with drawn routes</li>
   <li>📱 Mobile-first and responsive</li>
   <li>🎨 Polished layout, clean component structure</li>
-  <li>🚀 Fully static + PWA-ready</li>
+  <li>🚀 Fully static</li>
 </ul>
 
 <h2>📸 Preview</h2>

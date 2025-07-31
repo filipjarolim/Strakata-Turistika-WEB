@@ -5,7 +5,7 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import Link from 'next/link';
 import SoutezCardGrid from '@/components/soutez/SoutezCardGrid';
 
-// Make page static with long revalidation for offline access
+
 export const revalidate = 2592000; // 30 days in seconds
 
 const actions = [

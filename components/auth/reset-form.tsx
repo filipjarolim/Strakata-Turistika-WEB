@@ -50,7 +50,6 @@ export const ResetForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Zapomněli jste heslo?"}
             backButtonLabel={{
                 message: "Jít zpět?",
                 link: "Přihlásit se"

@@ -54,7 +54,6 @@ export const NewPasswordForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Zadejte své nové heslo!"}
             backButtonLabel={{
                 message: "Jít zpět?",
                 link: "Přihlásit se"

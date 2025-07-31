@@ -37,7 +37,7 @@ export default function SeasonsPage() {
                 setYears(sortedYears);
                 setFilteredYears(sortedYears);
 
-                // Save response in IndexedDB for offline use
+                
                 localStorage.setItem('cachedSeasons', JSON.stringify(sortedYears));
             } catch (err: unknown) {
                 if (err instanceof Error) {
@@ -46,7 +46,7 @@ export default function SeasonsPage() {
                     setError('Došlo k neočekávané chybě.');
                 }
 
-                // Load cached data when offline
+                
                 const cachedData = localStorage.getItem('cachedSeasons');
                 if (cachedData) {
                     const parsedData = JSON.parse(cachedData);

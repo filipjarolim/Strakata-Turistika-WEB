@@ -4,10 +4,10 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap, CircleMarker } from 'react-leaflet';
 import L, { Control } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, Plus, Trash2, RotateCcw, RotateCw, Minus, EyeOff, Eye, MapPin, Maximize2, X, Pencil, Play, Flag } from 'lucide-react';
+
+import { Plus, Trash2, RotateCcw, RotateCw, EyeOff, Eye, MapPin, Maximize2, X, Pencil, Play, Flag } from 'lucide-react';
 import simplify from 'simplify-js';
-import { Switch } from '@/components/ui/switch';
+
 import { cn } from '@/lib/utils';
 import { renderToString } from 'react-dom/server';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';

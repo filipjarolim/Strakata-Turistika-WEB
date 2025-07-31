@@ -8,7 +8,7 @@ import Image from "next/image"
 import FooterDog from "@/assets/img/footerdog.png";
 import { ExtendedUser } from "@/next-auth";
 import { BugReportPanel } from "@/components/bug-report/BugReportPanel";
-import { OfflineController } from "@/components/ui/OfflineController";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const CommonPageTemplate = ({
@@ -19,7 +19,7 @@ const CommonPageTemplate = ({
     contents,
     style,
     headerMode = "fixed",
-    showOfflineController = false,
+
     mobileLayout = false
 }: {
     children: React.ReactNode;
@@ -29,14 +29,14 @@ const CommonPageTemplate = ({
     contents?: { complete?: boolean; header?: boolean; footer?: boolean };
     style?: React.CSSProperties;
     headerMode?: "fixed" | "static" | "auto-hide";
-    showOfflineController?: boolean;
+  
     mobileLayout?: boolean;
 }) => {
     return (
         <>
             <main className={cn("min-h-screen w-full flex flex-col px-4", className)} style={style}>
                 {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} mode={headerMode} />}
-                <div className="flex-grow w-full">
+                <div className="flex-grow w-full h-full">
                     {mobileLayout ? (
                         <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
                             {/* Mobile layout (no border, full width) */}
@@ -52,7 +52,9 @@ const CommonPageTemplate = ({
                             </div>
                         </div>
                     ) : (
-                        children
+                        <div className="w-full h-full">
+                            {children}
+                        </div>
                     )}
                 </div>
                 {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
@@ -60,8 +62,7 @@ const CommonPageTemplate = ({
 
             <BugReportPanel currentUser={currentUser} currentRole={currentRole} />
 
-            {/* Offline Controller - Fixed position like bug report */}
-            {showOfflineController && <OfflineController />}
+
 
             {(contents?.complete || contents?.footer) && (
                 <div className="relative" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>

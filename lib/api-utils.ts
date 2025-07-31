@@ -53,11 +53,6 @@ export async function fetchWithCache<T>(url: string, options?: RequestInit): Pro
     
     return data as T;
   } catch (error) {
-    // If we're offline and have cached data, use it even if expired
-    if (!navigator.onLine && cachedData) {
-      console.log('Using expired cache while offline');
-      return cachedData.data as T;
-    }
     throw error;
   }
 }
@@ -86,9 +81,4 @@ export function clearApiCache(): void {
   apiCache.clear();
 }
 
-/**
- * Check if browser is offline
- */
-export function isOffline(): boolean {
-  return typeof navigator !== 'undefined' && !navigator.onLine;
-} 
+ 

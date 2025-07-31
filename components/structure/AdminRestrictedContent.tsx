@@ -1,7 +1,7 @@
 "use client";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Shield } from "lucide-react";
+
 import { ReactNode } from "react";
 import { IOSButton } from "@/components/ui/ios/button";
 import { IOSBadge } from "@/components/ui/ios/badge";

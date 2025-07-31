@@ -41,7 +41,6 @@ export const NewVerificationForm = () => {
 
     return (
         <CardWrapper
-            headerLabel="Potvrzujeme Vaše ověření"
             backButtonLabel={{
                 message: "Jít zpět?",
                 link: "Přihlásit se"

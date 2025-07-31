@@ -51,13 +51,11 @@ export const RegisterForm = () => {
 
     return (
         <CardWrapper
-            headerLabel={"Vytvořit nový účet pro aplikaci"}
             backButtonLabel={{
                 message: "Již máte účet?",
                 link: "Přihlásit se",
             }}
             backButtonHref={"/auth/login"}
-            showSocial
         >
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className={"space-y-6"}>

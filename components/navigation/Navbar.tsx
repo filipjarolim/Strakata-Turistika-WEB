@@ -109,9 +109,9 @@ export const Navbar = () => {
     const pathname = usePathname();
     
     return (
-        <nav className="w-full flex justify-center" style={{ zIndex: 100 }}>
-            <NavigationMenu className="max-w-none w-full justify-center">
-                <NavigationMenuList className="flex flex-nowrap justify-center gap-x-1 whitespace-nowrap mx-auto">
+        <nav className="w-full flex justify-center h-full" style={{ zIndex: 100 }}>
+            <NavigationMenu className="max-w-none w-full justify-center h-full">
+                <NavigationMenuList className="flex flex-nowrap justify-center gap-x-1 whitespace-nowrap mx-auto h-full">
                     {navConfig.map((navItem, index) => {
                         const isActive = navItem.type === "odkaz" && pathname === navItem.href;
                         
@@ -119,7 +119,7 @@ export const Navbar = () => {
                             <NavigationMenuItem key={index} className="cursor-pointer">
                                 <NavigationMenuTrigger
                                     className={cn(
-                                        "text-sm transition-all px-2.5 py-1.5 rounded-md bg-transparent hover:bg-gray-100 focus:bg-gray-100 text-black/80 font-medium",
+                                        "text-sm transition-all px-2.5 py-1.5 rounded-md bg-transparent hover:bg-gray-100 focus:bg-gray-100 text-black/80 font-medium h-full",
                                         navItem.badge && "group"
                                     )}
                                 >
@@ -159,7 +159,7 @@ export const Navbar = () => {
                                 <Link href={navItem.href as string} legacyBehavior passHref>
                                     <NavigationMenuLink
                                         className={cn(
-                                            "flex items-center gap-1.5 text-sm transition-all px-2.5 py-1.5 rounded-md",
+                                            "flex items-center gap-1.5 text-sm transition-all px-2.5 py-1.5 rounded-md h-full",
                                             isActive ? "bg-gray-100 text-black font-medium" : "text-black/80 hover:bg-gray-50"
                                         )}
                                     >

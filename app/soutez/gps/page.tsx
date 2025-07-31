@@ -15,10 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { ClientOnly } from "@/components/ui/ClientOnly";
 
-// Import custom components
-import { GPSStatusBar } from "@/components/pwa/gps-tracker/GPSStatusBar";
-import { GPSStatsCards } from "@/components/pwa/gps-tracker/GPSStatsCards";
-import { GPSControlButtons } from "@/components/pwa/gps-tracker/GPSControlButtons";
+
 import { useGPSTracking } from "@/hooks/useGPSTracking";
 import { IOSStepProgress } from '@/components/ui/ios/step-progress';
 import { IOSTextInput } from '@/components/ui/ios/text-input';
@@ -29,21 +26,7 @@ import { IOSButton } from '@/components/ui/ios/button';
 // Import GPX utilities
 import { convertToGPX, downloadGPX, convertToTrackPoints } from '@/lib/gpx-utils';
 
-// Import map component dynamically
-const GPSMapComponent = dynamic(
-  () => import('@/components/pwa/gps-tracker/GPSMap'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full bg-white flex items-center justify-center">
-        <motion.div className="text-center">
-          <MapPin className="h-16 w-16 text-blue-400 drop-shadow-lg" />
-          <p className="text-sm text-gray-600 mt-4 font-medium">Loading GPS Map...</p>
-        </motion.div>
-      </div>
-    )
-  }
-);
+
 
 // Import GPX Editor dynamically
 const DynamicGpxEditor = dynamic(
@@ -78,8 +61,7 @@ const GPSPage = () => {
     currentSession,
     elapsedTime,
     isLoading,
-    isOnline,
-    batteryLevel,
+
     followPosition,
     lastPositionRef,
     handleGPSReady,
@@ -324,7 +306,7 @@ const GPSPage = () => {
     <CommonPageTemplate currentUser={currentUser} currentRole={currentRole} mobileLayout={true} className="p-0 overflow-hidden">
       {!isGPSReady ? (
         <div className="w-full h-full flex items-center justify-center">
-          <GPSLoadingScreen onReady={handleGPSReady} isOnline={isOnline} />
+          <GPSLoadingScreen onReady={handleGPSReady} />
         </div>
       ) : (
         <motion.div className={cn("w-full h-full", isFullscreen && "fixed inset-0 z-[2000] bg-black/70 flex items-center justify-center")}>
@@ -340,24 +322,31 @@ const GPSPage = () => {
                     </motion.div>
                   </div>
                 }>
-                  <GPSMapComponent
-                    trackPoints={mapTrackPoints}
-                    isTracking={isTracking}
-                    isPaused={isPaused}
-                    currentPosition={lastPositionRef.current}
-                    followPosition={followPosition}
-                    onFollowPositionChange={setFollowPosition}
-                  />
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <div className="text-center">
+                      <MapPin className="h-16 w-16 text-blue-400 drop-shadow-lg" />
+                      <p className="text-sm text-gray-600 mt-4 font-medium">GPS Map Component</p>
+                    </div>
+                  </div>
                 </ClientOnly>
               </div>
             </div>
             
             {/* Status Bar */}
-            <GPSStatusBar 
-              isOnline={isOnline}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-            />
+            <div className="absolute top-4 left-4 right-4 z-10">
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">GPS Status</span>
+                  <IOSButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                  >
+                    {isFullscreen ? 'Exit' : 'Fullscreen'}
+                  </IOSButton>
+                </div>
+              </div>
+            </div>
             
             {/* Live Stats Overlay */}
             <AnimatePresence mode="wait">
@@ -369,11 +358,18 @@ const GPSPage = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <GPSStatsCards 
-                    currentSession={currentSession}
-                    elapsedTime={elapsedTime}
-                    formatTime={formatTime}
-                  />
+                  <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{formatTime(elapsedTime)}</div>
+                        <div className="text-xs text-gray-600">Elapsed Time</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{currentSession?.positions.length || 0}</div>
+                        <div className="text-xs text-gray-600">Track Points</div>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -385,15 +381,48 @@ const GPSPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
             >
-              <GPSControlButtons 
-                isTracking={isTracking}
-                isPaused={isPaused}
-                isLoading={isLoading}
-                onStartTracking={startTracking}
-                onPauseTracking={controlTracking('pause')}
-                onResumeTracking={controlTracking('resume')}
-                onStopTracking={handleStopTracking}
-              />
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+                <div className="flex gap-3 justify-center">
+                  {!isTracking ? (
+                    <IOSButton
+                      size="lg"
+                      onClick={startTracking}
+                      disabled={isLoading}
+                      loading={isLoading}
+                    >
+                      Start Tracking
+                    </IOSButton>
+                  ) : (
+                    <>
+                      {isPaused ? (
+                        <IOSButton
+                          size="lg"
+                          variant="outline"
+                          onClick={controlTracking('resume')}
+                        >
+                          Resume
+                        </IOSButton>
+                      ) : (
+                        <IOSButton
+                          size="lg"
+                          variant="outline"
+                          onClick={controlTracking('pause')}
+                        >
+                          Pause
+                        </IOSButton>
+                      )}
+                      <IOSButton
+                        size="lg"
+                        variant="outline"
+                        onClick={handleStopTracking}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        Stop
+                      </IOSButton>
+                    </>
+                  )}
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         </motion.div>

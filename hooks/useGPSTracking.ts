@@ -2,32 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { Target, Pause, Play, Zap } from 'lucide-react';
-import { 
-  storeTrackingSession, 
-  getStoredTrackingSession, 
-  clearStoredTrackingSession,
-  initBackgroundTracking,
-  requestWakeLock,
-  releaseWakeLock,
-  formatTime,
-  calculateDistance,
-  getBatteryInfo,
-  BACKGROUND_TRACKING_INTERVAL
-} from '@/components/pwa/gps-tracker/backgroundTracking';
 
-// Type declaration for BatteryManager
-interface BatteryManager extends EventTarget {
-  charging: boolean;
-  chargingTime: number;
-  dischargingTime: number;
-  level: number;
-}
 
-// Type declaration for Navigator with getBattery
-interface NavigatorWithBattery extends Navigator {
-  getBattery(): Promise<BatteryManager>;
-}
+
+
 
 interface GPSPosition {
   latitude: number;
@@ -37,8 +15,6 @@ interface GPSPosition {
   speed?: number;
   heading?: number;
   timestamp: number;
-  batteryLevel?: number;
-  isCharging?: boolean;
 }
 
 interface TrackingSession {
@@ -60,11 +36,7 @@ interface TrackingSession {
   metadata: {
     deviceInfo: any;
     weatherData?: any;
-    batteryLevel?: number;
-    isCharging?: boolean;
-    networkType?: string;
   };
-  syncStatus: 'pending' | 'synced' | 'failed';
   version: string;
 }
 
@@ -73,8 +45,8 @@ export const useGPSTracking = () => {
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
-  const [batteryLevel, setBatteryLevel] = useState<number | undefined>(undefined);
+
+
   const [followPosition, setFollowPosition] = useState(true);
   
   const [currentSession, setCurrentSession] = useState<TrackingSession | null>(null);
@@ -82,7 +54,7 @@ export const useGPSTracking = () => {
   
   const lastPositionRef = useRef<GPSPosition | null>(null);
   const watchIdRef = useRef<number | null>(null);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const pauseStartTimeRef = useRef<number>(0);
@@ -91,50 +63,6 @@ export const useGPSTracking = () => {
   // Initialize GPS tracking
   const handleGPSReady = useCallback(() => {
     setIsGPSReady(true);
-    
-    // Load existing session
-    const storedSession = getStoredTrackingSession();
-    if (storedSession.isActive) {
-      setCurrentSession(storedSession);
-      setIsTracking(true);
-      setIsPaused(storedSession.isPaused);
-      
-      if (storedSession.isPaused) {
-        totalPauseTimeRef.current = storedSession.pauseDuration || 0;
-      }
-      
-      // Resume elapsed time calculation
-      if (!storedSession.isPaused) {
-        startTimeRef.current = storedSession.startTime;
-        const elapsed = Date.now() - storedSession.startTime - totalPauseTimeRef.current;
-        setElapsedTime(elapsed);
-      }
-    }
-    
-    // Initialize background tracking
-    initBackgroundTracking(
-      (session) => {
-        setCurrentSession(session);
-        setIsTracking(true);
-        setIsPaused(session.isPaused);
-      },
-      (position) => {
-        lastPositionRef.current = position;
-      }
-    );
-    
-    // Check online status
-    setIsOnline(navigator.onLine);
-    window.addEventListener('online', () => setIsOnline(true));
-    window.addEventListener('offline', () => setIsOnline(false));
-    
-    // Get battery info
-    getBatteryInfo().then(battery => {
-      if (battery) {
-        setBatteryLevel(battery.level);
-      }
-    });
-    
     toast({ title: "GPS Ready", description: "Location tracking is now available" });
   }, []);
 
@@ -148,8 +76,7 @@ export const useGPSTracking = () => {
     setIsLoading(true);
     
     try {
-      // Request wake lock
-      wakeLockRef.current = await requestWakeLock();
+
       
       // Create new session
       const newSession: TrackingSession = {
@@ -177,7 +104,7 @@ export const useGPSTracking = () => {
             connectionType: (navigator as any).connection?.effectiveType
           }
         },
-        syncStatus: 'pending',
+  
         version: '2.0.0'
       };
       
@@ -188,8 +115,7 @@ export const useGPSTracking = () => {
       totalPauseTimeRef.current = 0;
       setElapsedTime(0);
       
-      // Store session
-      storeTrackingSession(newSession);
+
       
       // Start GPS watching
       watchIdRef.current = navigator.geolocation.watchPosition(
@@ -202,8 +128,7 @@ export const useGPSTracking = () => {
             speed: position.coords.speed || undefined,
             heading: position.coords.heading || undefined,
             timestamp: position.timestamp,
-            batteryLevel,
-            isCharging: false
+
           };
           
           lastPositionRef.current = newPosition;
@@ -215,15 +140,7 @@ export const useGPSTracking = () => {
             const updatedSession = { ...prev };
             updatedSession.positions = [...prev.positions, newPosition];
             
-            // Calculate distance
-            if (prev.positions.length > 0) {
-              const lastPos = prev.positions[prev.positions.length - 1];
-              const distance = calculateDistance(
-                lastPos.latitude, lastPos.longitude,
-                newPosition.latitude, newPosition.longitude
-              );
-              updatedSession.totalDistance += distance;
-            }
+
             
             // Calculate speed
             if (newPosition.speed) {
@@ -235,8 +152,7 @@ export const useGPSTracking = () => {
             updatedSession.lastUpdate = Date.now();
             updatedSession.totalTime = Date.now() - updatedSession.startTime - totalPauseTimeRef.current;
             
-            // Store updated session
-            storeTrackingSession(updatedSession);
+
             
             return updatedSession;
           });
@@ -282,7 +198,7 @@ export const useGPSTracking = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [batteryLevel, isPaused]);
+      }, [isPaused]);
 
   // Control tracking (pause/resume/stop)
   const controlTracking = useCallback((action: 'pause' | 'resume' | 'stop') => {
@@ -294,7 +210,6 @@ export const useGPSTracking = () => {
         setCurrentSession(prev => {
           if (!prev) return prev;
           const updated = { ...prev, isPaused: true };
-          storeTrackingSession(updated);
           return updated;
         });
         
@@ -311,7 +226,6 @@ export const useGPSTracking = () => {
             isPaused: false,
             pauseDuration: totalPauseTimeRef.current
           };
-          storeTrackingSession(updated);
           return updated;
         });
         
@@ -329,10 +243,7 @@ export const useGPSTracking = () => {
           intervalRef.current = null;
         }
         
-        if (wakeLockRef.current) {
-          releaseWakeLock(wakeLockRef.current);
-          wakeLockRef.current = null;
-        }
+
         
         // Finalize session
         setCurrentSession(prev => {
@@ -356,8 +267,7 @@ export const useGPSTracking = () => {
         setIsPaused(false);
         setElapsedTime(0);
         
-        // Clear current session
-        clearStoredTrackingSession();
+
         
         toast({ title: "Tracking Stopped", description: "GPS tracking has been completed" });
       }
@@ -373,11 +283,23 @@ export const useGPSTracking = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      if (wakeLockRef.current) {
-        releaseWakeLock(wakeLockRef.current);
-      }
+
     };
   }, []);
+
+  // Format time utility function
+  const formatTime = (milliseconds: number): string => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+  };
 
   return {
     isGPSReady,
@@ -386,8 +308,8 @@ export const useGPSTracking = () => {
     currentSession,
     elapsedTime,
     isLoading,
-    isOnline,
-    batteryLevel,
+
+    
     followPosition,
     lastPositionRef,
     handleGPSReady,
