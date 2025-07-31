@@ -27,18 +27,18 @@ import { IOSStepProgress } from "@/components/ui/ios/step-progress";
 
 const benefits = [
     {
-        title: "Objevujte nová místa",
-        description: "Prozkoumejte neznámá místa s vaším psím parťákem.",
+        title: "Objevujte nov&aacute; m&iacute;sta",
+        description: "Prozkoumejte nezn&aacute;m&aacute; m&iacute;sta s vaš&iacute;m ps&iacute;m parť&aacute;kem.",
         icon: <MapPin className="w-10 h-10 text-amber-500" />
     },
     {
-        title: "Plánujte výlety",
-        description: "Jednoduše naplánujte a zaznamenejte vaše dobrodružství.",
+        title: "Pl&aacute;nujte v&yacute;lety",
+        description: "Jednoduše napl&aacute;nujte a zaznamenejte vaše dobrodružstv&iacute;.",
         icon: <Calendar className="w-10 h-10 text-amber-500" />
     },
     {
-        title: "Získejte odměny",
-        description: "Sbírejte body a získejte ocenění za vaše cesty.",
+        title: "Z&iacute;skejte odměny",
+        description: "Sb&iacute;rejte body a z&iacute;skejte oceněn&iacute; za vaše cesty.",
         icon: <Award className="w-10 h-10 text-amber-500" />
     }
 ];
@@ -47,7 +47,7 @@ const tutorialSteps = [
     "Vyberte trasu",
     "Nahrajte GPS data",
     "Přidejte fotky",
-    "Získejte body"
+    "Z&iacute;skejte body"
 ];
 
 const tutorialStepImages = [
@@ -67,109 +67,111 @@ const Home = async () => {
     const role = await currentRole()
 
     return (
-        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role}>
-            {/* Hero Section */}
-            <div className="animate-fadeIn border-2 border-black">
-                <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[70vh] px-8 border-2 border-black"}>
-                    <div className={"p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full  border-2 border-black cursor-default"}>
-                         <h1 className="text-[90px] font-semibold whitespace-nowrap overflow-visible">
-                              {basicInfo.name}
-                        </h1>   
-                        <div className="text-6xl font-semibold mb-4 text-gray-700/60 w-[90%]">
-                            aneb poznáváme
+        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showHeaderGap={false} className='p-0'>
+            {/* Hero Section with Background Image */}
+            <div className="relative w-full h-[70vh] overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0 w-full h-full">
+                    <Image
+                        src="/images/mainBackground.png"
+                        alt="Strakat&aacute; turistika background"
+                        fill
+                        className="object-cover rounded-b-[2rem]"
+                        priority
+                    />
+                    {/* Dark linear gradient overlay from left to right */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent rounded-b-[2rem]"></div>
+                </div>
+                
+                {/* Original Hero Section Content */}
+                <div className="relative z-10 animate-fadeIn">
+                    <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[70vh] px-8"}>
+                        <div className={"p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
+                             <h1 className="text-[90px] font-semibold whitespace-nowrap overflow-visible text-white">
+                                  {basicInfo.name}
+                            </h1>   
+                            <div className="text-6xl font-semibold mb-4 text-white w-[90%]">
+                                aneb pozn&aacute;v&aacute;me
+                                {" "}
+                                <IOSBadge
+                                    label="Česko"
+                                    icon={PinEmoji}
+                                    specialStyle={{ iconSize: 120 }}
+                                    bgColor="bg-red-200/80"
+                                    borderColor="border-red-400/70"
+                                    textColor="text-red-900/80"
+                                />
+                                {" "}
+                                s česk&yacute;m strakat&yacute;m
+                                {" "}
+                                <IOSBadge
+                                    label="psem"
+                                    icon={DogEmoji}
+                                    specialStyle={{ iconSize: 120 }}
+                                    bgColor="bg-amber-200/80"
+                                    borderColor="border-amber-400/70"
+                                    textColor="text-amber-900/80"
+                                />
+                                .
+                            </div>
+                            <div className={"flex gap-x-2 flex-row items-center justify-start py-4 w-full"}>
+                                <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white border-white hover:bg-white hover:text-black"}>
+                                    Prozkoumat
+                                </IOSButton>
+                            </div>
+                        </div>
+                        <div className="text-5xl md:hidden text-center font-semibold mt-4 text-white">
+                            aneb pozn&aacute;v&aacute;me
                             {" "}
                             <IOSBadge
-                                label="Česko"
-                                icon={PinEmoji}
-                                specialStyle={{ iconSize: 120 }}
-                                bgColor="bg-red-200/80"
-                                borderColor="border-red-400/70"
-                                textColor="text-red-900/80"
-                            />
-                            {" "}
-                            s českým strakatým
-                            {" "}
-                            <IOSBadge
-                                label="psem"
-                                icon={DogEmoji}
-                                specialStyle={{ iconSize: 120 }}
-                                bgColor="bg-amber-200/80"
-                                borderColor="border-amber-400/70"
-                                textColor="text-amber-900/80"
-                            />
+                                    label="Česko"
+                                    icon={PinEmoji}
+                                    specialStyle={{ iconSize: 24 }}
+                                    bgColor="bg-red-200/80"
+                                    borderColor="border-red-400/70"
+                                    textColor="text-red-900/80"
+                                />
+                                {" "}
+                                s česk&yacute;m strakat&yacute;m
+                                {" "}
+                                <IOSBadge
+                                    label="psem"
+                                    icon={DogEmoji}
+                                    specialStyle={{ iconSize: 24 }}
+                                    bgColor="bg-amber-200/80"
+                                    borderColor="border-amber-400/70"
+                                    textColor="text-amber-900/80"
+                                />
                             .
                         </div>
-                        <div className={"flex gap-x-2 flex-row items-center justify-start py-4 w-full"}>
-                            <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out"}>
+                        <div className={"flex md:hidden flex-row items-center justify-center py-4 w-full"}>
+                            <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white border-white hover:bg-white hover:text-black"}>
                                 Prozkoumat
                             </IOSButton>
                         </div>
                     </div>
-                    <div className={"flex flex-row items-center justify-center select-none"}>
-                        <IOSImageShowcase 
-                            images={[
-                                { url: Showcase1, alt: "Showcase 1" },
-                                { url: Showcase2, alt: "Showcase 2" },
-                                { url: Showcase3, alt: "Showcase 3" }
-                            ]}
-                            layout="overlap"
-                            mainWidth={320}
-                            mainHeight={420}
-                            sideWidth={220}
-                            sideHeight={300}
-                        />
-                    </div>
-                    <div className="text-5xl md:hidden text-center font-semibold mt-4 text-gray-700/60">
-                        aneb poznáváme
-                        {" "}
-                        <IOSBadge
-                                label="Česko"
-                                icon={PinEmoji}
-                                specialStyle={{ iconSize: 24 }}
-                                bgColor="bg-red-200/80"
-                                borderColor="border-red-400/70"
-                                textColor="text-red-900/80"
-                            />
-                            {" "}
-                            s českým strakatým
-                            {" "}
-                            <IOSBadge
-                                label="psem"
-                                icon={DogEmoji}
-                                specialStyle={{ iconSize: 24 }}
-                                bgColor="bg-amber-200/80"
-                                borderColor="border-amber-400/70"
-                                textColor="text-amber-900/80"
-                            />
-                        .
-                    </div>
-                    <div className={"flex md:hidden flex-row items-center justify-center py-4 w-full"}>
-                        <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out"}>
-                            Prozkoumat
-                        </IOSButton>
-                    </div>
                 </div>
             </div>
             
-                 {/* Stats Section */}
+            {/* Stats Section */}
                 <div className="px-8 py-16 animate-fadeIn animation-delay-400 my-8 md:my-16">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <IOSStatsCard
-                        title="Aktivních uživatelů"
+                        title="Aktivn&iacute;ch uživatelů"
                         value="2,847"
                         icon={<Users className="w-5 h-5" />}
                         variant="info"
                         className="text-center hover:scale-105 transition-all duration-500 ease-out"
                     />
                     <IOSStatsCard
-                        title="Navštívených míst"
+                        title="Navšt&iacute;ven&yacute;ch míst"
                         value="15,392"
                         icon={<MapPin className="w-5 h-5" />}
                         variant="success"
                         className="text-center hover:scale-105 transition-all duration-500 ease-out"
                     />
                     <IOSStatsCard
-                        title="Nahraných fotek"
+                        title="Nahran&yacute;ch fotek"
                         value="89,234"
                         icon={<Camera className="w-5 h-5" />}
                         variant="warning"
@@ -204,11 +206,11 @@ const Home = async () => {
                         <span className="text-sm font-medium text-blue-700">Jak to funguje</span>
                     </div>
                     <h2 className="text-5xl font-bold mb-6 text-gray-900 bg-gradient-to-r from-blue-600 to-amber-600 bg-clip-text text-transparent">
-                        Začít je jednoduché
+                        Zač&iacute;t je jednoduch&eacute;
                     </h2>
                     <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                        Stačí čtyři kroky a můžete se vydat na dobrodružství s vaším čtyřnohým parťákem. 
-                        Každý krok je navržen tak, aby byl intuitivní a zábavný.
+                        Stač&iacute; čtyři kroky a můžete se vydat na dobrodružstv&iacute; s vaš&iacute;m čtyřnoh&yacute;m parť&aacute;kem. 
+                        Každ&yacute; krok je navržen tak, aby byl intuitivn&iacute; a z&aacute;bavn&yacute;.
                     </p>
                 </div>
                 
@@ -238,10 +240,10 @@ const Home = async () => {
                                 </div>
                                 <h3 className="text-xl font-bold mb-4 text-gray-900 group-hover:text-blue-600 transition-colors duration-300">{step}</h3>
                                 <p className="text-sm text-gray-500 leading-relaxed">
-                                    {index === 0 && "Vyberte si trasu z naší rozsáhlé databáze nebo vytvořte vlastní podle vašich preferencí"}
-                                    {index === 1 && "Nahrajte GPS data z vašeho výletu a sledujte svou trasu v reálném čase"}
-                                    {index === 2 && "Přidejte fotky z vašeho dobrodružství a sdílejte krásné momenty s komunitou"}
-                                    {index === 3 && "Získejte body za každou návštěvu a soutěžte s ostatními v žebříčcích"}
+                                    {index === 0 && "Vyberte si trasu z naš&iacute; rozs&aacute;hl&eacute; datab&aacute;ze nebo vytvořte vlastn&iacute; podle vašich preferenc&iacute;"}
+                                    {index === 1 && "Nahrajte GPS data z vašeho v&yacute;letu a sledujte svou trasu v re&aacute;ln&eacute;m čase"}
+                                    {index === 2 && "Přidejte fotky z vašeho dobrodružstv&iacute; a sd&iacute;lejte kr&aacute;sne momenty s komunitou"}
+                                    {index === 3 && "Z&iacute;skejte body za každou n&aacute;vštěvu a soutěžte s ostatn&iacute;mi v žebř&iacute;čc&iacute;ch"}
                                 </p>
                             </div>
                         </IOSCard>

@@ -19,7 +19,7 @@ const CommonPageTemplate = ({
     contents,
     style,
     headerMode = "fixed",
-
+    showHeaderGap = true,
     mobileLayout = false
 }: {
     children: React.ReactNode;
@@ -29,13 +29,13 @@ const CommonPageTemplate = ({
     contents?: { complete?: boolean; header?: boolean; footer?: boolean };
     style?: React.CSSProperties;
     headerMode?: "fixed" | "static" | "auto-hide";
-  
+    showHeaderGap?: boolean;
     mobileLayout?: boolean;
 }) => {
     return (
         <>
             <main className={cn("min-h-screen w-full flex flex-col px-4", className)} style={style}>
-                {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} mode={headerMode} />}
+                {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} mode={headerMode} showGap={showHeaderGap} />}
                 <div className="flex-grow w-full h-full">
                     {mobileLayout ? (
                         <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">

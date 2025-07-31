@@ -29,11 +29,13 @@ import { ExtendedUser } from "@/next-auth";
 const Header = ({
                     user,
                     role,
-                    mode = "fixed"
+                    mode = "fixed",
+                    showGap = true
                 }: {
     user?: ExtendedUser | null;
     role?: string;
     mode?: "fixed" | "static" | "auto-hide";
+    showGap?: boolean;
 }) => {
     const headerRef = useRef<HTMLElement | null>(null);
     const [headerHeight, setHeaderHeight] = useState<number>(0);
@@ -95,7 +97,7 @@ const Header = ({
                 className={cn(
                     "grid grid-cols-3 select-none md:grid-cols-12 w-full md:w-[90%] mx-auto px-4 py-3 rounded-b-xl min-h-fit max-h-20",
                     mode !== "static" && "fixed left-1/2 translate-x-[-50%]",
-                    isScrolled ? "md:w-[95%] shadow-md backdrop-blur-lg bg-white/80" : "bg-white/70 backdrop-blur-md",
+                    isScrolled ? "md:w-[95%] shadow-md backdrop-blur-xl bg-white/40" : "bg-white/30 backdrop-blur-lg",
                     "transition-all duration-300",
                     mode === "auto-hide" && !isVisible && "-translate-y-[100%]"
                 )}
@@ -304,7 +306,7 @@ const Header = ({
                 </div>
             </header>
 
-            {mode !== "static" && <div style={{height: `${headerHeight}px`}}></div>}
+            {mode !== "static" && showGap && <div style={{height: `${headerHeight}px`}}></div>}
         </>
     );
 };
