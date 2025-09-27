@@ -26,13 +26,11 @@ export const authprefix = {
                 "options": [
                     {
                         "label": "Profil",
-                        "shortcut": "⌘P",
                         "icon": <User className={userMenuIconClass} />,
                         "href": "/auth/profil"
                     },
                     {
                         "label": "Nastavení",
-                        "shortcut": "⌘S",
                         "icon": <Settings className={userMenuIconClass} />,
                         "href": "/nastaveni"
                     }

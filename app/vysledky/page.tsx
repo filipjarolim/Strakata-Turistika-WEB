@@ -91,19 +91,19 @@ export default function SeasonsPage() {
 
     return (
         <CommonPageTemplate contents={{ header: true }} headerMode={"auto-hide"} currentUser={user} currentRole={role}>
-            <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-bold text-primary">Výsledky dle sezón</h1>
-                        <p className="text-muted-foreground mt-1">Vyberte rok pro zobrazení výsledků</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">Výsledky dle sezón</h1>
+                        <p className="text-sm sm:text-base text-muted-foreground mt-1">Vyberte rok pro zobrazení výsledků</p>
                     </div>
                     
-                    <div className="relative w-full md:w-64">
+                    <div className="relative w-full sm:w-auto lg:w-64">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
                             placeholder="Hledat podle roku..."
                             onChange={handleSearch}
-                            className="pl-10 w-full"
+                            className="pl-10 w-full text-sm sm:text-base"
                         />
                   
                     </div>
@@ -116,18 +116,18 @@ export default function SeasonsPage() {
                     </Alert>
                 )}
 
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[350px] sm:h-[400px]">
                     {isLoading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6">
                             {Array.from({ length: 8 }).map((_, index) => (
-                                <div key={index} className="h-36">
+                                <div key={index} className="h-32 sm:h-36">
                                     <Skeleton className="w-full h-full rounded-lg" />
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <motion.div 
-                            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6"
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6"
                             variants={container}
                             initial="hidden"
                             animate="show"
@@ -143,18 +143,22 @@ export default function SeasonsPage() {
                                     >
                                         <Link href={`/vysledky/${year}`} className="h-full">
                                             <Card className="h-full border border-border hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-6">
                                                     <div className="flex items-center space-x-2">
-                                                        <CalendarDays className="w-5 h-5 text-primary" />
-                                                        <h2 className="text-xl font-bold">{year}</h2>
+                                                        <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                                                        <h2 className="text-lg sm:text-xl font-bold">{year}</h2>
                                                     </div>
                                                     {year === new Date().getFullYear() && (
-                                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Aktuální</Badge>
+                                                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs sm:text-sm">
+                                                            <span className="hidden sm:inline">Aktuální</span>
+                                                            <span className="sm:hidden">Now</span>
+                                                        </Badge>
                                                     )}
                                                 </CardHeader>
-                                                <CardContent>
-                                                    <p className="text-muted-foreground">
-                                                        Výsledky turistické sezóny {year}
+                                                <CardContent className="p-3 sm:p-6 pt-0">
+                                                    <p className="text-sm sm:text-base text-muted-foreground">
+                                                        <span className="hidden sm:inline">Výsledky turistické sezóny {year}</span>
+                                                        <span className="sm:hidden">Sezóna {year}</span>
                                                     </p>
                                                 </CardContent>
                                             </Card>
@@ -162,21 +166,21 @@ export default function SeasonsPage() {
                                     </motion.div>
                                 ))
                             ) : (
-                                <div className="col-span-full text-center py-10">
-                                    <h3 className="text-lg font-medium">Žádné výsledky</h3>
-                                    <p className="text-muted-foreground mt-1">Pro zadaný rok nebyly nalezeny žádné výsledky</p>
+                                <div className="col-span-full text-center py-8 sm:py-10 px-4">
+                                    <h3 className="text-base sm:text-lg font-medium">Žádné výsledky</h3>
+                                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Pro zadaný rok nebyly nalezeny žádné výsledky</p>
                                 </div>
                             )}
                         </motion.div>
                     )}
                 </ScrollArea>
 
-                <p className="text-sm text-muted-foreground mt-8">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-6 sm:mt-8 text-center sm:text-left">
                             Hledáte své výsledky? <Link href="/vysledky/moje" className="text-primary hover:underline">Přejít na můj profil</Link>
                 </p>
             </div>
                   
-            <Image src={VysledkyImage} alt="Strakatá turistika" className={"w-[250px] pointer-events-none fixed bottom-[-60px] right-[8%]"}/>
+            <Image src={VysledkyImage} alt="Strakatá turistika" className={"w-[200px] sm:w-[250px] pointer-events-none fixed bottom-[-40px] sm:bottom-[-60px] right-[2%] sm:right-[8%] hidden sm:block"}/>
             
         </CommonPageTemplate>
     );

@@ -9,7 +9,13 @@ export const publicRoutes = [
     "/vysledky",
     "/vysledky/*",
     "/aktuality",
-    "/aktuality/*"
+    "/aktuality/*",
+    "/kontakty",
+    "/privacy",
+    "/terms",
+    "/about",
+    "/fotogalerie",
+    "/soutez"
 ]
 
 /*
@@ -19,7 +25,10 @@ export const publicRoutes = [
 export const publicApiRoutes = [
     "/api/news",
     "/api/news/*",
-    "/api/rules"
+    "/api/rules",
+    "/api/contact",
+    "/api/gallery",
+    "/api/health"
 ]
 /*
     * An array of public routes that do not require authentication

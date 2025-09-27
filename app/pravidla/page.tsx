@@ -8,7 +8,7 @@ const Page = async () => {
     const role = await currentRole();
 
     return (
-        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} className="px-6">
+        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} className="px-3 sm:px-4 md:px-6">
             <PravidlaClient />
         </CommonPageTemplate>
     );

@@ -188,24 +188,24 @@ const SettingsPage = () => {
 
     return (
     <CommonPageTemplate contents={{ header: true }} currentUser={user} currentRole={role} headerMode="auto-hide">
-      <div className="max-w-4xl mx-auto space-y-8 p-4 overflow-visible">
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 p-3 sm:p-4 overflow-visible">
         {/* Header */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-2 sm:space-y-3">
           <div className="flex items-center justify-center gap-3">
-            <div className="p-3 rounded-2xl bg-blue-50/80 border border-blue-200/50">
-              <Settings className="w-8 h-8 text-blue-600" />
+            <div className="p-2 sm:p-3 rounded-2xl bg-blue-50/80 border border-blue-200/50">
+              <Settings className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             </div>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Nastavení</h1>
-            <p className="text-gray-600 mt-1">Spravujte svůj účet a sledujte své výsledky</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Nastavení</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Spravujte svůj účet a sledujte své výsledky</p>
           </div>
         </div>
 
         {/* User Statistics */}
         {loadingStats ? (
           <IOSSection title="Statistiky" subtitle="Načítání...">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {Array.from({ length: 4 }).map((_, index) => (
                 <IOSCardSkeleton key={index} />
               ))}
@@ -213,7 +213,7 @@ const SettingsPage = () => {
           </IOSSection>
         ) : stats && (
           <IOSSection title="Vaše statistiky" subtitle="Přehled vašich návštěv a bodů">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <IOSStatsCard
                 title="Celkem návštěv"
                 value={stats.totalVisits}
@@ -243,42 +243,45 @@ const SettingsPage = () => {
             </div>
 
             {/* Status Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-6">
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/80 border border-amber-200/50 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-amber-100/50">
-                    <Clock className="w-4 h-4 text-amber-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 sm:mt-6">
+              <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-amber-50/80 border border-amber-200/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 rounded-xl bg-amber-100/50">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
                   </div>
-                  <span className="text-sm font-medium text-amber-900">Čekající</span>
+                  <span className="text-xs sm:text-sm font-medium text-amber-900">Čekající</span>
                 </div>
-                <span className="text-xl font-bold text-amber-900">{stats.pendingVisits}</span>
+                <span className="text-lg sm:text-xl font-bold text-amber-900">{stats.pendingVisits}</span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/80 border border-gray-200/50 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gray-100/50">
-                    <AlertCircle className="w-4 h-4 text-gray-600" />
+              <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-gray-50/80 border border-gray-200/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 rounded-xl bg-gray-100/50">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
                   </div>
-                  <span className="text-sm font-medium text-gray-900">Koncepty</span>
+                  <span className="text-xs sm:text-sm font-medium text-gray-900">Koncepty</span>
                 </div>
-                <span className="text-xl font-bold text-gray-900">{stats.draftVisits}</span>
+                <span className="text-lg sm:text-xl font-bold text-gray-900">{stats.draftVisits}</span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-red-50/80 border border-red-200/50 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-red-100/50">
-                    <AlertCircle className="w-4 h-4 text-red-600" />
+              <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-red-50/80 border border-red-200/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 rounded-xl bg-red-100/50">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
                   </div>
-                  <span className="text-sm font-medium text-red-900">Zamítnuté</span>
+                  <span className="text-xs sm:text-sm font-medium text-red-900">Zamítnuté</span>
                 </div>
-                <span className="text-xl font-bold text-red-900">{stats.rejectedVisits}</span>
+                <span className="text-lg sm:text-xl font-bold text-red-900">{stats.rejectedVisits}</span>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50/80 border border-blue-200/50 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-100/50">
-                    <Calendar className="w-4 h-4 text-blue-600" />
+              <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-blue-50/80 border border-blue-200/50 backdrop-blur-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 rounded-xl bg-blue-100/50">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                   </div>
-                  <span className="text-sm font-medium text-blue-900">Rok {new Date().getFullYear()}</span>
+                  <span className="text-xs sm:text-sm font-medium text-blue-900">
+                    <span className="hidden sm:inline">Rok {new Date().getFullYear()}</span>
+                    <span className="sm:hidden">{new Date().getFullYear()}</span>
+                  </span>
                 </div>
-                <span className="text-xl font-bold text-blue-900">
+                <span className="text-lg sm:text-xl font-bold text-blue-900">
                   {stats.visitsByYear[new Date().getFullYear()]?.count || 0}
                 </span>
               </div>
@@ -305,7 +308,7 @@ const SettingsPage = () => {
           iconBackground="bg-blue-100"
           iconColor="text-blue-600"
         >
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
             {/* Personal Information */}
             <IOSSection title="Osobní údaje">
               <IOSTextInput
@@ -402,9 +405,10 @@ const SettingsPage = () => {
                 loading={isPending}
                 variant="primary"
                 size="md"
-                className="min-w-[140px] h-12"
+                className="min-w-[120px] sm:min-w-[140px] h-10 sm:h-12 w-full sm:w-auto"
               >
-                {isPending ? "Ukládám..." : "Uložit změny"}
+                <span className="hidden sm:inline">{isPending ? "Ukládám..." : "Uložit změny"}</span>
+                <span className="sm:hidden">{isPending ? "Ukládám..." : "Uložit"}</span>
               </IOSButton>
             </div>
           </form>

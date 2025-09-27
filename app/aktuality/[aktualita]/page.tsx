@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Pencil } from "lucide-react";
+import { Loader2, ArrowLeft, Pencil, Calendar, Clock, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ type NewsItem = {
     id: string;
     title: string;
     content?: string;
-    createdAt: Date;
+    createdAt: Date | string;
     images?: ImageSource[];
 };
 
@@ -48,6 +48,11 @@ export default function NewsDetail() {
     const [content, setContent] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [images, setImages] = useState<ImageSource[]>([]);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const fetchNewsItem = useCallback(async () => {
         try {
@@ -63,8 +68,10 @@ export default function NewsDetail() {
     }, [params.aktualita]);
 
     useEffect(() => {
-        fetchNewsItem();
-    }, [params.aktualita, fetchNewsItem]);
+        if (mounted) {
+            fetchNewsItem();
+        }
+    }, [params.aktualita, fetchNewsItem, mounted]);
 
     useEffect(() => {
         if (isEditMode && newsItem) {
@@ -91,6 +98,7 @@ export default function NewsDetail() {
         const data = await res.json();
         setImages((prev) => [...prev, { url: data.url, public_id: data.public_id, title: data.title }]);
     };
+    
     const handleImageDelete = async (public_id: string) => {
         setImages((prev) => prev.filter((img) => img.public_id !== public_id));
     };
@@ -117,13 +125,53 @@ export default function NewsDetail() {
     }
 
     const formatDate = (date: Date | string | undefined) => {
-        if (!date) return '';
+        if (!mounted || !date) return '';
         try {
             return format(new Date(date), "d. MMMM yyyy", { locale: cs });
         } catch (error) {
             return '';
         }
     };
+
+    const formatTime = (date: Date | string | undefined) => {
+        if (!mounted || !date) return '';
+        try {
+            return format(new Date(date), "HH:mm", { locale: cs });
+        } catch (error) {
+            return '';
+        }
+    };
+
+    const handleShare = () => {
+        if (navigator.share) {
+            navigator.share({
+                title: newsItem?.title,
+                url: window.location.href,
+            });
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            toast.success("Odkaz zkopírován do schránky");
+        }
+    };
+
+    // Don't render anything until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return (
+            <CommonPageTemplate 
+                contents={{header: true}} 
+                headerMode="auto-hide"
+                currentUser={user}
+                currentRole={role}
+            >
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        <span className="text-gray-500">Načítání...</span>
+                    </div>
+                </div>
+            </CommonPageTemplate>
+        );
+    }
 
     return (
         <CommonPageTemplate 
@@ -132,112 +180,204 @@ export default function NewsDetail() {
             currentUser={user}
             currentRole={role}
         >
-            {/* Full-width image bar */}
-            {newsItem && newsItem.images && newsItem.images.length > 0 && (
-                <div className="w-full max-w-3xl mx-auto relative">
-                    <Image
-                        src={newsItem.images[0].url}
-                        alt={newsItem.images[0].title || newsItem.title}
-                        className="w-full max-h-[340px] object-cover rounded-b-3xl shadow-xl"
-                        style={{ objectPosition: 'center' }}
-                        width={1200}
-                        height={340}
-                    />
-                    {isNew(newsItem.createdAt) && (
-                        <span className="absolute top-4 right-4 z-20">
-                            <IOSBadge label="Novinka" size="sm" bgColor="bg-green-100/90" borderColor="border-green-300/80" textColor="text-green-900/90" className="px-3 py-0.5 min-h-0 text-xs" />
-                        </span>
-                    )}
-                    <AdminRestrictedContent
-                        role={role || "UŽIVATEL"}
-                        variant="icon"
-                        icon={<IOSCircleIcon variant="blue" size="md"><Pencil className="w-5 h-5" /></IOSCircleIcon>}
-                        onClick={() => router.push(`/aktuality/${params.aktualita}?edit=true`)}
-                        buttonClassName="absolute top-4 left-4 z-20 shadow-md"
-                    />
-                </div>
-            )}
-            <div className="max-w-2xl mx-auto px-2 md:px-0 py-8 animate-fadeIn">
-                <div className="mb-6 flex items-center gap-2">
-                    <IOSButton variant="outline" size="default" onClick={() => router.push("/aktuality")}
-                        className="rounded-full px-4 py-2 text-blue-600 border-blue-200">
-                        <ArrowLeft className="w-4 h-4 mr-2" /> Zpět
-                    </IOSButton>
-                </div>
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
-                    </div>
-                ) : newsItem ? (
-                    isEditMode ? (
-                        <IOSCard className="overflow-visible bg-white/80 rounded-3xl shadow-xl border-0 p-0 mt-[-48px]">
-                            <div className="px-6 pt-10 pb-2">
-                                <h1 className="text-2xl font-bold mb-4 text-gray-900">Upravit aktualitu</h1>
-                                <input
-                                    className="w-full mb-4 rounded-xl border border-gray-200 px-4 py-2 text-lg"
-                                    value={title}
-                                    onChange={e => setTitle(e.target.value)}
-                                    placeholder="Název aktuality"
+            <div className="min-h-screen bg-gray-50">
+                {/* Hero Image */}
+                {newsItem && newsItem.images && newsItem.images.length > 0 && (
+                    <div className="relative h-48 sm:h-64 md:h-80 bg-gray-900">
+                        <Image
+                            src={newsItem.images[0].url}
+                            alt={newsItem.images[0].title || newsItem.title}
+                            className="w-full h-full object-cover"
+                            fill
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-black/20" />
+                        
+                        {/* Badge and Actions */}
+                        <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                {isNew(newsItem.createdAt) && (
+                                    <IOSBadge 
+                                        label="Nové" 
+                                        size="sm" 
+                                        bgColor="bg-green-500" 
+                                        textColor="text-white"
+                                    />
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <IOSButton
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleShare}
+                                    className="bg-white/90 backdrop-blur-sm"
+                                >
+                                    <Share2 className="w-4 h-4" />
+                                </IOSButton>
+                                <AdminRestrictedContent
+                                    role={role || "UŽIVATEL"}
+                                    variant="icon"
+                                    icon={<IOSCircleIcon variant="blue" size="md"><Pencil className="w-4 h-4" /></IOSCircleIcon>}
+                                    onClick={() => router.push(`/aktuality/${params.aktualita}?edit=true`)}
                                 />
-                                <div className="mb-4">
-                                    {/* TODO: Add toolbar prop for bubble menu when IOSTextarea supports it */}
-                                    <IOSTextarea
-                                        value={content}
-                                        onChange={setContent}
-                                        placeholder="Obsah aktuality"
-                                        required
-                                        className="min-h-[160px]"
-                                    />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Content */}
+                <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+                    {/* Back Button */}
+                    <div className="mb-4 sm:mb-6">
+                        <IOSButton 
+                            variant="outline" 
+                            onClick={() => router.push("/aktuality")}
+                            className="gap-2 text-sm sm:text-base"
+                            size="sm"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Zpět na aktuality</span>
+                            <span className="sm:hidden">Zpět</span>
+                        </IOSButton>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <div className="flex items-center gap-3">
+                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                                <span className="text-gray-500">Načítání...</span>
+                            </div>
+                        </div>
+                    ) : newsItem ? (
+                        isEditMode ? (
+                            <div className="bg-white/95 backdrop-blur-2xl border border-gray-200/30 shadow-xl shadow-black/5 rounded-2xl sm:rounded-3xl overflow-visible transition-all duration-300 ease-out p-4 sm:p-6 md:p-8">
+                                <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Upravit aktualitu</h1>
+                                
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Název
+                                        </label>
+                                        <input
+                                            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                            value={title}
+                                            onChange={e => setTitle(e.target.value)}
+                                            placeholder="Zadejte název aktuality"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Obsah
+                                        </label>
+                                        <IOSTextarea
+                                            value={content}
+                                            onChange={setContent}
+                                            placeholder="Zadejte obsah aktuality..."
+                                            className="min-h-[200px] sm:min-h-[300px]"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Obrázky
+                                        </label>
+                                        <ImageUpload
+                                            sources={images}
+                                            onUpload={handleImageUpload}
+                                            onDelete={handleImageDelete}
+                                            stackingStyle="grid"
+                                            aspectRatio="landscape"
+                                            count={4}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="mb-4">
-                                    <div className="font-semibold text-blue-900 mb-2">Obrázky</div>
-                                    <ImageUpload
-                                        sources={images}
-                                        onUpload={handleImageUpload}
-                                        onDelete={handleImageDelete}
-                                        stackingStyle="grid"
-                                        aspectRatio="landscape"
-                                        count={4}
-                                    />
-                                </div>
-                                <div className="flex gap-2 justify-end mt-6">
-                                    <IOSButton variant="outline" onClick={() => router.push(`/aktuality/${params.aktualita}`)}>
+                                
+                                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end mt-6 sm:mt-8">
+                                    <IOSButton 
+                                        variant="outline" 
+                                        onClick={() => router.push(`/aktuality/${params.aktualita}`)}
+                                        className="w-full sm:w-auto"
+                                    >
                                         Zrušit
                                     </IOSButton>
-                                    <IOSButton loading={isSubmitting} onClick={handleSubmit}>
+                                    <IOSButton 
+                                        loading={isSubmitting} 
+                                        onClick={handleSubmit}
+                                        className="w-full sm:w-auto"
+                                    >
                                         Uložit změny
                                     </IOSButton>
                                 </div>
                             </div>
-                        </IOSCard>
-                    ) : (
-                        <IOSCard className="overflow-visible bg-white/80 rounded-3xl shadow-xl border-0 p-0 mt-[-48px]">
-                            <div className="px-6 pb-6 pt-10">
-                                <h1 className="text-3xl font-bold mb-2 text-gray-900 leading-tight">{newsItem.title}</h1>
-                                <time className="text-sm text-gray-500 mb-4 block">
-                                    {formatDate(newsItem.createdAt)}
-                                </time>
-                                <div className="prose prose-lg max-w-none prose-headings:text-gray-800 prose-p:text-gray-600 mb-4">
-                                    <div dangerouslySetInnerHTML={{ __html: newsItem.content || "" }} />
+                        ) : (
+                            <div className="bg-white/95 backdrop-blur-2xl border border-gray-200/30 shadow-xl shadow-black/5 rounded-2xl sm:rounded-3xl overflow-visible transition-all duration-300 ease-out p-4 sm:p-6 md:p-8">
+                                {/* Header */}
+                                <div className="mb-6 sm:mb-8">
+                                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
+                                        {newsItem.title}
+                                    </h1>
+                                    
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-gray-500">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="w-4 h-4" />
+                                            <span>{formatDate(newsItem.createdAt)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Clock className="w-4 h-4" />
+                                            <span>{formatTime(newsItem.createdAt)}</span>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {/* Content */}
+                                <div className="prose prose-sm sm:prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 mb-6 sm:mb-8">
+                                    {newsItem.content ? (
+                                        <div 
+                                            dangerouslySetInnerHTML={{ 
+                                                __html: newsItem.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                                            }} 
+                                        />
+                                    ) : (
+                                        <p className="text-gray-500 italic">Žádný obsah</p>
+                                    )}
+                                </div>
+
+                                {/* Additional Images */}
                                 {newsItem.images && newsItem.images.length > 1 && (
-                                    <div className="grid grid-cols-2 gap-4 mt-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-6 sm:mt-8">
                                         {newsItem.images.slice(1).map((img, idx) => (
-                                            <Image
-                                                key={idx}
-                                                src={img.url}
-                                                alt={img.title || newsItem.title}
-                                                className="rounded-xl w-full h-32 object-cover shadow"
-                                                width={400}
-                                                height={128}
-                                            />
+                                            <div key={idx} className="relative group">
+                                                <Image
+                                                    src={img.url}
+                                                    alt={img.title || newsItem.title}
+                                                    className="w-full h-36 sm:h-48 object-cover rounded-xl"
+                                                    width={600}
+                                                    height={240}
+                                                />
+                                                {img.title && (
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 rounded-b-xl">
+                                                        <p className="text-white text-sm font-medium">
+                                                            {img.title}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                        </IOSCard>
-                    )
-                ) : null}
+                        )
+                    ) : (
+                        <div className="text-center py-8 sm:py-12 px-4">
+                            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Aktualita nebyla nalezena</h2>
+                            <p className="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base">Požadovaná aktualita neexistuje nebo byla smazána.</p>
+                            <IOSButton onClick={() => router.push("/aktuality")} className="w-full sm:w-auto">
+                                Zpět na aktuality
+                            </IOSButton>
+                        </div>
+                    )}
+                </div>
             </div>
         </CommonPageTemplate>
     );

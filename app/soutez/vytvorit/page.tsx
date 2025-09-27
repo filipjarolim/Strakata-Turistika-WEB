@@ -15,10 +15,10 @@ export default async function VytvoritPage() {
 
   return (
     <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role}>
-      <div className="container mx-auto py-6 space-y-6 max-w-5xl">
-        <div className="flex items-center gap-2 mb-6">
-          <Trophy className="h-6 w-6" />
-          <h1 className="text-3xl font-bold">Vytvořit Soutěž</h1>
+      <div className="container mx-auto py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-5xl px-3 sm:px-4 md:px-6">
+        <div className="flex items-center gap-2 mb-4 sm:mb-6">
+          <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Vytvořit Soutěž</h1>
         </div>
 
         <Card>
@@ -29,21 +29,21 @@ export default async function VytvoritPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6">
+            <form className="space-y-4 sm:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Název soutěže</Label>
-                <Input id="name" placeholder="Zadejte název soutěže" />
+                <Input id="name" placeholder="Zadejte název soutěže" className="text-sm sm:text-base" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Popis</Label>
-                <Textarea id="description" placeholder="Popište soutěž" />
+                <Textarea id="description" placeholder="Popište soutěž" className="text-sm sm:text-base min-h-[80px] sm:min-h-[100px]" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="route">Trasa</Label>
                 <Select>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm sm:text-base">
                     <SelectValue placeholder="Vyberte trasu" />
                   </SelectTrigger>
                   <SelectContent>
@@ -54,19 +54,21 @@ export default async function VytvoritPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="date">Datum konání</Label>
-                <Input id="date" type="date" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Datum konání</Label>
+                  <Input id="date" type="date" className="text-sm sm:text-base" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="time">Čas startu</Label>
+                  <Input id="time" type="time" className="text-sm sm:text-base" />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="time">Čas startu</Label>
-                <Input id="time" type="time" />
-              </div>
-
-              <div className="flex gap-4">
-                <Button type="submit">Vytvořit soutěž</Button>
-                <Button variant="outline" asChild>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Button type="submit" className="w-full sm:w-auto">Vytvořit soutěž</Button>
+                <Button variant="outline" asChild className="w-full sm:w-auto">
                   <a href="/soutez/nahrat">Nahrát vlastní trasu</a>
                 </Button>
               </div>

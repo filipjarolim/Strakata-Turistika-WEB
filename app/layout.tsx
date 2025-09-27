@@ -1,5 +1,6 @@
 import type {Metadata, Viewport} from "next";
 import "./globals.css";
+import "./sf-pro-fonts.css";
 import { ReactNode } from 'react';
 import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
@@ -48,14 +49,18 @@ export const viewport: Viewport = {
 }
 
 
-const myFont = localFont({ src: "../assets/fonts/SF-Pro.ttf" });
+const sfPro = localFont({
+  src: "../assets/fonts/SF-Pro.ttf",
+  variable: "--font-sf-pro",
+  display: "swap",
+});
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
     const session = await auth();
 
     return (
         <html lang="cs" suppressHydrationWarning>
-            <body className={myFont.className}>
+            <body className={`${sfPro.className} ${sfPro.variable}`}>
                 <SessionProvider session={session}>
                     {children}
                     <Toaster />

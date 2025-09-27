@@ -25,11 +25,11 @@ export const CardWrapper = ({
     backButtonHref
 }: CardWrapperProps) => {
     return (
-        <Card className={"w-[90%] md:w-[80%] border-0 shadow-none bg-transparent"}>
-            <CardHeader>
+        <Card className={"w-full max-w-md mx-auto border-0 shadow-none bg-transparent"}>
+            <CardHeader className="px-0 sm:px-6">
                <BackButton label={backButtonLabel} href={backButtonHref} />
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-0 sm:px-6">
                 {children}
             </CardContent>
 

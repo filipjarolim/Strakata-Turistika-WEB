@@ -68,15 +68,18 @@ const AdminDashboardPage = () => {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
-                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+            <div className="flex flex-col lg:flex-row justify-between gap-3 sm:gap-4 items-start lg:items-center">
+                <h1 className="text-2xl sm:text-3xl font-bold">
+                    <span className="hidden sm:inline">Admin Dashboard</span>
+                    <span className="sm:hidden">Admin</span>
+                </h1>
                 <Input
                     type="text"
                     placeholder="Search collections..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="max-w-sm"
+                    className="w-full sm:max-w-sm text-sm sm:text-base"
                 />
             </div>
 
@@ -94,23 +97,29 @@ const AdminDashboardPage = () => {
                             <p className="text-muted-foreground">No collections found matching &quot;{search}&quot;</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                             {displayCollections.map((col) => (
                                 <Card key={col} className="overflow-hidden transition-all duration-200 hover:shadow-md">
-                                    <CardHeader className="pb-2">
-                                        <div className="flex items-center gap-3">
-                                            {getCollectionIcon(col)}
-                                            <div>
-                                                <CardTitle className="text-xl">{col}</CardTitle>
-                                                <CardDescription>Manage {col} data</CardDescription>
+                                    <CardHeader className="pb-2 p-4 sm:p-6">
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <div className="flex-shrink-0">
+                                                {getCollectionIcon(col)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <CardTitle className="text-lg sm:text-xl truncate">{col}</CardTitle>
+                                                <CardDescription className="text-sm">
+                                                    <span className="hidden sm:inline">Manage {col} data</span>
+                                                    <span className="sm:hidden">Manage data</span>
+                                                </CardDescription>
                                             </div>
                                         </div>
                                     </CardHeader>
                                     <Separator />
-                                    <CardContent className="pt-4">
+                                    <CardContent className="pt-3 sm:pt-4 p-4 sm:p-6">
                                         <Link href={`/admin/${col}`} className="w-full block">
-                                            <Button variant="default" className="w-full">
-                                                View Records
+                                            <Button variant="default" className="w-full text-sm sm:text-base">
+                                                <span className="hidden sm:inline">View Records</span>
+                                                <span className="sm:hidden">View</span>
                                             </Button>
                                         </Link>
                                     </CardContent>
@@ -173,21 +182,24 @@ const AdminPage = () => {
                 <div className="space-y-6">
                     <FormSuccess message="You are allowed to see this content!" />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Admin API Testing</CardTitle>
-                                <CardDescription>Test admin-only API endpoints</CardDescription>
+                            <CardHeader className="p-4 sm:p-6">
+                                <CardTitle className="text-lg sm:text-xl">
+                                    <span className="hidden sm:inline">Admin API Testing</span>
+                                    <span className="sm:hidden">API Testing</span>
+                                </CardTitle>
+                                <CardDescription className="text-sm">Test admin-only API endpoints</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                    <p className="text-sm font-medium">Admin-only API Route</p>
-                                    <Button onClick={onApiRouteClick}>Test</Button>
+                            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-3 gap-2 sm:gap-0">
+                                    <p className="text-xs sm:text-sm font-medium">Admin-only API Route</p>
+                                    <Button onClick={onApiRouteClick} size="sm" className="w-full sm:w-auto">Test</Button>
                                 </div>
 
-                                <div className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                    <p className="text-sm font-medium">Admin-only Server Action</p>
-                                    <Button onClick={onServerActionClick}>Test</Button>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-3 gap-2 sm:gap-0">
+                                    <p className="text-xs sm:text-sm font-medium">Admin-only Server Action</p>
+                                    <Button onClick={onServerActionClick} size="sm" className="w-full sm:w-auto">Test</Button>
                                 </div>
                             </CardContent>
                         </Card>

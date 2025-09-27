@@ -65,7 +65,7 @@ const CommonPageTemplate = ({
 
 
             {(contents?.complete || contents?.footer) && (
-                <div className="relative" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>
+                <div className="relative hidden sm:block" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>
                     <Image 
                         src={FooterDog} 
                         alt="Strakatá turistika" 

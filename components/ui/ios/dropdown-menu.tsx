@@ -54,18 +54,13 @@ export const IOSDropdownMenu = ({
               mass: 0.8
             }}
             className={cn(
-              "absolute z-[1000000000001] mt-1.5 w-52",
+              "absolute z-[1000000000001] mt-2 w-64",
               align === 'right' ? 'right-0' : 'left-0',
-              "bg-white/80 backdrop-blur-xl",
-              "rounded-2xl border border-gray-200/50",
-              "shadow-lg shadow-black/5",
-              "p-1.5",
+              "bg-white border border-gray-200/60",
+              "rounded-2xl shadow-xl shadow-black/10",
+              "p-2",
               className
             )}
-            style={{
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
-            }}
           >
             {children}
           </motion.div>
@@ -94,32 +89,37 @@ export const IOSDropdownMenuItem = ({
     <button
       onClick={onClick}
       className={cn(
-        "w-full px-3 py-2 text-left",
-        "hover:bg-gray-100/50 active:bg-gray-200/50",
-        "transition-all duration-200",
+        "w-full px-3 py-2.5 text-left",
+        "hover:bg-gray-50 active:bg-gray-100",
+        "transition-all duration-200 ease-out",
         "flex items-center justify-between",
-        "text-sm",
+        "text-sm font-medium",
         "rounded-xl",
+        "group",
         className
       )}
     >
-      <div className="flex items-center gap-2">
-        {icon && <span className="text-gray-500 w-4 h-4">{icon}</span>}
-        <span className="text-gray-900">{children}</span>
+      <div className="flex items-center gap-3">
+        {icon && (
+          <span className="text-gray-500 group-hover:text-gray-700 transition-colors duration-200 w-4 h-4 flex items-center justify-center">
+            {icon}
+          </span>
+        )}
+        <span className="text-gray-900 group-hover:text-gray-700 transition-colors duration-200">{children}</span>
       </div>
       {shortcut && (
-        <span className="text-xs text-gray-400 font-medium">{shortcut}</span>
+        <span className="text-xs text-gray-400 font-medium group-hover:text-gray-500 transition-colors duration-200">{shortcut}</span>
       )}
     </button>
   );
 };
 
 export const IOSDropdownMenuSeparator = () => (
-  <div className="h-px bg-gray-200/50 my-1.5" />
+  <div className="h-px bg-gray-200/60 my-2" />
 );
 
 export const IOSDropdownMenuLabel = ({ children }: { children: React.ReactNode }) => (
-  <div className="px-3 py-1.5 text-xs font-semibold text-gray-400">
+  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
     {children}
   </div>
 ); 

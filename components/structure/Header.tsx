@@ -22,9 +22,11 @@ import {
 import basicInfo from "@/lib/settings/basicInfo";
 import { cn } from "@/lib/utils";
 import { RegisterButton } from "../auth/register-button";
+import { ExtendedUser } from "@/next-auth";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { ExtendedUser } from "@/next-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
+// Removed dynamic background detection to keep header consistently light
 
 const Header = ({
                     user,
@@ -44,6 +46,11 @@ const Header = ({
     const [lastScrollY, setLastScrollY] = useState<number>(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const pathname = usePathname();
+    const isMobile = useIsMobile();
+
+    // Fixed light styling (no background detection)
+    const textColor = "text-gray-900";
+    const textColorHover = "hover:text-gray-700";
 
     const updateHeaderHeight = () => {
         if (headerRef.current) {
@@ -90,59 +97,130 @@ const Header = ({
         setIsMobileMenuOpen(false);
     }, [pathname]);
 
+    // Dynamic header styling based on background analysis
+    const getHeaderStyles = () => {
+        if (isMobile) {
+            return {
+                background: 'transparent',
+                backdropFilter: 'none',
+                WebkitBackdropFilter: 'none',
+                border: 'none',
+                boxShadow: 'none'
+            };
+        }
+        if (isScrolled) {
+            return {
+                background: 'rgba(255, 255, 255, 0.90)',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: '1px solid rgba(0, 0, 0, 0.08)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)'
+            };
+        }
+        return {
+            background: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+            border: '1px solid rgba(0, 0, 0, 0.06)',
+            boxShadow: 'none'
+        };
+    };
+
+    // Enhanced text styling based on background analysis
+    const getTextStyles = () => ({ fontWeight: '600' });
+
     return (
         <>
             <header
                 ref={headerRef}
                 className={cn(
-                    "grid grid-cols-3 select-none md:grid-cols-12 w-full md:w-[90%] mx-auto px-4 py-3 rounded-b-xl min-h-fit max-h-20",
+                    "grid grid-cols-3 select-none md:grid-cols-12 w-[95%] sm:w-[92%] md:w-[90%] mx-auto px-3 sm:px-4 py-2 sm:py-3 md:rounded-b-xl min-h-fit max-h-20 relative",
                     mode !== "static" && "fixed left-1/2 translate-x-[-50%]",
-                    isScrolled ? "md:w-[95%] shadow-md backdrop-blur-xl bg-white/40" : "bg-white/30 backdrop-blur-lg",
-                    "transition-all duration-300",
+                    "transition-all duration-300 ease-out",
                     mode === "auto-hide" && !isVisible && "-translate-y-[100%]"
                 )}
                 style={{ 
                     zIndex: 50,
+                    ...getHeaderStyles(),
                     ...(mode === "auto-hide" && !isVisible && { boxShadow: "none" })
                 }}
             >
                 <Link
                     href="/"
-                    className="flex flex-row items-center justify-start col-span-2 md:col-span-2 lg:col-span-2"
+                    className="flex flex-row items-center justify-start col-span-2 md:col-span-2 lg:col-span-2 relative"
                 >
-                    <span className="text-[22px] font-semibold text-black/90 tracking-tight">
-                        Strakatá Turistika
+                    {/* Title blob (mobile only) */}
+                    <span className="md:hidden absolute -top-1 -left-1 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
+                    <span 
+                        className={cn(
+                            "text-[16px] sm:text-[18px] md:text-[22px] font-bold tracking-tight transition-colors duration-200",
+                            textColor,
+                            "drop-shadow-sm"
+                        )}
+                    >
+                        <span className="hidden sm:inline">Strakatá Turistika</span>
+                        <span className="sm:hidden">ST</span>
                     </span>
                 </Link>
                 
                 {/* Desktop Navigation */}
                 <div className="col-span-0 md:col-span-8 lg:col-span-8 hidden w-full md:flex flex-row items-center justify-center">
-                    <Navbar />
+                    <Navbar textColor={textColor} textColorHover={textColorHover} />
                 </div>
                 
                 {/* Authentication buttons */}
                 <div className="flex flex-row justify-end col-span-1 md:col-span-2 lg:col-span-2 items-center">
-                    <div className="hidden md:flex flex-row items-center justify-end gap-x-2 w-full">
+                    <div className="hidden sm:flex flex-row items-center justify-end gap-x-1 sm:gap-x-2 w-full">
                         {!user ? (
-                            <div className="flex flex-row items-center justify-end gap-x-2">
-                                <LoginButton>Přihlásit se</LoginButton>
-                                <RegisterButton>Začít</RegisterButton>
+                            <div className="flex flex-row items-center justify-end gap-x-1 sm:gap-x-2">
+                                <Button 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    className={cn(
+                                        "rounded-full border font-semibold text-xs sm:text-sm px-2 sm:px-3 transition-all duration-200",
+                                        "hover:scale-105",
+                                        "bg-gray-900/20 text-gray-900 border-gray-900/30 hover:bg-gray-900/30 hover:border-gray-900/50"
+                                    )}
+                                    onClick={() => window.location.href = "/auth/login"}
+                                >
+                                    <span className="hidden sm:inline">Přihlásit se</span>
+                                    <span className="sm:hidden">Login</span>
+                                </Button>
+                                <Button 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    className={cn(
+                                        "rounded-full border font-semibold text-xs sm:text-sm px-2 sm:px-3 transition-all duration-200",
+                                        "hover:scale-105",
+                                        "bg-gray-900/20 text-gray-900 border-gray-900/30 hover:bg-gray-900/30 hover:border-gray-900/50"
+                                    )}
+                                    onClick={() => window.location.href = "/auth/register"}
+                                >
+                                    <span className="hidden sm:inline">Začít</span>
+                                    <span className="sm:hidden">Start</span>
+                                </Button>
                             </div>
                         ) : (
-                            <UserButton role={role} />
+                            <UserButton role={role} textColor={textColor} />
                         )}
                     </div>
                     
                     {/* Mobile menu button */}
-                    <div className="md:hidden flex items-center">
+                    <div className="sm:hidden flex items-center">
                         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                             <SheetTrigger asChild>
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="p-1 h-9 w-9 rounded-full hover:bg-gray-100"
+                                    className={cn(
+                                        "relative overflow-visible p-1 h-9 w-9 rounded-full transition-all duration-200",
+                                        "hover:scale-105",
+                                        "hover:bg-gray-900/10 text-gray-900"
+                                    )}
                                     aria-label="Menu"
                                 >
+                                    {/* Hamburger blob (mobile only) */}
+                                    <span className="md:hidden absolute -top-1 -right-1 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
                                     <AnimatePresence mode="wait" initial={false}>
                                         {isMobileMenuOpen ? (
                                             <motion.div
@@ -171,8 +249,11 @@ const Header = ({
 
                             <SheetContent
                                 side="right"
-                                className="w-[85%] max-w-sm p-0 border-none"
+                                className="w-[90%] max-w-sm p-0 border-none"
                             >
+                                <SheetHeader>
+                                    <SheetTitle className="sr-only">Hlavní menu</SheetTitle>
+                                </SheetHeader>
                                 <div className="flex flex-col h-full">
                                     <div className="flex items-center justify-between p-4 border-b">
                                         <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>

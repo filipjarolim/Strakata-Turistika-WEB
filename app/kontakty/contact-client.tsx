@@ -2,22 +2,12 @@
 
 import React, { useState } from 'react';
 import { 
-    MapPin, 
-    Mail, 
-    Phone, 
-    Clock, 
-    ExternalLink, 
     Send, 
-    Facebook, 
-    Instagram, 
-    Twitter, 
     ChevronRight,
     CheckCircle,
     AlertCircle,
     Loader2,
     MessageSquare,
-    Map,
-    Users,
     HelpCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,7 +22,6 @@ import { IOSButton } from "@/components/ui/ios/button";
 import { IOSTextInput } from "@/components/ui/ios/text-input";
 import { IOSTextarea } from "@/components/ui/ios/textarea";
 import { IOSSection } from "@/components/ui/ios/section";
-import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
 
 // Form validation schema
@@ -44,28 +33,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-// Social media links
-const SOCIAL_LINKS = [
-    { 
-        name: "Facebook", 
-        url: "https://facebook.com/", 
-        icon: <Facebook className="h-5 w-5" />,
-        color: "bg-blue-100 text-blue-600 hover:bg-blue-200"
-    },
-    { 
-        name: "Instagram", 
-        url: "https://instagram.com/", 
-        icon: <Instagram className="h-5 w-5" />,
-        color: "bg-pink-100 text-pink-600 hover:bg-pink-200" 
-    },
-    { 
-        name: "Twitter", 
-        url: "https://twitter.com/", 
-        icon: <Twitter className="h-5 w-5" />,
-        color: "bg-sky-100 text-sky-600 hover:bg-sky-200" 
-    }
-];
 
 // Frequently asked questions
 const FAQ_ITEMS = [
@@ -86,113 +53,6 @@ const FAQ_ITEMS = [
         answer: "Základní informace o plemeni najdete na našem webu v sekci O plemeni. Pro podrobnější informace nás neváhejte kontaktovat."
     }
 ];
-
-const ContactInfo = () => {
-    return (
-        <div className="space-y-6">
-            <motion.div 
-                className="flex items-start gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-            >
-                <IOSCircleIcon variant="blue" size="md">
-                    <MapPin className="h-5 w-5" />
-                </IOSCircleIcon>
-                <div>
-                    <h3 className="font-semibold text-lg text-gray-900">Adresa</h3>
-                    <p className="text-gray-600 mt-1">
-                        Spolek českého strakatého psa<br />
-                        Patočkova 16/976<br />
-                        169 00 Praha 6
-                    </p>
-                </div>
-            </motion.div>
-            
-            <motion.div 
-                className="flex items-start gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-            >
-                <IOSCircleIcon variant="blue" size="md">
-                    <Mail className="h-5 w-5" />
-                </IOSCircleIcon>
-                <div>
-                    <h3 className="font-semibold text-lg text-gray-900">Email</h3>
-                    <a href="mailto:info@strakatypesklub.cz" className="text-blue-600 hover:text-blue-700 flex items-center gap-1 group mt-1">
-                        info@strakatypesklub.cz
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </a>
-                </div>
-            </motion.div>
-            
-            <motion.div 
-                className="flex items-start gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-            >
-                <IOSCircleIcon variant="blue" size="md">
-                    <Phone className="h-5 w-5" />
-                </IOSCircleIcon>
-                <div>
-                    <h3 className="font-semibold text-lg text-gray-900">Telefon</h3>
-                    <a href="tel:+420777123456" className="text-blue-600 hover:text-blue-700 flex items-center gap-1 group mt-1">
-                        +420 777 123 456
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </a>
-                </div>
-            </motion.div>
-            
-            <motion.div 
-                className="flex items-start gap-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-            >
-                <IOSCircleIcon variant="blue" size="md">
-                    <Clock className="h-5 w-5" />
-                </IOSCircleIcon>
-                <div>
-                    <h3 className="font-semibold text-lg text-gray-900">Úřední hodiny</h3>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600 mt-1">
-                        <span>Pondělí - Pátek:</span><span className="font-medium">9:00 - 17:00</span>
-                        <span>Sobota - Neděle:</span><span className="font-medium">Zavřeno</span>
-                    </div>
-                </div>
-            </motion.div>
-        </div>
-    );
-};
-
-const MapComponent = () => {
-    return (
-        <div className="w-full h-[300px] sm:h-[400px] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl overflow-hidden relative group border border-blue-200/50">
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-100/0 to-blue-100/40 group-hover:opacity-0 transition-opacity duration-300"></div>
-            <div className="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity duration-300">
-                <div className="text-center text-gray-600">
-                    <IOSCircleIcon variant="blue" size="lg" className="mx-auto mb-4">
-                        <Map className="h-8 w-8" />
-                    </IOSCircleIcon>
-                    <p className="font-semibold text-lg">Mapa bude zobrazena zde</p>
-                    <p className="text-sm mt-1">(Google Maps embed)</p>
-                </div>
-            </div>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    className="bg-white/90 backdrop-blur-xl py-3 px-6 rounded-2xl shadow-lg border border-gray-200/50"
-                >
-                    <IOSButton variant="outline" className="gap-2">
-                        Otevřít v Google Maps
-                        <ExternalLink className="h-4 w-4" />
-                    </IOSButton>
-                </motion.div>
-            </div>
-        </div>
-    );
-};
 
 const ContactForm = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -235,7 +95,7 @@ const ContactForm = () => {
         }
     };
     
-        return (
+    return (
         <IOSCard
             title="Kontaktní formulář"
             subtitle="Napište nám zprávu a my vám odpovíme co nejdříve"
@@ -335,7 +195,7 @@ const FaqSection = () => {
     
     return (
         <IOSSection title="Často kladené otázky">
-        <div className="space-y-4">
+            <div className="space-y-4">
                 {FAQ_ITEMS.map((faq, index) => (
                     <motion.div
                         key={index}
@@ -356,14 +216,14 @@ const FaqSection = () => {
                                     <div className="flex-1">
                                         <h4 className="font-semibold text-gray-900 mb-2">{faq.question}</h4>
                                         <AnimatePresence>
-                        {openFaq === index && (
+                                            {openFaq === index && (
                                                 <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
+                                                    initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
                                                     exit={{ opacity: 0, height: 0 }}
                                                     className="text-gray-600 text-sm leading-relaxed"
-                                >
-                                    {faq.answer}
+                                                >
+                                                    {faq.answer}
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -407,98 +267,24 @@ export const ContactClient = () => {
                 </div>
             </motion.div>
             
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column - Contact Info & Map */}
-                <div className="space-y-8">
-                    <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2, duration: 0.6 }}
-                    >
-                        <IOSCard
-                            title="Kontaktní informace"
-                            subtitle="Kde nás najdete a jak nás kontaktovat"
-                            icon={<Users className="h-6 w-6" />}
-                            iconBackground="bg-blue-100"
-                            iconColor="text-blue-600"
-                        >
-                                    <ContactInfo />
-                        </IOSCard>
-                    </motion.div>
-                    
-                    <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4, duration: 0.6 }}
-                    >
-                        <IOSCard
-                            title="Lokalita"
-                            subtitle="Kde se nacházíme"
-                            icon={<Map className="h-6 w-6" />}
-                            iconBackground="bg-green-100"
-                            iconColor="text-green-600"
-                        >
-                                <MapComponent />
-                        </IOSCard>
-                    </motion.div>
-                </div>
-
-                {/* Right Column - Contact Form */}
-                <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3, duration: 0.6 }}
-                >
-                    <ContactForm />
-                </motion.div>
-            </div>
-
-            {/* Social Media */}
+            {/* Main Content - Contact Form */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.6 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                className="max-w-2xl mx-auto"
             >
-                <IOSCard
-                    title="Sledujte nás"
-                    subtitle="Buďte v kontaktu na sociálních sítích"
-                    icon={<Users className="h-6 w-6" />}
-                    iconBackground="bg-purple-100"
-                    iconColor="text-purple-600"
-                >
-                    <div className="flex flex-wrap gap-4">
-                        {SOCIAL_LINKS.map((social, index) => (
-                            <motion.a
-                                key={social.name}
-                                href={social.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/80 backdrop-blur-xl border border-gray-200/50 hover:bg-white/90 transition-all duration-200 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-black/10"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.6 + index * 0.1 }}
-                            >
-                                <IOSCircleIcon variant="blue" size="sm">
-                                    {social.icon}
-                                </IOSCircleIcon>
-                                <span className="font-medium text-gray-900">{social.name}</span>
-                            </motion.a>
-                        ))}
-                    </div>
-                </IOSCard>
+                <ContactForm />
             </motion.div>
 
             {/* FAQ Section */}
-                    <motion.div 
+            <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.6 }}
-                    >
-                                <FaqSection />
-                    </motion.div>
+            >
+                <FaqSection />
+            </motion.div>
         </div>
     );
 }; 

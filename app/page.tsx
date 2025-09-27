@@ -16,14 +16,15 @@ import Showcase1 from "@/assets/img/showcase/1.png";
 import Showcase2 from "@/assets/img/showcase/3.png";
 import Showcase3 from "@/assets/img/showcase/2.png";
 import News from "@/components/blocks/News";
-import { MapPin, Calendar, Award, Users, Trophy, Sparkles, Camera, CheckCircle } from "lucide-react";
+import { MapPin, Calendar, Award, Users, Trophy, Camera } from "lucide-react";
 import { IOSButton } from "@/components/ui/ios/button";
 import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSCard } from "@/components/ui/ios/card";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
 import { IOSImageShowcase } from "@/components/ui/ios/image-showcase";
 import { IOSStatsCard } from "@/components/ui/ios/stats-card";
-import { IOSStepProgress } from "@/components/ui/ios/step-progress";
+import Link from "next/link";
+
 
 const benefits = [
     {
@@ -43,19 +44,7 @@ const benefits = [
     }
 ];
 
-const tutorialSteps = [
-    "Vyberte trasu",
-    "Nahrajte GPS data",
-    "Přidejte fotky",
-    "Z&iacute;skejte body"
-];
 
-const tutorialStepImages = [
-    "/icons/soutez/1.png",
-    "/icons/soutez/2.png", 
-    "/icons/soutez/3.png",
-    "/icons/soutez/1.png"
-];
 
 
 
@@ -67,9 +56,9 @@ const Home = async () => {
     const role = await currentRole()
 
     return (
-        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showHeaderGap={false} className='p-0'>
+        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showHeaderGap={true} className='p-0'>
             {/* Hero Section with Background Image */}
-            <div className="relative w-full h-[70vh] overflow-hidden">
+            <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] overflow-visible">
                 {/* Background Image */}
                 <div className="absolute inset-0 w-full h-full">
                     <Image
@@ -85,12 +74,12 @@ const Home = async () => {
                 
                 {/* Original Hero Section Content */}
                 <div className="relative z-10 animate-fadeIn">
-                    <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[70vh] px-8"}>
-                        <div className={"p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
-                             <h1 className="text-[90px] font-semibold whitespace-nowrap overflow-visible text-white">
-                                  {basicInfo.name}
-                            </h1>   
-                            <div className="text-6xl font-semibold mb-4 text-white w-[90%]">
+                    <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[50vh] sm:h-[60vh] md:h-[70vh] px-3 sm:px-4 md:px-8"}>
+                        <div className={"p-3 sm:p-4 md:p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
+                             <h1 className="text-[48px] lg:text-[72px] xl:text-[96px] font-semibold whitespace-normal break-words text-white">
+                                   {basicInfo.name}
+                             </h1>   
+                            <div className="text-3xl lg:text-4xl xl:text-6xl font-semibold mb-4 text-white w-[90%]">
                                 aneb pozn&aacute;v&aacute;me
                                 {" "}
                                 <IOSBadge
@@ -115,143 +104,123 @@ const Home = async () => {
                                 .
                             </div>
                             <div className={"flex gap-x-2 flex-row items-center justify-start py-4 w-full"}>
-                                <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white border-white hover:bg-white hover:text-black"}>
+                                <Link href="/soutez">
+                                    <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white hover:text-white border-white/50 bg-white/20 backdrop-blur-xl hover:bg-white/30"}>
+                                        Prozkoumat
+                                    </IOSButton>
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="text-2xl sm:text-3xl md:text-5xl text-center font-semibold mt-2 sm:mt-4 px-2 text-white md:hidden">
+                            <div className="mb-2 sm:mb-3">
+                                <span className="text-xl sm:text-3xl font-semibold">{basicInfo.name}</span>
+                            </div>
+                            <div className="leading-relaxed text-lg sm:text-xl font-medium">
+                                aneb poznáváme Česko s českým strakatým psem.
+                            </div>
+                        </div>
+                        <div className={"flex md:hidden flex-row items-center justify-center py-3 sm:py-4 w-full px-2"}>
+                            <Link href="/soutez">
+                                <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white hover:text-white border-white/50 bg-white/20 backdrop-blur-xl hover:bg-white/30 text-sm sm:text-base px-4 sm:px-6"}>
                                     Prozkoumat
                                 </IOSButton>
-                            </div>
-                        </div>
-                        <div className="text-5xl md:hidden text-center font-semibold mt-4 text-white">
-                            aneb pozn&aacute;v&aacute;me
-                            {" "}
-                            <IOSBadge
-                                    label="Česko"
-                                    icon={PinEmoji}
-                                    specialStyle={{ iconSize: 24 }}
-                                    bgColor="bg-red-200/80"
-                                    borderColor="border-red-400/70"
-                                    textColor="text-red-900/80"
-                                />
-                                {" "}
-                                s česk&yacute;m strakat&yacute;m
-                                {" "}
-                                <IOSBadge
-                                    label="psem"
-                                    icon={DogEmoji}
-                                    specialStyle={{ iconSize: 24 }}
-                                    bgColor="bg-amber-200/80"
-                                    borderColor="border-amber-400/70"
-                                    textColor="text-amber-900/80"
-                                />
-                            .
-                        </div>
-                        <div className={"flex md:hidden flex-row items-center justify-center py-4 w-full"}>
-                            <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white border-white hover:bg-white hover:text-black"}>
-                                Prozkoumat
-                            </IOSButton>
+                            </Link>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            {/* Stats Section */}
-                <div className="px-8 py-16 animate-fadeIn animation-delay-400 my-8 md:my-16">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <IOSStatsCard
-                        title="Aktivn&iacute;ch uživatelů"
-                        value="2,847"
-                        icon={<Users className="w-5 h-5" />}
-                        variant="info"
-                        className="text-center hover:scale-105 transition-all duration-500 ease-out"
-                    />
-                    <IOSStatsCard
-                        title="Navšt&iacute;ven&yacute;ch míst"
-                        value="15,392"
-                        icon={<MapPin className="w-5 h-5" />}
-                        variant="success"
-                        className="text-center hover:scale-105 transition-all duration-500 ease-out"
-                    />
-                    <IOSStatsCard
-                        title="Nahran&yacute;ch fotek"
-                        value="89,234"
-                        icon={<Camera className="w-5 h-5" />}
-                        variant="warning"
-                        className="text-center hover:scale-105 transition-all duration-500 ease-out"
-                    />
-                    <IOSStatsCard
-                        title="Celkem bodů"
-                        value="1.2M"
-                        icon={<Trophy className="w-5 h-5" />}
-                        variant="default"
-                        className="text-center hover:scale-105 transition-all duration-500 ease-out"
-                    />
-                </div>
-            </div>
 
-            
-            <Separator className="my-8" />
-            
-            {/* News Section */}
-            <div className="animate-fadeIn animation-delay-300">
-                <News/>
-            </div>
-            
-            <Separator className="my-8" />
-            
-       
-            {/* Tutorial Section */}
-            <div className="px-8 py-20 bg-gradient-to-br from-blue-50/60 via-white/40 to-amber-50/60 rounded-[40px] mx-8 animate-fadeIn animation-delay-500 backdrop-blur-sm border border-white/20 shadow-2xl shadow-blue-500/5 my-8 md:my-16">
-                <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-blue-100/50 rounded-full border border-blue-200/50">
-                        <Sparkles className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-700">Jak to funguje</span>
-                    </div>
-                    <h2 className="text-5xl font-bold mb-6 text-gray-900 bg-gradient-to-r from-blue-600 to-amber-600 bg-clip-text text-transparent">
-                        Zač&iacute;t je jednoduch&eacute;
-                    </h2>
-                    <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                        Stač&iacute; čtyři kroky a můžete se vydat na dobrodružstv&iacute; s vaš&iacute;m čtyřnoh&yacute;m parť&aacute;kem. 
-                        Každ&yacute; krok je navržen tak, aby byl intuitivn&iacute; a z&aacute;bavn&yacute;.
-                    </p>
-                </div>
-                
-                <div className="mb-16">
-                    <IOSStepProgress
-                        steps={tutorialSteps}
-                        currentStep={4}
-                        stepImages={tutorialStepImages}
-                        className="max-w-5xl mx-auto"
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-                    {tutorialSteps.map((step, index) => (
-                        <IOSCard
-                            key={index}
-                            className="text-center hover:scale-105 hover:-translate-y-2 transition-all duration-700 ease-out group cursor-pointer"
-                        >
-                            <div className="flex flex-col items-center p-6">
-                                <div className="relative mb-6">
-                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500 ease-out shadow-lg shadow-blue-500/25">
-                                        <span className="text-2xl font-bold text-white">{index + 1}</span>
-                                    </div>
-                                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out">
-                                        <CheckCircle className="w-5 h-5 text-white" />
+                {/* Stats Section - Inside Hero Container */}
+                <div className="absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8" style={{ transform: 'translateY(55%)' }}>
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                            <div className="text-center">
+                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
+                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">147</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Unikátních uživatelů</div>
+                                </div>
+                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
+                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">147</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Unikátních uživatelů</div>
+                                    <div className="mt-1 sm:mt-2">
+                                        <Users className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
                                     </div>
                                 </div>
-                                <h3 className="text-xl font-bold mb-4 text-gray-900 group-hover:text-blue-600 transition-colors duration-300">{step}</h3>
-                                <p className="text-sm text-gray-500 leading-relaxed">
-                                    {index === 0 && "Vyberte si trasu z naš&iacute; rozs&aacute;hl&eacute; datab&aacute;ze nebo vytvořte vlastn&iacute; podle vašich preferenc&iacute;"}
-                                    {index === 1 && "Nahrajte GPS data z vašeho v&yacute;letu a sledujte svou trasu v re&aacute;ln&eacute;m čase"}
-                                    {index === 2 && "Přidejte fotky z vašeho dobrodružstv&iacute; a sd&iacute;lejte kr&aacute;sne momenty s komunitou"}
-                                    {index === 3 && "Z&iacute;skejte body za každou n&aacute;vštěvu a soutěžte s ostatn&iacute;mi v žebř&iacute;čc&iacute;ch"}
-                                </p>
                             </div>
-                        </IOSCard>
-                    ))}
+                            <div className="text-center">
+                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
+                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">25,083</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Navštívených míst</div>
+                                </div>
+                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
+                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">25,083</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Navštívených míst</div>
+                                    <div className="mt-1 sm:mt-2">
+                                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
+                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">5</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Sezón</div>
+                                </div>
+                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
+                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">5</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Sezón</div>
+                                    <div className="mt-1 sm:mt-2">
+                                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
+                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">28,268</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Celkem bodů</div>
+                                </div>
+                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
+                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">28,268</div>
+                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Celkem bodů</div>
+                                    <div className="mt-1 sm:mt-2">
+                                        <Trophy className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-
             </div>
+
+            {/* News Section - Moved to top */}
+            <div className="px-3 sm:px-4 md:px-8 py-6 sm:py-8 md:py-16 bg-gray-50 mt-6 sm:mt-8">
+                <News showHeader={false} showAddButton={false} />
+            </div>
+            
+            {/* Benefits Section */}
+            <div className="px-3 sm:px-4 md:px-8 py-12 sm:py-16 bg-white">
+                <div className="max-w-6xl mx-auto">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-8 sm:mb-12 text-center">Proč se připojit?</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                        {benefits.map((benefit, index) => (
+                            <div key={index} className="text-center">
+                                <div className="bg-gray-50 rounded-2xl p-4 sm:p-6 md:p-8">
+                                    <div className="mb-3 sm:mb-4 flex justify-center items-center">
+                                        {benefit.icon}
+                                    </div>
+                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3" dangerouslySetInnerHTML={{ __html: benefit.title }} />
+                                    <p className="text-sm md:text-base text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: benefit.description }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            
+
+            
+            <Separator className="my-8" />
+            
+            
+
 
 
 

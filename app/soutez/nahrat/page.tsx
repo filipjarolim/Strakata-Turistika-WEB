@@ -285,8 +285,8 @@ export default function NahratPage() {
 
   if (isLoading) {
     return (
-      <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role} className="px-6">
-        <div className="container mx-auto py-6 space-y-6 max-w-5xl">
+      <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role} className="px-3 sm:px-4 md:px-6">
+        <div className="container mx-auto py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-5xl">
           <div className="h-12 w-48 bg-gray-200 rounded-lg animate-pulse" />
           <div className="grid gap-6 md:grid-cols-2">
             <div className="h-[400px] bg-gray-200 rounded-2xl animate-pulse" />
@@ -311,11 +311,14 @@ export default function NahratPage() {
             '/icons/finish.png',
           ]}
         />
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-4 sm:mb-6">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <h1 className="text-3xl font-bold">Nahrát trasu závodu</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
+            <span className="hidden sm:inline">Nahrát trasu závodu</span>
+            <span className="sm:hidden">Nahrát trasu</span>
+          </h1>
         </div>
 
         {error && (
@@ -339,19 +342,23 @@ export default function NahratPage() {
               <div className="flex items-center justify-center w-full">
                 <label
                   htmlFor="gpx-upload"
-                  className={cn(
-                    "flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-xl cursor-pointer",
+                                      className={cn(
+                    "flex flex-col items-center justify-center w-full h-48 sm:h-64 border-2 border-dashed rounded-xl cursor-pointer",
                     "bg-white/50 backdrop-blur-sm hover:bg-white/70 transition-colors",
                     "border-gray-200 hover:border-blue-500/50",
                     "focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   )}
                 >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                    <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Klikněte pro nahrání</span> nebo přetáhněte soubor sem
+                  <div className="flex flex-col items-center justify-center pt-4 sm:pt-5 pb-4 sm:pb-6 px-2">
+                    <Upload className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 text-gray-400" />
+                    <p className="mb-2 text-xs sm:text-sm text-gray-500 text-center">
+                      <span className="font-semibold">Klikněte pro nahrání</span>
+                      <span className="hidden sm:inline"> nebo přetáhněte soubor sem</span>
                     </p>
-                    <p className="text-xs text-gray-500">Podporované formáty: GPX, KML, KMZ, TCX, FIT, NMEA, CSV, GeoJSON</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 text-center leading-tight">
+                      <span className="hidden sm:inline">Podporované formáty: GPX, KML, KMZ, TCX, FIT, NMEA, CSV, GeoJSON</span>
+                      <span className="sm:hidden">GPX, KML, TCX, CSV, GeoJSON</span>
+                    </p>
                   </div>
                   <input
                     id="gpx-upload"
@@ -380,7 +387,7 @@ export default function NahratPage() {
               iconColor="text-green-600"
               variant="elevated"
             >
-              <div className="h-64">
+              <div className="h-48 sm:h-64">
                 <DynamicGpxEditor
                   initialTrack={trackPoints}
                   onSave={() => {}}
@@ -425,7 +432,7 @@ export default function NahratPage() {
         )}
 
         {trackPoints.length > 0 && (
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
             <IOSButton
               variant="blue"
               size="lg"
@@ -433,8 +440,10 @@ export default function NahratPage() {
               disabled={isSaving || !routeName}
               loading={isSaving}
               icon={<ArrowRight className="h-5 w-5" />}
+              className="w-full sm:w-auto"
             >
-              Pokračovat na úpravu trasy
+              <span className="hidden sm:inline">Pokračovat na úpravu trasy</span>
+              <span className="sm:hidden">Pokračovat</span>
             </IOSButton>
           </div>
         )}

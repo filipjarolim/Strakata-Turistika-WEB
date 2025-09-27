@@ -35,7 +35,7 @@ const YearSelector: React.FC<{
                 <DropdownMenuTrigger asChild>
                     <Button 
                         variant="outline" 
-                        className="min-w-28 font-medium text-lg"
+                        className="min-w-20 sm:min-w-28 font-medium text-sm sm:text-base md:text-lg w-full sm:w-auto"
                         disabled={loading}
                     >
                         <AnimatePresence mode="wait">
@@ -224,30 +224,34 @@ export default function MojeVysledkyPage() {
 
     return (
         <CommonPageTemplate contents={{ header: true }} headerMode={"auto-hide"} currentUser={user} currentRole={role}>
-            <div className="p-4 md:p-6 max-w-7xl mx-auto">
-                <div className="mb-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
+                <div className="mb-4 sm:mb-6">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                         <div className="space-y-2">
                             <Link 
                                 href="/vysledky" 
-                                className="text-sm text-muted-foreground hover:text-primary mb-2 inline-flex items-center gap-1 transition-colors"
+                                className="text-xs sm:text-sm text-muted-foreground hover:text-primary mb-2 inline-flex items-center gap-1 transition-colors"
                             >
-                                <ChevronLeft className="h-4 w-4" /> Zpět na přehled sezón
+                                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" /> 
+                                <span className="hidden sm:inline">Zpět na přehled sezón</span>
+                                <span className="sm:hidden">Zpět</span>
                             </Link>
                             <div className="space-y-1">
-                                <h1 className="text-3xl md:text-4xl font-bold text-primary flex items-center gap-3">
-                                    <User className="h-7 w-7" />
-                                    Moje výsledky
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary flex items-center gap-2 sm:gap-3">
+                                    <User className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7" />
+                                    <span className="hidden sm:inline">Moje výsledky</span>
+                                    <span className="sm:hidden">Výsledky</span>
                                 </h1>
                                 {user?.name && (
-                                    <p className="text-muted-foreground">
-                                        Přehled výsledků pro: <span className="font-medium">{user.name}</span>
+                                    <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
+                                        <span className="hidden sm:inline">Přehled výsledků pro: </span>
+                                        <span className="font-medium">{user.name}</span>
                                     </p>
                                 )}
                             </div>
                         </div>
                         
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                             <YearSelector 
                                 year={selectedYear} 
                                 allYears={allYears}
@@ -267,7 +271,7 @@ export default function MojeVysledkyPage() {
                 </div>
 
                 <TooltipProvider>
-                    <div className="bg-card rounded-2xl border shadow-sm p-4 backdrop-blur-sm bg-opacity-80">
+                    <div className="bg-card rounded-xl sm:rounded-2xl border shadow-sm p-2 sm:p-4 backdrop-blur-sm bg-opacity-80">
                         <DataTable<VisitData> 
                             data={displayData} 
                             columns={[
@@ -333,11 +337,14 @@ export default function MojeVysledkyPage() {
                         {!loading && displayCount < filteredData.length && (
                             <div 
                                 ref={loadMoreRef} 
-                                className="w-full mt-4 py-4 flex justify-center"
+                                className="w-full mt-3 sm:mt-4 py-3 sm:py-4 flex justify-center"
                             >
                                 <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <p className="text-sm">Načítání dalších výsledků...</p>
+                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                                    <p className="text-xs sm:text-sm">
+                                        <span className="hidden sm:inline">Načítání dalších výsledků...</span>
+                                        <span className="sm:hidden">Načítání...</span>
+                                    </p>
                                 </div>
                             </div>
                         )}

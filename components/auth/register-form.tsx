@@ -20,6 +20,8 @@ import {Button} from "@/components/ui/button";
 import {FormError} from "@/components/forms/form-error";
 import {FormSuccess} from "@/components/forms/form-success";
 import {register} from "@/actions/auth/register";
+import { Separator } from "@/components/ui/separator";
+import { GoogleLoginButton } from "@/components/auth/google-login-button";
 
 export const RegisterForm = () => {
 
@@ -121,6 +123,18 @@ export const RegisterForm = () => {
                     </Button>
                 </form>
             </Form>
+            
+            <div className="mt-6 space-y-4">
+                <div className="flex items-center space-x-2">
+                    <Separator className="flex-1" />
+                    <span className="text-xs text-muted-foreground">NEBO</span>
+                    <Separator className="flex-1" />
+                </div>
+                
+                <GoogleLoginButton disabled={isPending}>
+                    Pokračovat s Google
+                </GoogleLoginButton>
+            </div>
         </CardWrapper>
     )
 }

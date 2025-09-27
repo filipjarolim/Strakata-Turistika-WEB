@@ -40,8 +40,8 @@ const Page = async () => {
       currentUser={user} 
       currentRole={role} 
     >
-      <div className="h-[calc(100vh-4rem)] p-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-6">Soutěž</h1>
+      <div className="min-h-[calc(100vh-4rem)] p-3 sm:p-4 md:p-6">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Soutěž</h1>
         <SoutezCardGrid actions={actions} />
       </div>
     </CommonPageTemplate>

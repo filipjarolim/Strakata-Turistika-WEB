@@ -9,8 +9,7 @@ import { ImageUpload, ImageSource } from "@/components/ui/ios/image-upload";
 import { IOSTextarea } from "@/components/ui/ios/textarea";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Trash, Pencil, Plus, Loader2 } from "lucide-react";
+import { Trash, Pencil, Plus, Loader2, Calendar, Clock } from "lucide-react";
 import { useCurrentRole } from "@/hooks/use-current-role";
 import { AdminRestrictedContent } from "../structure/AdminRestrictedContent";
 import { format } from "date-fns";
@@ -25,11 +24,11 @@ type NewsItem = {
     id: string;
     title: string;
     content?: string;
-    createdAt: Date;
+    createdAt: Date | string;
     images?: ImageSource[];
 };
 
-export default function News() {
+export default function News({ showHeader = true, showAddButton = true, standalone = false }: { showHeader?: boolean; showAddButton?: boolean; standalone?: boolean }) {
     const router = useRouter();
     const [news, setNews] = useState<NewsItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -39,10 +38,12 @@ export default function News() {
     const [content, setContent] = useState<string>("");
     const [editId, setEditId] = useState<string | null>(null);
     const [images, setImages] = useState<ImageSource[]>([]);
+    const [mounted, setMounted] = useState(false);
     const role = useCurrentRole();
 
     useEffect(() => {
-        fetchNews().then(() => console.log("News fetched"));
+        setMounted(true);
+        fetchNews();
     }, []);
 
     async function fetchNews(): Promise<void> {
@@ -135,157 +136,370 @@ export default function News() {
         const data = await res.json();
         setImages((prev) => [...prev, { url: data.url, public_id: data.public_id, title: data.title }]);
     };
+    
     const handleImageDelete = async (public_id: string) => {
         setImages((prev) => prev.filter((img) => img.public_id !== public_id));
     };
 
     // Helper: is news new (last 7 days)?
-    const isNew = (createdAt: Date) => {
+    const isNew = (createdAt: Date | string) => {
+        if (!mounted) return false;
         const now = new Date();
         const created = new Date(createdAt);
         return (now.getTime() - created.getTime()) < 7 * 24 * 60 * 60 * 1000;
     };
 
-    return (
-        <div className="p-0 md:p-8 animate-fadeIn">
-            <div className="flex items-center justify-between mb-8 px-4 md:px-0">
-                <h2 className="text-4xl font-bold text-gray-800">Aktuality</h2>
-                <AdminRestrictedContent
-                    role={role || "UŽIVATEL"}
-                    onClick={() => { setOpen(true); setEditId(null); setTitle(""); setContent(""); setImages([]); }}
-                    buttonClassName="gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500/50 focus:outline-none"
-                >
-                    <Plus className="w-5 h-5 mr-2" /> Přidat aktualitu
-                </AdminRestrictedContent>
-            </div>
+    const formatDate = (date: Date | string) => {
+        if (!mounted) return '';
+        try {
+            return format(new Date(date), "d. MMMM yyyy", { locale: cs });
+        } catch (error) {
+            return '';
+        }
+    };
 
-            {isLoading ? (
+    const formatTime = (date: Date | string) => {
+        if (!mounted) return '';
+        try {
+            return format(new Date(date), "HH:mm", { locale: cs });
+        } catch (error) {
+            return '';
+        }
+    };
+
+    // Helper: truncate description
+    const truncateDescription = (text: string, maxLength: number = 120) => {
+        if (!text) return '';
+        const cleanText = text.replace(/<[^>]*>/g, '');
+        if (cleanText.length <= maxLength) return cleanText;
+        return cleanText.substring(0, maxLength) + '...';
+    };
+
+    // Don't render anything until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return (
+            <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex items-center justify-center h-64">
-                    <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        <span className="text-gray-500">Načítání...</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // If standalone, render only the news grid (no header/container)
+    if (standalone) {
+        return (
+            isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        <span className="text-gray-500">Načítání aktualit...</span>
+                    </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {news.map((item) => (
-                        <Link
-                            key={item.id}
-                            href={`/aktuality/${item.id}`}
-                            className="group block focus:outline-none"
-                            tabIndex={0}
-                        >
-                            <IOSCard
-                                className="relative overflow-visible bg-white/80 rounded-3xl shadow-lg border-0 transition-all duration-300 group-hover:shadow-blue-200/80 group-focus:shadow-blue-200/80 group-hover:shadow-2xl group-focus:shadow-2xl group-hover:-translate-y-1 group-focus:-translate-y-1"
-                            >
-                                {item.images && item.images.length > 0 && (
-                                    <div className="relative mb-4">
-                                        <Image
-                                            src={item.images[0].url}
-                                            alt={item.images[0].title || item.title}
-                                            className="rounded-2xl w-full h-40 object-cover shadow-md group-hover:shadow-lg transition-all duration-300"
-                                            width={600}
-                                            height={160}
-                                        />
+                        <div key={item.id} className="group">
+                            <div className="bg-white p-6 rounded-2xl">
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="aspect-square bg-gray-100 flex items-center justify-center rounded-xl overflow-hidden">
+                                        {item.images && item.images.length > 0 ? (
+                                            <Image
+                                                src={item.images[0].url}
+                                                alt={item.images[0].title || item.title}
+                                                width={300}
+                                                height={300}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                <Calendar className="w-12 h-12 text-gray-400" />
+                                            </div>
+                                        )}
                                         {isNew(item.createdAt) && (
-                                            <span className="absolute top-2 right-2 z-20">
-                                                <IOSBadge label="Novinka" size="sm" bgColor="bg-green-100/90" borderColor="border-green-300/80" textColor="text-green-900/90" className="px-3 py-0.5 min-h-0 text-xs" />
-                                            </span>
+                                            <div className="absolute top-2 right-2">
+                                                <div className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
+                                                    Nové
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
-                                )}
-                                <div className="flex flex-col flex-1 px-2 pb-2">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-xl font-bold text-gray-900 leading-tight line-clamp-2">{item.title}</h3>
-                                        <div className="flex gap-2 ml-2 z-10">
-                                            <AdminRestrictedContent
-                                                role={role || "UŽIVATEL"}
-                                                variant="icon"
-                                                icon={<IOSCircleIcon variant="blue" size="sm"><Pencil className="w-4 h-4" /></IOSCircleIcon>}
-                                                onClick={(e) => {
-                                                    e?.preventDefault();
-                                                    setEditId(item.id);
-                                                    setTitle(item.title);
-                                                    setContent(item.content || "");
-                                                    setImages(item.images || []);
-                                                    setOpen(true);
-                                                }}
-                                            />
-                                            <AdminRestrictedContent
-                                                role={role || "UŽIVATEL"}
-                                                variant="icon"
-                                                icon={<IOSCircleIcon variant="default" size="sm"><Trash className="w-4 h-4" /></IOSCircleIcon>}
-                                                onClick={(e) => {
-                                                    e?.preventDefault();
-                                                    handleDelete(item.id);
-                                                }}
-                                            />
+                                    <div className="flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                                    {formatDate(item.createdAt)}
+                                                </span>
+                                                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                                    {formatTime(item.createdAt)}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-xl font-bold line-clamp-2">
+                                                {item.title}
+                                            </h3>
+                                            {item.content && (
+                                                <p className="text-sm text-gray-600 line-clamp-4">
+                                                    {truncateDescription(item.content, 150)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Link
+                                                href={`/aktuality/${item.id}`}
+                                                className="flex-1"
+                                            >
+                                                <button className="w-full bg-black text-white px-6 py-2 text-sm rounded-lg">
+                                                    Číst více
+                                                </button>
+                                            </Link>
+                                            {/* Admin Actions - Next to button, visible on hover */}
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {role === "ADMIN" && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e?.preventDefault();
+                                                            setEditId(item.id);
+                                                            setTitle(item.title);
+                                                            setContent(item.content || "");
+                                                            setImages(item.images || []);
+                                                            setOpen(true);
+                                                        }}
+                                                        className="bg-black text-white px-4 py-2 text-sm rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {role === "ADMIN" && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e?.preventDefault();
+                                                            handleDelete(item.id);
+                                                        }}
+                                                        className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                    <time className="text-xs text-gray-500 mb-1">
-                                        {format(new Date(item.createdAt), "d. MMMM yyyy", { locale: cs })}
-                                    </time>
-                                    <div className="prose prose-sm max-w-none text-gray-600 mb-1 line-clamp-2">
-                                        <div dangerouslySetInnerHTML={{ __html: item.content || "" }} />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )
+        );
+    }
+
+    // Default: render with header and container
+    return (
+        <div className="max-w-full mx-auto px-4 py-8">
+            {/* Header */}
+            {showHeader && (
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-900">Aktuality</h2>
+                        <p className="text-gray-600 mt-1">Nejnovější informace a události</p>
+                    </div>
+                    {showAddButton && (
+                        <AdminRestrictedContent
+                            role={role || "UŽIVATEL"}
+                            onClick={() => { 
+                                setOpen(true); 
+                                setEditId(null); 
+                                setTitle(""); 
+                                setContent(""); 
+                                setImages([]); 
+                            }}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Přidat aktualitu
+                            </div>
+                        </AdminRestrictedContent>
+                    )}
+                </div>
+            )}
+            {/* Loading State */}
+            {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        <span className="text-gray-500">Načítání aktualit...</span>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {news.map((item) => (
+                        <div key={item.id} className="group">
+                            <div className="bg-white p-6 rounded-2xl">
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div className="aspect-square bg-gray-100 flex items-center justify-center rounded-xl overflow-hidden">
+                                        {item.images && item.images.length > 0 ? (
+                                            <Image
+                                                src={item.images[0].url}
+                                                alt={item.images[0].title || item.title}
+                                                width={300}
+                                                height={300}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                <Calendar className="w-12 h-12 text-gray-400" />
+                                            </div>
+                                        )}
+                                        {isNew(item.createdAt) && (
+                                            <div className="absolute top-2 right-2">
+                                                <div className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
+                                                    Nové
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                                    {formatDate(item.createdAt)}
+                                                </span>
+                                                <span className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                                                    {formatTime(item.createdAt)}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-xl font-bold line-clamp-2">
+                                                {item.title}
+                                            </h3>
+                                            {item.content && (
+                                                <p className="text-sm text-gray-600 line-clamp-4">
+                                                    {truncateDescription(item.content, 150)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Link
+                                                href={`/aktuality/${item.id}`}
+                                                className="flex-1"
+                                            >
+                                                <button className="w-full bg-black text-white px-6 py-2 text-sm rounded-lg">
+                                                    Číst více
+                                                </button>
+                                            </Link>
+                                            {/* Admin Actions - Next to button, visible on hover */}
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {role === "ADMIN" && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e?.preventDefault();
+                                                            setEditId(item.id);
+                                                            setTitle(item.title);
+                                                            setContent(item.content || "");
+                                                            setImages(item.images || []);
+                                                            setOpen(true);
+                                                        }}
+                                                        className="bg-black text-white px-4 py-2 text-sm rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {role === "ADMIN" && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e?.preventDefault();
+                                                            handleDelete(item.id);
+                                                        }}
+                                                        className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </IOSCard>
-                        </Link>
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}
 
-            {/* Dialog for add/edit news */}
+            {/* Empty State */}
+            {!isLoading && news.length === 0 && (
+                <div className="text-center py-12">
+                    <div className="text-gray-400 mb-4">
+                        <Calendar className="w-16 h-16 mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Žádné aktuality</h3>
+                    <p className="text-gray-500">Zatím nebyly publikovány žádné aktuality.</p>
+                </div>
+            )}
+
+            {/* Add/Edit Dialog */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                    {/* Hidden trigger, handled by AdminRestrictedContent */}
-                    <span className="hidden" />
-                </DialogTrigger>
-                <DialogContent className="max-w-lg rounded-3xl bg-white/90 shadow-2xl border-0 p-0 overflow-hidden">
-                    <div className="p-8">
-                        <DialogTitle className="text-2xl font-bold mb-2">{editId ? "Upravit aktualitu" : "Přidat aktualitu"}</DialogTitle>
-                        <DialogDescription className="mb-4">
-                            {editId ? "Upravte existující aktualitu." : "Vytvořte novou aktualitu pro uživatele."}
-                        </DialogDescription>
-                        <div className="space-y-4 mt-2">
+                <DialogContent className="max-w-2xl">
+                    <DialogTitle className="text-xl font-semibold">
+                        {editId ? "Upravit aktualitu" : "Nová aktualita"}
+                    </DialogTitle>
+                    <DialogDescription className="mb-6">
+                        {editId ? "Upravte existující aktualitu." : "Vytvořte novou aktualitu pro uživatele."}
+                    </DialogDescription>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Název
+                            </label>
                             <Input
-                                placeholder="Název aktuality"
+                                placeholder="Zadejte název aktuality"
                                 value={title}
                                 onChange={e => setTitle(e.target.value)}
-                                className="rounded-xl bg-white/60 border-0 shadow-sm focus:ring-2 focus:ring-blue-500/20 text-lg"
+                                className="w-full"
                             />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Obsah
+                            </label>
                             <IOSTextarea
                                 value={content}
                                 onChange={setContent}
-                                placeholder="Obsah aktuality"
-                                required
-                                className="min-h-[160px]"
+                                placeholder="Zadejte obsah aktuality..."
+                                className="min-h-[200px]"
                             />
-                            <div>
-                                <div className="font-semibold text-blue-900 mb-2">Obrázky</div>
-                                <ImageUpload
-                                    sources={images}
-                                    onUpload={handleImageUpload}
-                                    onDelete={handleImageDelete}
-                                    stackingStyle="grid"
-                                    aspectRatio="landscape"
-                                    count={4}
-                                />
-                            </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-8">
-                            <IOSButton
-                                type="button"
-                                variant="outline"
-                                onClick={() => setOpen(false)}
-                            >
-                                Zrušit
-                            </IOSButton>
-                            <IOSButton
-                                type="button"
-                                loading={isSubmitting}
-                                onClick={handleSubmit}
-                            >
-                                {editId ? "Uložit změny" : "Přidat"}
-                            </IOSButton>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Obrázky
+                            </label>
+                            <ImageUpload
+                                sources={images}
+                                onUpload={handleImageUpload}
+                                onDelete={handleImageDelete}
+                                stackingStyle="grid"
+                                aspectRatio="landscape"
+                                count={4}
+                            />
                         </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 mt-6">
+                        <IOSButton
+                            variant="outline"
+                            onClick={() => setOpen(false)}
+                        >
+                            Zrušit
+                        </IOSButton>
+                        <IOSButton
+                            loading={isSubmitting}
+                            onClick={handleSubmit}
+                        >
+                            {editId ? "Uložit" : "Publikovat"}
+                        </IOSButton>
                     </div>
                 </DialogContent>
             </Dialog>

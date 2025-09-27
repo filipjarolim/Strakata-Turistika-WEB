@@ -105,8 +105,24 @@ const navConfig: NavConfigType = [
         },
 ];
 
-export const Navbar = () => {
+interface NavbarProps {
+    textColor?: string;
+    textColorHover?: string;
+}
+
+export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:text-black" }: NavbarProps) => {
     const pathname = usePathname();
+    
+    // Enhanced hover states with proper contrast
+    const getHoverStyles = () => ({
+        hoverBg: "hover:bg-gray-900/10",
+        activeBg: "active:bg-gray-900/20",
+        focusBg: "focus:bg-gray-900/10",
+        hoverText: "hover:text-gray-900",
+        activeText: "active:text-gray-900"
+    });
+
+    const hoverStyles = getHoverStyles();
     
     return (
         <nav className="w-full flex justify-center h-full" style={{ zIndex: 100 }}>
@@ -119,7 +135,16 @@ export const Navbar = () => {
                             <NavigationMenuItem key={index} className="cursor-pointer">
                                 <NavigationMenuTrigger
                                     className={cn(
-                                        "text-sm transition-all px-2.5 py-1.5 rounded-md bg-transparent hover:bg-gray-100 focus:bg-gray-100 text-black/80 font-medium h-full",
+                                        "text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg",
+                                        "bg-transparent font-medium h-full",
+                                        "border border-transparent hover:border-gray-200/50",
+                                        textColor,
+                                        hoverStyles.hoverBg,
+                                        hoverStyles.activeBg,
+                                        hoverStyles.focusBg,
+                                        hoverStyles.hoverText,
+                                        hoverStyles.activeText,
+                                        "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
                                         navItem.badge && "group"
                                     )}
                                 >
@@ -127,7 +152,10 @@ export const Navbar = () => {
                                         {navItem.icon && (
                                             <Icon 
                                                 icon={navItem.icon} 
-                                                className="w-4 h-4 opacity-70 group-hover:opacity-100" 
+                                                className={cn(
+                                                    "w-4 h-4 transition-opacity duration-200",
+                                                    "opacity-70 group-hover:opacity-100"
+                                                )} 
                                             />
                                         )}
                                         <span>{navItem.title}</span>
@@ -137,8 +165,10 @@ export const Navbar = () => {
                                     </div>
                                 </NavigationMenuTrigger>
                                 <NavigationMenuContent>
-                                    <div className="w-[800px] bg-white rounded-xl overflow-hidden shadow-lg border border-gray-100">
-                                        <ul className={`grid gap-3 p-6 w-full grid-cols-${navItem.columns || 1}`}>
+                                    <div className={cn(
+                                        "w-[800px] rounded-xl overflow-hidden shadow-xl border bg-white border-gray-200/60"
+                                    )}>
+                                        <ul className={cn("grid gap-3 p-6 w-full", `grid-cols-${navItem.columns || 1}`)}>
                                             {navItem.items?.map((item, i) => (
                                                 <ListItem 
                                                     key={i} 
@@ -159,15 +189,19 @@ export const Navbar = () => {
                                 <Link href={navItem.href as string} legacyBehavior passHref>
                                     <NavigationMenuLink
                                         className={cn(
-                                            "flex items-center gap-1.5 text-sm transition-all px-2.5 py-1.5 rounded-md h-full",
-                                            isActive ? "bg-gray-100 text-black font-medium" : "text-black/80 hover:bg-gray-50"
+                                            "flex items-center gap-1.5 text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg h-full",
+                                            "border border-transparent hover:border-gray-200/50",
+                                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
+                                            isActive 
+                                                ? "bg-gray-100 font-medium text-gray-900 border-gray-200/50" 
+                                                : cn(textColor, hoverStyles.hoverBg, hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
                                         )}
                                     >
                                         {navItem.icon && (
                                             <Icon 
                                                 icon={navItem.icon} 
                                                 className={cn(
-                                                    "w-4 h-4",
+                                                    "w-4 h-4 transition-opacity duration-200",
                                                     isActive ? "opacity-100" : "opacity-70"
                                                 )} 
                                             />
@@ -196,19 +230,21 @@ const ListItem = React.forwardRef<
                     <a
                         ref={ref}
                         className={cn(
-                            "flex flex-col gap-2 rounded-lg p-3 hover:bg-gray-50 transition-colors duration-200",
+                            "flex flex-col gap-2 rounded-lg p-3 hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 ease-out",
+                            "border border-transparent hover:border-gray-200/50",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
                             className
                         )}
                         {...props}
                     >
                         <div className="flex items-center gap-2">
                             {icon && (
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors duration-200">
                                     <Icon icon={icon} className="w-4 h-4 text-gray-700" />
                                 </div>
                             )}
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">{title}</span>
+                                <span className="text-sm font-medium text-gray-900">{title}</span>
                                 {badge && <StyledBadge type={badge} />}
                             </div>
                         </div>
