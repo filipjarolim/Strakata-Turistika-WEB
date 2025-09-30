@@ -89,7 +89,6 @@ const SettingsPage = () => {
       dogName: user?.dogName || undefined,
             email: user?.email || undefined,
             role: (user?.role === 'ADMIN' || user?.role === 'UZIVATEL') ? user.role : undefined,
-            isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
         }
     });
 
@@ -136,7 +135,6 @@ const SettingsPage = () => {
         dogName: user.dogName || undefined,
         email: user.email || undefined,
         role: user.role || undefined,
-        isTwoFactorEnabled: user.isTwoFactorEnabled || undefined,
       });
     }
   }, [user, form]);
@@ -168,7 +166,6 @@ const SettingsPage = () => {
                 dogName: values.dogName || user?.dogName || undefined,
                 email: values.email || user?.email || undefined,
                 role: values.role || user?.role || undefined,
-                isTwoFactorEnabled: values.isTwoFactorEnabled !== undefined ? values.isTwoFactorEnabled : user?.isTwoFactorEnabled || undefined,
               });
             }, 100);
           }
@@ -362,17 +359,6 @@ const SettingsPage = () => {
               </IOSSection>
             )}
 
-            {/* Two Factor Authentication */}
-            {user?.isOAuth === false && (
-              <IOSSection title="Dvoufaktorová autentifikace">
-                <IOSSwitch
-                  label="Povolit 2FA"
-                  checked={form.watch("isTwoFactorEnabled") || false}
-                  onCheckedChange={(checked) => form.setValue("isTwoFactorEnabled", checked)}
-                                                            disabled={isPending}
-                                                        />
-              </IOSSection>
-            )}
 
             {/* Error and Success Messages */}
             {error && (

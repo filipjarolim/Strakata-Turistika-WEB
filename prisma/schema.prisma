@@ -112,7 +112,7 @@ model Season {
 
 model VisitData {
   id            String    @id @default(cuid()) @map("_id")
-  visitDate     DateTime?
+    visitDate     Json?     // Using Json to handle mixed DateTime/String types
   routeTitle    String?
   routeDescription String?
   dogName       String?

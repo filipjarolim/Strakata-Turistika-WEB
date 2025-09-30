@@ -19,6 +19,8 @@ export const IOSDropdownMenu = ({
   className
 }: IOSDropdownMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState<'left' | 'right'>(align);
+  const [verticalPosition, setVerticalPosition] = useState<'top' | 'bottom'>('bottom');
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -30,9 +32,85 @@ export const IOSDropdownMenu = ({
       }
     };
 
+    const handleResize = () => {
+      // Recalculate position on window resize
+      if (isOpen) {
+        const triggerRect = triggerRef.current?.getBoundingClientRect();
+        if (triggerRect) {
+          const contentWidth = 256;
+            const contentHeight = 300; // Approximate dropdown height
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const margin = 16;
+          const isMobile = viewportWidth < 768;
+          
+          // Horizontal positioning
+          if (isMobile) {
+            setPosition('left');
+          } else {
+            if (align === 'right' && triggerRect.right - contentWidth < margin) {
+              setPosition('left');
+            } else if (align === 'left' && triggerRect.left + contentWidth > viewportWidth - margin) {
+              setPosition('right');
+            } else {
+              setPosition(align);
+            }
+          }
+          
+          // Vertical positioning
+          if (triggerRect.bottom + contentHeight > viewportHeight - margin) {
+            setVerticalPosition('top');
+          } else {
+            setVerticalPosition('bottom');
+          }
+        }
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isOpen, align]);
+
+  // Calculate position to prevent off-screen dropdown
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const contentWidth = 256; // w-64 = 16rem = 256px
+      const contentHeight = 300; // Approximate dropdown height
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const margin = 16; // 16px margin from screen edges
+      
+      // For mobile devices (viewport < 768px), use more conservative positioning
+      const isMobile = viewportWidth < 768;
+      
+      // Horizontal positioning
+      if (isMobile) {
+        // On mobile, always use left alignment to prevent right overflow
+        setPosition('left');
+      } else {
+        // On desktop, use the original logic
+        if (align === 'right' && triggerRect.right - contentWidth < margin) {
+          setPosition('left');
+        } else if (align === 'left' && triggerRect.left + contentWidth > viewportWidth - margin) {
+          setPosition('right');
+        } else {
+          setPosition(align);
+        }
+      }
+      
+      // Vertical positioning - check if dropdown would go off bottom of screen
+      if (triggerRect.bottom + contentHeight > viewportHeight - margin) {
+        setVerticalPosition('top');
+      } else {
+        setVerticalPosition('bottom');
+      }
+    }
+  }, [isOpen, align]);
 
   return (
     <div className="relative">
@@ -44,9 +122,21 @@ export const IOSDropdownMenu = ({
         {isOpen && (
           <motion.div
             ref={contentRef}
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            initial={{ 
+              opacity: 0, 
+              y: verticalPosition === 'top' ? 8 : -8, 
+              scale: 0.98 
+            }}
+            animate={{ 
+              opacity: 1, 
+              y: 0, 
+              scale: 1 
+            }}
+            exit={{ 
+              opacity: 0, 
+              y: verticalPosition === 'top' ? 8 : -8, 
+              scale: 0.98 
+            }}
             transition={{ 
               type: "spring", 
               damping: 30, 
@@ -54,8 +144,14 @@ export const IOSDropdownMenu = ({
               mass: 0.8
             }}
             className={cn(
-              "absolute z-[1000000000001] mt-2 w-64",
-              align === 'right' ? 'right-0' : 'left-0',
+              "absolute z-[1000000000001]",
+              // Vertical positioning
+              verticalPosition === 'top' ? 'mb-2 bottom-full' : 'mt-2 top-full',
+              // Mobile: responsive width, Desktop: fixed width
+              "w-64 max-w-[calc(100vw-1rem)] sm:max-w-none sm:w-64",
+              position === 'right' ? 'right-0' : 'left-0',
+              // Ensure dropdown stays within viewport bounds
+              position === 'right' ? 'sm:right-0 right-1' : 'sm:left-0 left-1',
               "bg-white border border-gray-200/60",
               "rounded-2xl shadow-xl shadow-black/10",
               "p-2",

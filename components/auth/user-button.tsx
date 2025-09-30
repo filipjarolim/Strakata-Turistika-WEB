@@ -82,11 +82,11 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                             </AvatarFallback>
                         )}
                     </Avatar>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-900">
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-sm font-semibold text-gray-900 truncate">
                             {user?.name || "Uživatel"}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 truncate">
                             {user?.email || "uživatel@example.com"}
                         </span>
                     </div>

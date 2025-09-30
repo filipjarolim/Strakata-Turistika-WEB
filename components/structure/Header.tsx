@@ -65,11 +65,14 @@ const Header = ({
             const currentScrollY = window.scrollY;
             
             if (mode === "auto-hide") {
-                if (currentScrollY > lastScrollY) {
-                    // Scrolling down
+                // Always show header when near the top of the page (within 100px)
+                if (currentScrollY < 100) {
+                    setIsVisible(true);
+                } else if (currentScrollY > lastScrollY) {
+                    // Scrolling down - hide header
                     setIsVisible(false);
                 } else {
-                    // Scrolling up
+                    // Scrolling up - show header
                     setIsVisible(true);
                 }
                 setLastScrollY(currentScrollY);

@@ -1,7 +1,7 @@
 import {Settings, User, ScanFace, CirclePlus} from "lucide-react";
 
 const tooltipIconClass = "mr-2"
-const userMenuIconClass = "mr-2 h-4 w-4"
+const userMenuIconClass = "h-4 w-4"
 
 export const authprefix = {
     buttons: {
