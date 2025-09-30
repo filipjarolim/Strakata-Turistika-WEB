@@ -3,10 +3,10 @@
  * This handles cases where data types in the database don't match Prisma schema expectations
  */
 
-import { MongoClient } from 'mongodb';
+import { MongoClient, Db } from 'mongodb';
 
 let client: MongoClient | null = null;
-let db: any = null;
+let db: Db | null = null;
 
 async function getMongoClient() {
   if (!client) {
@@ -30,7 +30,7 @@ async function getMongoClient() {
   return { client, db };
 }
 
-export async function getRawVisitData(filters: any, options: any = {}) {
+export async function getRawVisitData(filters: Record<string, unknown>, options: Record<string, unknown> = {}) {
   const { db } = await getMongoClient();
   
   const pipeline = [
@@ -96,7 +96,7 @@ export async function getRawVisitData(filters: any, options: any = {}) {
   return await db.collection('VisitData').aggregate(pipeline).toArray();
 }
 
-export async function getRawVisitDataCount(filters: any) {
+export async function getRawVisitDataCount(filters: Record<string, unknown>) {
   const { db } = await getMongoClient();
   return await db.collection('VisitData').countDocuments(filters);
 }
@@ -139,7 +139,7 @@ export async function getRawSeasons() {
   ];
 
   const seasons = await db.collection('Season').aggregate(pipeline).toArray();
-  return seasons.map((s: any) => s.year);
+  return seasons.map((s) => (s as { year: number }).year);
 }
 
 // Close connection when needed

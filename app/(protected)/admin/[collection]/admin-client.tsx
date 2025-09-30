@@ -27,7 +27,7 @@ import Link from 'next/link';
 
 interface AdminRecord {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default function AdminClient() {
@@ -83,6 +83,14 @@ export default function AdminClient() {
     
     // Special rendering for VisitData
     if (collection === 'VisitData') {
+      const state = typeof record.state === 'string' ? record.state : null;
+      const routeTitle = record.routeTitle ? String(record.routeTitle) : null;
+      const points = record.points ? String(record.points) : null;
+      const year = record.year ? String(record.year) : null;
+      const dogNotAllowed = record.dogNotAllowed === 'true';
+      const visitedPlaces = record.visitedPlaces ? String(record.visitedPlaces) : null;
+      const visitDate = record.visitDate ? String(record.visitDate) : null;
+      
       return (
         <motion.div
           key={record.id}
@@ -95,20 +103,20 @@ export default function AdminClient() {
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs font-mono">
-                  {record.id.slice(0, 8)}...
+                  {String(record.id).slice(0, 8)}...
                 </Badge>
-                {record.state && (
+                {state && (
                   <Badge 
                     variant={
-                      record.state === 'APPROVED' ? 'default' :
-                      record.state === 'PENDING_REVIEW' ? 'secondary' :
-                      record.state === 'REJECTED' ? 'destructive' : 'outline'
+                      state === 'APPROVED' ? 'default' :
+                      state === 'PENDING_REVIEW' ? 'secondary' :
+                      state === 'REJECTED' ? 'destructive' : 'outline'
                     }
                     className="text-xs"
                   >
-                    {record.state === 'APPROVED' ? 'Schváleno' :
-                     record.state === 'PENDING_REVIEW' ? 'Čeká' :
-                     record.state === 'REJECTED' ? 'Zamítnuto' : record.state}
+                    {state === 'APPROVED' ? 'Schváleno' :
+                     state === 'PENDING_REVIEW' ? 'Čeká' :
+                     state === 'REJECTED' ? 'Zamítnuto' : state}
                   </Badge>
                 )}
               </div>
@@ -128,40 +136,40 @@ export default function AdminClient() {
 
             {/* VisitData specific fields */}
             <div className="space-y-2">
-              {record.routeTitle && (
+              {routeTitle && (
                 <h3 className="font-semibold text-base sm:text-lg line-clamp-2">
-                  {record.routeTitle}
+                  {routeTitle}
                 </h3>
               )}
               
               <div className="flex flex-wrap gap-2 text-sm">
-                {record.points && (
+                {points && (
                   <Badge variant="default" className="text-xs">
-                    {record.points} bodů
+                    {points} bodů
                   </Badge>
                 )}
-                {record.year && (
+                {year && (
                   <Badge variant="outline" className="text-xs">
-                    {record.year}
+                    {year}
                   </Badge>
                 )}
-                {record.dogNotAllowed === 'true' && (
+                {dogNotAllowed && (
                   <Badge variant="destructive" className="text-xs">
                     Psi zakázáni
                   </Badge>
                 )}
               </div>
 
-              {record.visitedPlaces && (
+              {visitedPlaces && (
                 <div className="text-sm text-muted-foreground">
                   <span className="font-medium">Místa: </span>
-                  <span className="line-clamp-2">{record.visitedPlaces}</span>
+                  <span className="line-clamp-2">{visitedPlaces}</span>
                 </div>
               )}
 
-              {record.visitDate && (
+              {visitDate && (
                 <div className="text-xs text-muted-foreground">
-                  {format(new Date(record.visitDate), "d. MMM yyyy", { locale: cs })}
+                  {format(new Date(visitDate), "d. MMM yyyy", { locale: cs })}
                 </div>
               )}
             </div>
@@ -183,7 +191,7 @@ export default function AdminClient() {
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs font-mono">
-                {record.id.length > 12 ? `${record.id.slice(0, 12)}...` : record.id}
+                {String(record.id).length > 12 ? `${String(record.id).slice(0, 12)}...` : String(record.id)}
               </Badge>
             </div>
             <div className="flex gap-1">
@@ -204,7 +212,7 @@ export default function AdminClient() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {keys.slice(0, 6).map((key) => {
               const value = record[key];
-              let displayValue = value;
+              let displayValue: React.ReactNode = null;
               
               // Format different value types
               if (value === null || value === undefined) {
@@ -223,9 +231,11 @@ export default function AdminClient() {
                 );
               } else if (key.includes('Date') || key.includes('At')) {
                 try {
-                  const date = new Date(value);
+                  const date = new Date(String(value));
                   if (!isNaN(date.getTime())) {
                     displayValue = format(date, "d. MMM yyyy", { locale: cs });
+                  } else {
+                    displayValue = String(value);
                   }
                 } catch (e) {
                   displayValue = String(value);

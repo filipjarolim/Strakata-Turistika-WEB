@@ -12,7 +12,7 @@ export interface IndexDefinition {
     unique?: boolean;
     sparse?: boolean;
     background?: boolean;
-    partialFilterExpression?: Record<string, any>;
+    partialFilterExpression?: Record<string, unknown>;
   };
 }
 

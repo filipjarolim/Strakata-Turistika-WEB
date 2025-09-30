@@ -32,7 +32,7 @@ export async function GET(
         
         console.log("Admin API: Pagination params:", { page, limit, searchQuery, sortBy, sortDesc });
         
-        let records;
+        let records: unknown[] = [];
         let totalCount = 0;
 
         // Get records based on collection name with pagination
@@ -43,8 +43,8 @@ export async function GET(
             case "User":
                 const userWhere = searchQuery ? {
                     OR: [
-                        { name: { contains: searchQuery, mode: 'insensitive' } },
-                        { email: { contains: searchQuery, mode: 'insensitive' } }
+                        { name: { contains: searchQuery, mode: 'insensitive' as const } },
+                        { email: { contains: searchQuery, mode: 'insensitive' as const } }
                     ]
                 } : {};
                 records = await db.user.findMany({
@@ -98,8 +98,8 @@ export async function GET(
             case "News":
                 const newsWhere = searchQuery ? {
                     OR: [
-                        { title: { contains: searchQuery, mode: 'insensitive' } },
-                        { content: { contains: searchQuery, mode: 'insensitive' } }
+                        { title: { contains: searchQuery, mode: 'insensitive' as const } },
+                        { content: { contains: searchQuery, mode: 'insensitive' as const } }
                     ]
                 } : {};
                 records = await db.news.findMany({
@@ -123,9 +123,9 @@ export async function GET(
                     // Use findMany with select to avoid type conversion issues
                     const visitDataWhere = searchQuery ? {
                         OR: [
-                            { routeTitle: { contains: searchQuery, mode: 'insensitive' } },
-                            { routeDescription: { contains: searchQuery, mode: 'insensitive' } },
-                            { visitedPlaces: { contains: searchQuery, mode: 'insensitive' } }
+                            { routeTitle: { contains: searchQuery, mode: 'insensitive' as const } },
+                            { routeDescription: { contains: searchQuery, mode: 'insensitive' as const } },
+                            { visitedPlaces: { contains: searchQuery, mode: 'insensitive' as const } }
                         ]
                     } : {};
                     
@@ -176,9 +176,9 @@ export async function GET(
                         const fallbackRecords = await db.visitData.findMany({
                             where: searchQuery ? {
                                 OR: [
-                                    { routeTitle: { contains: searchQuery, mode: 'insensitive' } },
-                                    { routeDescription: { contains: searchQuery, mode: 'insensitive' } },
-                                    { visitedPlaces: { contains: searchQuery, mode: 'insensitive' } }
+                                    { routeTitle: { contains: searchQuery, mode: 'insensitive' as const } },
+                                    { routeDescription: { contains: searchQuery, mode: 'insensitive' as const } },
+                                    { visitedPlaces: { contains: searchQuery, mode: 'insensitive' as const } }
                                 ]
                             } : {},
                             skip,
@@ -196,9 +196,9 @@ export async function GET(
                         totalCount = await db.visitData.count({ 
                             where: searchQuery ? {
                                 OR: [
-                                    { routeTitle: { contains: searchQuery, mode: 'insensitive' } },
-                                    { routeDescription: { contains: searchQuery, mode: 'insensitive' } },
-                                    { visitedPlaces: { contains: searchQuery, mode: 'insensitive' } }
+                                    { routeTitle: { contains: searchQuery, mode: 'insensitive' as const } },
+                                    { routeDescription: { contains: searchQuery, mode: 'insensitive' as const } },
+                                    { visitedPlaces: { contains: searchQuery, mode: 'insensitive' as const } }
                                 ]
                             } : {}
                         });

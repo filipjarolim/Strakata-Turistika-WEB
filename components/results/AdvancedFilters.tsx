@@ -111,7 +111,10 @@ export function AdvancedFilters({
     setIsOpen(false);
   };
 
-  const updateTempFilter = (key: keyof FilterState, value: any) => {
+  const updateTempFilter = (
+    key: keyof FilterState, 
+    value: string | number | undefined | { min?: number; max?: number } | { from?: Date; to?: Date }
+  ) => {
     setTempFilters(prev => ({
       ...prev,
       [key]: value

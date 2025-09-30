@@ -12,7 +12,7 @@ export interface VisitDataWithUser {
   routeLink: string | null;
   year: number;
   seasonYear: number;
-  extraPoints: any;
+  extraPoints: Record<string, unknown>;
   state: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
   rejectionReason: string | null;
   createdAt: Date | null;
@@ -83,7 +83,7 @@ export async function getPaginatedVisitData(
 
   try {
     // Try raw MongoDB query first to avoid Prisma type issues
-    const mongoFilters: any = {
+    const mongoFilters: Record<string, unknown> = {
       seasonYear: season,
       state
     };
@@ -100,13 +100,14 @@ export async function getPaginatedVisitData(
     }
 
     if (minPoints !== undefined || maxPoints !== undefined) {
-      mongoFilters.points = {};
-      if (minPoints !== undefined) mongoFilters.points.$gte = minPoints;
-      if (maxPoints !== undefined) mongoFilters.points.$lte = maxPoints;
+      const pointsFilter: Record<string, number> = {};
+      if (minPoints !== undefined) pointsFilter.$gte = minPoints;
+      if (maxPoints !== undefined) pointsFilter.$lte = maxPoints;
+      mongoFilters.points = pointsFilter;
     }
 
     const sortOrder = sortDescending ? -1 : 1;
-    const mongoSort: any = {};
+    const mongoSort: Record<string, number> = {};
     mongoSort[sortBy] = sortOrder;
 
     const totalCount = await getRawVisitDataCount(mongoFilters);
@@ -119,7 +120,7 @@ export async function getPaginatedVisitData(
 
     // Process and validate data
     logDataValidationIssues(visitData, 'getPaginatedVisitData');
-    const transformedData: VisitDataWithUser[] = visitData.map(processVisitData);
+    const transformedData = visitData.map(processVisitData) as unknown as VisitDataWithUser[];
 
     return {
       data: transformedData,
@@ -134,7 +135,7 @@ export async function getPaginatedVisitData(
     console.error('Error with raw MongoDB query, falling back to Prisma:', error);
     
     // Fallback to Prisma query (original implementation)
-    const whereClause: any = {
+    const whereClause: Record<string, unknown> = {
       year: season,
       state
     };
@@ -151,13 +152,14 @@ export async function getPaginatedVisitData(
     }
 
     if (minPoints !== undefined || maxPoints !== undefined) {
-      whereClause.points = {};
-      if (minPoints !== undefined) whereClause.points.gte = minPoints;
-      if (maxPoints !== undefined) whereClause.points.lte = maxPoints;
+      const pointsFilter: Record<string, number> = {};
+      if (minPoints !== undefined) pointsFilter.gte = minPoints;
+      if (maxPoints !== undefined) pointsFilter.lte = maxPoints;
+      whereClause.points = pointsFilter;
     }
 
     // Build sort criteria
-    const orderBy: any = {};
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
     orderBy[sortBy] = sortDescending ? 'desc' : 'asc';
 
     // Get total count for pagination
@@ -198,7 +200,7 @@ export async function getPaginatedVisitData(
 
     // Process and validate data
     logDataValidationIssues(visitData, 'getPaginatedVisitData');
-    const transformedData: VisitDataWithUser[] = visitData.map(processVisitData);
+    const transformedData = visitData.map(processVisitData) as unknown as VisitDataWithUser[];
 
     return {
       data: transformedData,
@@ -239,7 +241,7 @@ export async function getLeaderboard(
   // Group by user and aggregate data
   const userMap = new Map<string, LeaderboardEntry>();
 
-  processedVisits.forEach((visit: VisitDataWithUser) => {
+  (processedVisits as unknown as VisitDataWithUser[]).forEach((visit: VisitDataWithUser) => {
     // Use the displayName that was already processed with correct priority
     const groupKey = visit.userId || visit.displayName || 'unknown';
     
@@ -375,7 +377,7 @@ export async function getUserStats(userId: string, season: number): Promise<{
   return {
     totalPoints,
     visitsCount,
-    lastVisitDate: lastVisitDate || undefined,
+    lastVisitDate: lastVisitDate ? new Date(lastVisitDate as string | number | Date) : undefined,
     averagePoints
   };
 }
@@ -399,7 +401,7 @@ export async function searchVisits(params: {
 }): Promise<VisitDataWithUser[]> {
   const { season, query, limit = 50, filters = {} } = params;
 
-  const whereClause: any = {
+  const whereClause: Record<string, unknown> = {
     year: season,
     state: 'APPROVED',
     OR: [
@@ -409,9 +411,10 @@ export async function searchVisits(params: {
   };
 
   if (filters.minPoints !== undefined || filters.maxPoints !== undefined) {
-    whereClause.points = {};
-    if (filters.minPoints !== undefined) whereClause.points.gte = filters.minPoints;
-    if (filters.maxPoints !== undefined) whereClause.points.lte = filters.maxPoints;
+    const pointsFilter: Record<string, number> = {};
+    if (filters.minPoints !== undefined) pointsFilter.gte = filters.minPoints;
+    if (filters.maxPoints !== undefined) pointsFilter.lte = filters.maxPoints;
+    whereClause.points = pointsFilter;
   }
 
   if (filters.dateRange) {
@@ -457,5 +460,5 @@ export async function searchVisits(params: {
 
   // Process and validate data
   logDataValidationIssues(visits, 'searchVisits');
-  return visits.map(processVisitData);
+  return visits.map(processVisitData) as unknown as VisitDataWithUser[];
 }

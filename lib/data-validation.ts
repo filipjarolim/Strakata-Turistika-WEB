@@ -5,7 +5,7 @@
 /**
  * Safely convert a value to Date, handling string dates and null/undefined values
  */
-export function safeDateConversion(value: any): Date | null {
+export function safeDateConversion(value: unknown): Date | null {
   if (!value) return null;
   
   if (value instanceof Date) {
@@ -39,7 +39,7 @@ export function safeDateConversion(value: any): Date | null {
 /**
  * Safely convert a value to number
  */
-export function safeNumberConversion(value: any): number {
+export function safeNumberConversion(value: unknown): number {
   if (value === null || value === undefined) return 0;
   
   if (typeof value === 'number') {
@@ -58,7 +58,7 @@ export function safeNumberConversion(value: any): number {
 /**
  * Safely convert a value to string
  */
-export function safeStringConversion(value: any): string {
+export function safeStringConversion(value: unknown): string {
   if (value === null || value === undefined) return '';
   
   if (typeof value === 'string') {
@@ -71,7 +71,7 @@ export function safeStringConversion(value: any): string {
 /**
  * Validate and clean visit data from database
  */
-export function cleanVisitData(rawVisit: any): any {
+export function cleanVisitData(rawVisit: Record<string, unknown>): Record<string, unknown> {
   return {
     ...rawVisit,
     // Ensure we have a proper ID field
@@ -93,7 +93,7 @@ export function cleanVisitData(rawVisit: any): any {
 /**
  * Validate and clean user data from database
  */
-export function cleanUserData(rawUser: any): any {
+export function cleanUserData(rawUser: Record<string, unknown>): Record<string, unknown> | null {
   if (!rawUser) return null;
   
   return {
@@ -109,30 +109,32 @@ export function cleanUserData(rawUser: any): any {
 /**
  * Validate and clean extra points data
  */
-export function cleanExtraPointsData(rawExtraPoints: any): any {
-  if (!rawExtraPoints) return {};
+export function cleanExtraPointsData(rawExtraPoints: unknown): Record<string, unknown> {
+  if (!rawExtraPoints || typeof rawExtraPoints !== 'object') return {};
+  
+  const extraPoints = rawExtraPoints as Record<string, unknown>;
   
   return {
-    ...rawExtraPoints,
-    fullName: safeStringConversion(rawExtraPoints.fullName),
-    distanceKm: safeNumberConversion(rawExtraPoints.distanceKm),
-    description: safeStringConversion(rawExtraPoints.description),
-    distance: safeNumberConversion(rawExtraPoints.distance),
-    elapsedTime: safeNumberConversion(rawExtraPoints.elapsedTime),
-    averageSpeed: safeNumberConversion(rawExtraPoints.averageSpeed)
+    ...extraPoints,
+    fullName: safeStringConversion(extraPoints.fullName),
+    distanceKm: safeNumberConversion(extraPoints.distanceKm),
+    description: safeStringConversion(extraPoints.description),
+    distance: safeNumberConversion(extraPoints.distance),
+    elapsedTime: safeNumberConversion(extraPoints.elapsedTime),
+    averageSpeed: safeNumberConversion(extraPoints.averageSpeed)
   };
 }
 
 /**
  * Process raw database visit data with full validation
  */
-export function processVisitData(rawVisit: any) {
+export function processVisitData(rawVisit: Record<string, unknown>): Record<string, unknown> {
   const cleanedVisit = cleanVisitData(rawVisit);
-  const cleanedUser = cleanUserData(rawVisit.user);
+  const cleanedUser = cleanUserData(rawVisit.user as Record<string, unknown>);
   const cleanedExtraPoints = cleanExtraPointsData(rawVisit.extraPoints);
   
   // Debug user data processing
-  const hasNameInExtraPoints = cleanedExtraPoints?.fullName || (cleanedExtraPoints as any)?.['Příjmení a jméno'];
+  const hasNameInExtraPoints = cleanedExtraPoints?.fullName || (cleanedExtraPoints as Record<string, unknown>)?.['Příjmení a jméno'];
   if (!cleanedUser?.name && !hasNameInExtraPoints) {
     console.log('Processing visit with missing user data:', {
       visitId: cleanedVisit.id,
@@ -146,7 +148,7 @@ export function processVisitData(rawVisit: any) {
   // Implement priority system for user names
   const displayName = cleanedUser?.name ||                                    // Priorita 1: user.name z User kolekce
                       cleanedExtraPoints?.fullName ||                         // Priorita 2: extraPoints.fullName (legacy)
-                      (cleanedExtraPoints as any)?.['Příjmení a jméno'] ||    // Priorita 3: extraPoints['Příjmení a jméno'] (current format)
+                      (cleanedExtraPoints as Record<string, unknown>)?.['Příjmení a jméno'] ||    // Priorita 3: extraPoints['Příjmení a jméno'] (current format)
                       cleanedUser?.id ||                                      // Fallback to user ID
                       'Unknown User';                                         // Final fallback
 
@@ -155,7 +157,7 @@ export function processVisitData(rawVisit: any) {
     console.log(`Generated displayName: "${displayName}" for visit ${cleanedVisit.id}`, {
       user_name: cleanedUser?.name,
       extraPoints_fullName: cleanedExtraPoints?.fullName,
-      extraPoints_jmeno: (cleanedExtraPoints as any)?.['Příjmení a jméno'],
+      extraPoints_jmeno: (cleanedExtraPoints as Record<string, unknown>)?.['Příjmení a jméno'],
       user_id: cleanedUser?.id
     });
   }
@@ -171,29 +173,33 @@ export function processVisitData(rawVisit: any) {
 /**
  * Log data validation issues for debugging
  */
-export function logDataValidationIssues(data: any[], context: string) {
+export function logDataValidationIssues(data: unknown[], context: string) {
   const issues: string[] = [];
   
   data.forEach((item, index) => {
+    if (!item || typeof item !== 'object') return;
+    
+    const record = item as Record<string, unknown>;
+    
     // Check visitDate (can be null, string, or Date - we'll convert strings)
-    if (item.visitDate !== null && item.visitDate !== undefined && 
-        !(item.visitDate instanceof Date) && typeof item.visitDate !== 'string') {
-      issues.push(`Item ${index}: Invalid visitDate (${typeof item.visitDate}): ${item.visitDate}`);
+    if (record.visitDate !== null && record.visitDate !== undefined && 
+        !(record.visitDate instanceof Date) && typeof record.visitDate !== 'string') {
+      issues.push(`Item ${index}: Invalid visitDate (${typeof record.visitDate}): ${record.visitDate}`);
     }
     
     // Check points
-    if (typeof item.points !== 'number' || isNaN(item.points)) {
-      issues.push(`Item ${index}: Invalid points (${typeof item.points}): ${item.points}`);
+    if (typeof record.points !== 'number' || isNaN(record.points)) {
+      issues.push(`Item ${index}: Invalid points (${typeof record.points}): ${record.points}`);
     }
     
     // Check year (can be either 'year' or 'seasonYear')
-    const yearValue = item.year || item.seasonYear;
-    if (typeof yearValue !== 'number' || isNaN(yearValue)) {
-      issues.push(`Item ${index}: Invalid year (${typeof yearValue}): ${yearValue} - raw: ${JSON.stringify({year: item.year, seasonYear: item.seasonYear})}`);
+    const yearValue = record.year || record.seasonYear;
+    if (typeof yearValue !== 'number' || isNaN(yearValue as number)) {
+      issues.push(`Item ${index}: Invalid year (${typeof yearValue}): ${yearValue} - raw: ${JSON.stringify({year: record.year, seasonYear: record.seasonYear})}`);
     }
     
     // Check ID
-    if (!item.id && !item._id) {
+    if (!record.id && !record._id) {
       issues.push(`Item ${index}: Missing ID field`);
     }
   });

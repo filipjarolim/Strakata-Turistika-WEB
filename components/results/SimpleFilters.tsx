@@ -48,7 +48,7 @@ export function SimpleFilters({
     return count;
   };
 
-  const updateFilter = (key: keyof SimpleFilterState, value: any) => {
+  const updateFilter = (key: keyof SimpleFilterState, value: string | boolean | undefined) => {
     onFiltersChange({
       ...filters,
       [key]: value
@@ -122,7 +122,7 @@ export function SimpleFilters({
           {filters.searchQuery && (
             <Badge variant="secondary" className="flex items-center gap-1">
               <Search className="h-3 w-3" />
-              "{filters.searchQuery}"
+              &quot;{filters.searchQuery}&quot;
               <X 
                 className="h-3 w-3 cursor-pointer hover:text-red-500" 
                 onClick={() => removeFilter('searchQuery')}

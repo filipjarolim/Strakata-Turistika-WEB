@@ -65,7 +65,7 @@ export async function GET(request: Request, { params }: { params: tParams }) {
       cacheKey,
       () => getPaginatedVisitData(params),
       2 * 60 * 1000 // 2 minutes TTL
-    );
+    ) as { data: unknown[]; hasMore: boolean };
 
     console.log(`[VISITS_API] Season ${year}, Page ${page}, Limit ${limit}, Results: ${response.data.length} items, HasMore: ${response.hasMore}`);
     return NextResponse.json(response);

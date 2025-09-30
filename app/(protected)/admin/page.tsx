@@ -3,6 +3,7 @@
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { UserRole } from "@prisma/client";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import React, { useState, useEffect } from "react";

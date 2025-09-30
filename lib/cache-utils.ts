@@ -132,19 +132,19 @@ class LRUCache<T> {
 }
 
 // Global cache instances
-export const visitsCache = new LRUCache<any>({
+export const visitsCache = new LRUCache<unknown>({
   maxSize: 500,
   defaultTtl: 2 * 60 * 1000, // 2 minutes
   cleanupInterval: 30 * 1000 // 30 seconds
 });
 
-export const leaderboardCache = new LRUCache<any>({
+export const leaderboardCache = new LRUCache<unknown>({
   maxSize: 100,
   defaultTtl: 5 * 60 * 1000, // 5 minutes
   cleanupInterval: 60 * 1000 // 1 minute
 });
 
-export const seasonsCache = new LRUCache<any>({
+export const seasonsCache = new LRUCache<unknown>({
   maxSize: 10,
   defaultTtl: 10 * 60 * 1000, // 10 minutes
   cleanupInterval: 5 * 60 * 1000 // 5 minutes
@@ -154,7 +154,7 @@ export const seasonsCache = new LRUCache<any>({
  * Cache key generators for consistent key formatting
  */
 export const CacheKeys = {
-  visits: (season: number, page: number, limit: number, filters: Record<string, any>) => {
+  visits: (season: number, page: number, limit: number, filters: Record<string, unknown>) => {
     const filterStr = Object.entries(filters)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, value]) => `${key}:${value}`)
@@ -204,8 +204,8 @@ export async function withCache<T>(
 /**
  * Invalidate cache entries by pattern
  */
-export function invalidateCachePattern(cache: LRUCache<any>, pattern: RegExp): number {
-  let invalidatedCount = 0;
+export function invalidateCachePattern(cache: LRUCache<unknown>, pattern: RegExp): number {
+  const invalidatedCount = 0;
   
   // Since we can't iterate over Map keys directly with pattern matching,
   // we'll need to implement this differently in a real scenario
@@ -277,7 +277,7 @@ export function clearAllCaches() {
  */
 export function createCacheMiddleware<T>(
   cache: LRUCache<T>,
-  keyGenerator: (...args: any[]) => string,
+  keyGenerator: (...args: unknown[]) => string,
   ttl?: number
 ) {
   return async function cacheMiddleware(

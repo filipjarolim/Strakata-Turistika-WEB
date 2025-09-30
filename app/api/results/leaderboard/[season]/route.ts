@@ -32,7 +32,7 @@ export async function GET(request: Request, { params }: { params: tParams }) {
       cacheKey,
       () => getLeaderboard(year, page, limit, searchQuery, sortByVisits),
       5 * 60 * 1000 // 5 minutes TTL
-    );
+    ) as { data: unknown[]; hasMore: boolean };
 
     console.log(`[LEADERBOARD_API] Season ${year}, Page ${page}, Limit ${limit}, Results: ${response.data.length} items, HasMore: ${response.hasMore}`);
     return NextResponse.json(response);
