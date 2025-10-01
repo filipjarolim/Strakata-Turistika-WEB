@@ -203,7 +203,7 @@ export default function MojeClient() {
         observerRef.current.disconnect();
       }
     };
-  }, [state.showLeaderboard, state.hasMore, state.isLoadingMore, actions.loadNextPage]);
+  }, [state.showLeaderboard, state.hasMore, state.isLoadingMore, actions]);
 
   const handleYearChange = (year: number | null) => {
     setSelectedYear(year);

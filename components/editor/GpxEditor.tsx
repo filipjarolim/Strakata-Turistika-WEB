@@ -20,17 +20,17 @@ function getMaxViewPointsForTrack(points: TrackPoint[]): number {
 }
 
 const IOS_MAP_CONTROLS_STYLE = {
-  iconSize: 'h-5 w-5', // Tailwind classes for icon size (default)
-  iconSizeSm: 'h-6 w-6', // Tailwind classes for icon size (sm screens)
-  controlSize: 'w-8 h-8', // Button size (default)
-  controlSizeSm: 'w-12 h-12', // Button size (sm screens)
-  barPaddingX: 'px-2 sm:px-4',
-  barPaddingY: 'py-2',
-  barGap: 'gap-2 sm:gap-4',
-  barBorderRadius: 'rounded-3xl',
-  barShadow: 'shadow-2xl',
-  barBorder: 'border border-white/40',
-  barBg: 'bg-white/30 backdrop-blur-2xl',
+  iconSize: 'h-4 w-4', // Tailwind classes for icon size (default) - smaller
+  iconSizeSm: 'h-5 w-5', // Tailwind classes for icon size (sm screens) - smaller
+  controlSize: 'w-7 h-7', // Button size (default) - smaller
+  controlSizeSm: 'w-9 h-9', // Button size (sm screens) - smaller
+  barPaddingX: 'px-2 sm:px-3',
+  barPaddingY: 'py-1.5',
+  barGap: 'gap-1.5 sm:gap-2',
+  barBorderRadius: 'rounded-2xl',
+  barShadow: 'shadow-xl',
+  barBorder: 'border border-black/40',
+  barBg: 'bg-black/50 backdrop-blur-xl',
 };
 
 const GPX_EDITOR_MAP_STYLE = {
@@ -119,12 +119,12 @@ function IOSMapControls({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-              'rounded-full flex items-center justify-center bg-white/40 backdrop-blur-xl shadow-lg border border-white/30 transition hover:bg-white/60 active:scale-95 cursor-pointer',
+              'rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl shadow-lg border border-black/50 transition hover:bg-black/60 active:scale-95 cursor-pointer text-white',
               IOS_MAP_CONTROLS_STYLE.controlSize,
               IOS_MAP_CONTROLS_STYLE.controlSizeSm,
-              disabled && 'opacity-50 cursor-not-allowed'
+              disabled && 'opacity-30 cursor-not-allowed'
             )}
-            style={{ boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
+            style={{ boxShadow: '0 4px 16px 0 rgba(0,0,0,0.2)' }}
           >
             {icon}
           </button>

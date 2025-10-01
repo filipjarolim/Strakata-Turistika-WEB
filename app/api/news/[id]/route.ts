@@ -1,182 +1,93 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { currentRole } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
+import { NextRequest } from 'next/server';
+import { NewsService, UpdateNewsData } from '@/lib/news-service';
+import { 
+    createSuccessResponse, 
+    createErrorResponse, 
+    handleApiError,
+    extractRequestBody,
+    validateRequiredFields
+} from '@/lib/api-response';
 
 export async function GET(
-    req: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
-    if (!id) {
-        return new NextResponse(
-            JSON.stringify({ error: "Missing ID" }),
-            { 
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
-    }
-
     try {
-        const news = await db.news.findUnique({
-            where: { id },
-            select: {
-                id: true,
-                title: true,
-                content: true,
-                createdAt: true,
-                images: true
-            }
-        });
-
-        if (!news) {
-            return new NextResponse(
-                JSON.stringify({ error: "Not found" }),
-                { 
-                    status: 404,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
+        const { id } = await params;
+        
+        if (!id) {
+            return createErrorResponse("MISSING_ID", 400, "News ID is required");
         }
 
-        return new NextResponse(
-            JSON.stringify(news),
-            { 
-                status: 200,
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59'
-                }
-            }
+        const news = await NewsService.getNewsById(id);
+        
+        if (!news) {
+            return createErrorResponse("NOT_FOUND", 404, "News item not found");
+        }
+
+        return createSuccessResponse(
+            news,
+            200,
+            "News item fetched successfully"
         );
     } catch (error) {
-        console.error("Error fetching news item:", error);
-        return new NextResponse(
-            JSON.stringify({ error: "Internal Server Error" }),
-            { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+        return handleApiError(error, "GET /api/news/[id]");
     }
 }
 
 export async function PUT(
-    req: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const role = await currentRole();
-
-        if (role !== UserRole.ADMIN) {
-            return new NextResponse(
-                JSON.stringify({ error: "Unauthorized" }),
-                { 
-                    status: 403,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
-        }
-
         const { id } = await params;
+        
         if (!id) {
-            return new NextResponse(
-                JSON.stringify({ error: "Missing ID" }),
-                { 
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
+            return createErrorResponse("MISSING_ID", 400, "News ID is required");
         }
 
-        const { title, content, images } = await req.json();
-
-        if (!title) {
-            return new NextResponse(
-                JSON.stringify({ error: "Title is required" }),
-                { 
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
+        const body = await extractRequestBody<UpdateNewsData>(request);
+        
+        // Validate that at least one field is provided for update
+        const hasUpdateData = body.title !== undefined || 
+                             body.content !== undefined || 
+                             body.images !== undefined;
+        
+        if (!hasUpdateData) {
+            return createErrorResponse("NO_UPDATE_DATA", 400, "At least one field must be provided for update");
         }
 
-        const news = await db.news.update({
-            where: { id },
-            data: { title, content, images },
-            select: {
-                id: true,
-                title: true,
-                content: true,
-                createdAt: true,
-                images: true
-            }
-        });
-
-        return new NextResponse(
-            JSON.stringify(news),
-            { 
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-            }
+        const news = await NewsService.updateNews(id, body);
+        
+        return createSuccessResponse(
+            news,
+            200,
+            "News updated successfully"
         );
     } catch (error) {
-        console.error("Error updating news:", error);
-        return new NextResponse(
-            JSON.stringify({ error: "Internal Server Error" }),
-            { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+        return handleApiError(error, "PUT /api/news/[id]");
     }
 }
 
 export async function DELETE(
-    req: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const role = await currentRole();
-
-        if (role !== UserRole.ADMIN) {
-            return new NextResponse(
-                JSON.stringify({ error: "Unauthorized" }),
-                { 
-                    status: 403,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
-        }
-
         const { id } = await params;
+        
         if (!id) {
-            return new NextResponse(
-                JSON.stringify({ error: "Missing ID" }),
-                { 
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
+            return createErrorResponse("MISSING_ID", 400, "News ID is required");
         }
 
-        await db.news.delete({
-            where: { id }
-        });
-
-        return new NextResponse(null, { 
-            status: 204,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    } catch (error) {
-        console.error("Error deleting news:", error);
-        return new NextResponse(
-            JSON.stringify({ error: "Internal Server Error" }),
-            { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            }
+        await NewsService.deleteNews(id);
+        
+        return createSuccessResponse(
+            null,
+            204,
+            "News deleted successfully"
         );
+    } catch (error) {
+        return handleApiError(error, "DELETE /api/news/[id]");
     }
 }

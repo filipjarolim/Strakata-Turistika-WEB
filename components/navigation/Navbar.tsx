@@ -136,10 +136,10 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                                 <NavigationMenuTrigger
                                     className={cn(
                                         "text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg",
-                                        "bg-transparent font-medium h-full",
-                                        "border border-transparent hover:border-gray-200/50",
+                                        "bg-gray-900/10 backdrop-blur-xl font-medium h-full",
+                                        "border border-gray-900/20 hover:border-gray-900/30",
                                         textColor,
-                                        hoverStyles.hoverBg,
+                                        "hover:bg-gray-900/20",
                                         hoverStyles.activeBg,
                                         hoverStyles.focusBg,
                                         hoverStyles.hoverText,
@@ -189,12 +189,11 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                                 <Link href={navItem.href as string} legacyBehavior passHref>
                                     <NavigationMenuLink
                                         className={cn(
-                                            "flex items-center gap-1.5 text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg h-full",
-                                            "border border-transparent hover:border-gray-200/50",
+                                            "flex items-center gap-1.5 text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg h-full backdrop-blur-xl",
                                             "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
                                             isActive 
-                                                ? "bg-gray-100 font-medium text-gray-900 border-gray-200/50" 
-                                                : cn(textColor, hoverStyles.hoverBg, hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
+                                                ? "bg-white/30 font-medium text-gray-900 border border-white/40" 
+                                                : cn(textColor, "bg-gray-900/10 hover:bg-gray-900/20 border border-gray-900/20 hover:border-gray-900/30", hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
                                         )}
                                     >
                                         {navItem.icon && (

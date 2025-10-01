@@ -26,12 +26,15 @@ const CommonPageTemplate = ({
     className?: string;
     currentUser?: ExtendedUser | null;
     currentRole?: string;
-    contents?: { complete?: boolean; header?: boolean; footer?: boolean };
+    contents?: { complete?: boolean; header?: boolean; footer?: boolean; bugreport?: boolean };
     style?: React.CSSProperties;
     headerMode?: "fixed" | "static" | "auto-hide";
     showHeaderGap?: boolean;
     mobileLayout?: boolean;
 }) => {
+    // Default bugreport to true if not explicitly set
+    const showBugReport = contents?.bugreport !== false;
+    
     return (
         <>
             <main className={cn("min-h-screen w-full flex flex-col px-4", className)} style={style}>
@@ -60,7 +63,7 @@ const CommonPageTemplate = ({
                 {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
             </main>
 
-            <BugReportPanel currentUser={currentUser} currentRole={currentRole} />
+            {showBugReport && <BugReportPanel currentUser={currentUser} currentRole={currentRole} />}
 
 
 

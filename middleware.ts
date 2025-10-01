@@ -11,8 +11,6 @@ import {
 
 const { auth } = NextAuth(authConfig)
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 export default auth((req) => {
     const { nextUrl } = req
     const isLoggedIn = !!req.auth

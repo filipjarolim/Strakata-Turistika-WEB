@@ -65,7 +65,7 @@ export default function ResultsClient() {
         observerRef.current.disconnect();
       }
     };
-  }, [state.showLeaderboard, state.hasMore, state.isLoadingMore, actions.loadNextPage]);
+  }, [state.showLeaderboard, state.hasMore, state.isLoadingMore, actions]);
 
   // Initial load - let the hook handle this
   useEffect(() => {

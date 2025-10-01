@@ -15,7 +15,6 @@ import {
   ArrowUpDown,
   Loader2,
   AlertCircle,
-  Eye,
   Edit,
   Trash2
 } from 'lucide-react';
@@ -65,7 +64,7 @@ export default function AdminClient() {
         observerRef.current.disconnect();
       }
     };
-  }, [state.hasMore, state.isLoadingMore, actions.loadNextPage]);
+  }, [state.hasMore, state.isLoadingMore, actions]);
 
   // Debug: Log state changes
   useEffect(() => {
@@ -80,6 +79,78 @@ export default function AdminClient() {
   // Render individual record item
   const renderRecordItem = (record: AdminRecord) => {
     const keys = Object.keys(record).filter(key => key !== 'id');
+    
+    // Special rendering for News
+    if (collection === 'News') {
+      const title = record.title ? String(record.title) : null;
+      const content = record.content ? String(record.content) : null;
+      const createdAt = record.createdAt ? String(record.createdAt) : null;
+      const images = record.images ? record.images : null;
+      
+      return (
+        <motion.div
+          key={record.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+        >
+          <div className="flex flex-col gap-3">
+            {/* Header with ID and actions */}
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs font-mono">
+                  {String(record.id).slice(0, 8)}...
+                </Badge>
+              </div>
+              <div className="flex gap-1">
+                <Link href={`/admin/${collection}/${record.id}`}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* News specific fields */}
+            <div className="space-y-2">
+              {title && (
+                <h3 className="font-semibold text-base sm:text-lg line-clamp-2">
+                  {title}
+                </h3>
+              )}
+              
+              {content && (
+                <div className="text-sm text-muted-foreground">
+                  <span className="line-clamp-3">{content.replace(/<[^>]*>/g, '')}</span>
+                </div>
+              )}
+
+              {createdAt && (
+                <div className="text-xs text-muted-foreground">
+                  {(() => {
+                    try {
+                      const date = new Date(createdAt);
+                      if (isNaN(date.getTime())) {
+                        return createdAt;
+                      }
+                      return format(date, "d. MMM yyyy 'v' HH:mm", { locale: cs });
+                    } catch {
+                      return createdAt;
+                    }
+                  })()}
+                </div>
+              )}
+
+              {images && Array.isArray(images) && images.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {images.length} obrázk{images.length === 1 ? 'ů' : 'y'}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
     
     // Special rendering for VisitData
     if (collection === 'VisitData') {
@@ -123,11 +194,6 @@ export default function AdminClient() {
               <div className="flex gap-1">
                 <Link href={`/admin/${collection}/${record.id}`}>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href={`/admin/${collection}/${record.id}/edit`}>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <Edit className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -169,7 +235,17 @@ export default function AdminClient() {
 
               {visitDate && (
                 <div className="text-xs text-muted-foreground">
-                  {format(new Date(visitDate), "d. MMM yyyy", { locale: cs })}
+                  {(() => {
+                    try {
+                      const date = new Date(visitDate);
+                      if (isNaN(date.getTime())) {
+                        return visitDate;
+                      }
+                      return format(date, "d. MMM yyyy", { locale: cs });
+                    } catch {
+                      return visitDate;
+                    }
+                  })()}
                 </div>
               )}
             </div>
@@ -196,11 +272,6 @@ export default function AdminClient() {
             </div>
             <div className="flex gap-1">
               <Link href={`/admin/${collection}/${record.id}`}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href={`/admin/${collection}/${record.id}/edit`}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <Edit className="h-4 w-4" />
                 </Button>

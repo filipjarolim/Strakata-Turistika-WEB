@@ -1,9 +1,11 @@
 import React from "react";
-import Link from "next/link";
 import { getRecordById } from "@/actions/admin/getRecordById";
 import DynamicForm from "@/components/admin/DynamicForm";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
+import { currentUser, currentRole } from "@/lib/auth";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 // Define the Params type that will be resolved asynchronously.
 interface Params {
@@ -18,30 +20,33 @@ interface PageProps {
 const EditRecordPage = async ({ params }: PageProps) => {
     // Await the params promise to extract collection and id.
     const { collection, id } = await params;
+    const user = await currentUser();
+    const role = await currentRole();
 
     // Fetch the record
     const record = await getRecordById(collection, id);
 
     if (!record) {
-        return <div>Record not found</div>;
+        return (
+            <CommonPageTemplate contents={{ header: true }} headerMode="auto-hide" currentUser={user} currentRole={role}>
+                <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
+                    <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                            Záznam nebyl nalezen. Možná byl smazán nebo ID je neplatné.
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            </CommonPageTemplate>
+        );
     }
 
     return (
-        <div className="p-6">
-            <Card className="max-w-4xl mx-auto">
-                <CardHeader>
-                    <h1 className="text-2xl font-bold">Edit {collection} Record</h1>
-                    <Link href={`/admin/${collection}`}>
-                        <Button variant="outline" className="mt-2">
-                            Back to List
-                        </Button>
-                    </Link>
-                </CardHeader>
-                <CardContent>
-                    <DynamicForm initialData={record} collection={collection} recordId={id} />
-                </CardContent>
-            </Card>
-        </div>
+        <CommonPageTemplate contents={{ header: true }} headerMode="auto-hide" currentUser={user} currentRole={role}>
+            <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
+                <DynamicForm initialData={record} collection={collection} recordId={id} />
+            </div>
+        </CommonPageTemplate>
     );
 };
 

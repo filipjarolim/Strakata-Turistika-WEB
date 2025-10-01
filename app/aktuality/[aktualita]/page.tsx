@@ -2,20 +2,17 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, Pencil, Calendar, Clock, Share2 } from "lucide-react";
+import { Loader2, ArrowLeft, Pencil, Calendar, Clock, Newspaper } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { toast } from "sonner";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCurrentRole } from "@/hooks/use-current-role";
-import { AdminRestrictedContent } from "@/components/structure/AdminRestrictedContent";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
-import { IOSCard } from "@/components/ui/ios/card";
-import { IOSButton } from "@/components/ui/ios/button";
-import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
-import { IOSTextarea } from "@/components/ui/ios/textarea";
-import { ImageUpload, ImageSource } from "@/components/ui/ios/image-upload";
+import { RichTextEditor } from "@/components/ui/ios/rich-text-editor";
+import { EnhancedImageUpload, ImageSource } from "@/components/ui/ios/enhanced-image-upload";
+import { Button } from "@/components/ui/button";
 import Image from 'next/image';
 
 type NewsItem = {
@@ -24,14 +21,6 @@ type NewsItem = {
     content?: string;
     createdAt: Date | string;
     images?: ImageSource[];
-};
-
-// Helper: is news new (last 7 days)?
-const isNew = (createdAt: Date | string | undefined) => {
-    if (!createdAt) return false;
-    const now = new Date();
-    const created = new Date(createdAt);
-    return (now.getTime() - created.getTime()) < 7 * 24 * 60 * 60 * 1000;
 };
 
 export default function NewsDetail() {
@@ -57,11 +46,22 @@ export default function NewsDetail() {
     const fetchNewsItem = useCallback(async () => {
         try {
             const response = await fetch(`/api/news/${params.aktualita}`);
-            if (!response.ok) throw new Error('Failed to fetch news item');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch news item');
+            }
             const data = await response.json();
-            setNewsItem(data);
+            
+            // Handle new API response format
+            if (data.success && data.data) {
+                setNewsItem(data.data);
+            } else {
+                // Fallback for old format
+                setNewsItem(data);
+            }
         } catch (err) {
-            setError('Failed to load news item');
+            console.error('Error fetching news item:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load news item');
         } finally {
             setIsLoading(false);
         }
@@ -112,13 +112,27 @@ export default function NewsDetail() {
                 body: JSON.stringify({ title, content, images }),
             });
 
-            if (!response.ok) throw new Error();
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update news item');
+            }
 
             await fetchNewsItem();
             router.push(`/aktuality/${params.aktualita}`);
             toast.success("Aktualita byla upravena");
         } catch (error) {
-            toast.error("Něco se pokazilo");
+            console.error('Error updating news item:', error);
+            if (error instanceof Error) {
+                if (error.message.includes('Unauthorized')) {
+                    toast.error('Nemáte oprávnění k této akci');
+                } else if (error.message.includes('Validation failed')) {
+                    toast.error('Chyba ve formuláři: ' + error.message);
+                } else {
+                    toast.error(error.message || 'Něco se pokazilo');
+                }
+            } else {
+                toast.error('Něco se pokazilo');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -142,31 +156,15 @@ export default function NewsDetail() {
         }
     };
 
-    const handleShare = () => {
-        if (navigator.share) {
-            navigator.share({
-                title: newsItem?.title,
-                url: window.location.href,
-            });
-        } else {
-            navigator.clipboard.writeText(window.location.href);
-            toast.success("Odkaz zkopírován do schránky");
-        }
-    };
-
-    // Don't render anything until mounted to prevent hydration mismatch
     if (!mounted) {
         return (
-            <CommonPageTemplate 
-                contents={{header: true}} 
-                headerMode="auto-hide"
-                currentUser={user}
-                currentRole={role}
-            >
-                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                    <div className="flex items-center gap-3">
-                        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                        <span className="text-gray-500">Načítání...</span>
+            <CommonPageTemplate contents={{ header: true }} headerMode="auto-hide" currentUser={user} currentRole={role}>
+                <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto">
+                    <div className="flex items-center justify-center h-64">
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                            <span className="text-gray-500">Načítání...</span>
+                        </div>
                     </div>
                 </div>
             </CommonPageTemplate>
@@ -180,67 +178,52 @@ export default function NewsDetail() {
             currentUser={user}
             currentRole={role}
         >
-            <div className="min-h-screen bg-gray-50">
-                {/* Hero Image */}
-                {newsItem && newsItem.images && newsItem.images.length > 0 && (
-                    <div className="relative h-48 sm:h-64 md:h-80 bg-gray-900">
-                        <Image
-                            src={newsItem.images[0].url}
-                            alt={newsItem.images[0].title || newsItem.title}
-                            className="w-full h-full object-cover"
-                            fill
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-black/20" />
-                        
-                        {/* Badge and Actions */}
-                        <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                {isNew(newsItem.createdAt) && (
-                                    <IOSBadge 
-                                        label="Nové" 
-                                        size="sm" 
-                                        bgColor="bg-green-500" 
-                                        textColor="text-white"
-                                    />
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1 sm:gap-2">
-                                <IOSButton
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleShare}
-                                    className="bg-white/90 backdrop-blur-sm"
-                                >
-                                    <Share2 className="w-4 h-4" />
-                                </IOSButton>
-                                <AdminRestrictedContent
-                                    role={role || "UŽIVATEL"}
-                                    variant="icon"
-                                    icon={<IOSCircleIcon variant="blue" size="md"><Pencil className="w-4 h-4" /></IOSCircleIcon>}
-                                    onClick={() => router.push(`/aktuality/${params.aktualita}?edit=true`)}
-                                />
-                            </div>
+            <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+                {/* Header Section */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3">
+                        <IOSCircleIcon variant="blue" size="lg" className="shadow-lg">
+                            <Newspaper className="w-8 h-8" />
+                        </IOSCircleIcon>
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">
+                                {newsItem ? newsItem.title : 'Aktualita'}
+                            </h1>
+                            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                                {newsItem ? formatDate(newsItem.createdAt) : 'Načítání...'}
+                            </p>
                         </div>
                     </div>
-                )}
-
-                {/* Content */}
-                <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
-                    {/* Back Button */}
-                    <div className="mb-4 sm:mb-6">
-                        <IOSButton 
-                            variant="outline" 
+                    
+                    {/* Actions */}
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <Button
+                            variant="outline"
                             onClick={() => router.push("/aktuality")}
-                            className="gap-2 text-sm sm:text-base"
+                            className="flex items-center gap-2 flex-1 sm:flex-none"
                             size="sm"
                         >
-                            <ArrowLeft className="w-4 h-4" />
-                            <span className="hidden sm:inline">Zpět na aktuality</span>
+                            <ArrowLeft className="h-4 w-4" />
+                            <span className="hidden sm:inline">Zpět</span>
                             <span className="sm:hidden">Zpět</span>
-                        </IOSButton>
+                        </Button>
+                        
+                        {role === "ADMIN" && newsItem && (
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push(`/aktuality/${params.aktualita}?edit=true`)}
+                                className="flex items-center gap-2 flex-1 sm:flex-none"
+                                size="sm"
+                            >
+                                <Pencil className="h-4 w-4" />
+                                <span className="hidden sm:inline">Upravit</span>
+                            </Button>
+                        )}
                     </div>
+                </div>
 
+                {/* Content */}
+                <div className="max-w-4xl mx-auto">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-64">
                             <div className="flex items-center gap-3">
@@ -250,16 +233,16 @@ export default function NewsDetail() {
                         </div>
                     ) : newsItem ? (
                         isEditMode ? (
-                            <div className="bg-white/95 backdrop-blur-2xl border border-gray-200/30 shadow-xl shadow-black/5 rounded-2xl sm:rounded-3xl overflow-visible transition-all duration-300 ease-out p-4 sm:p-6 md:p-8">
-                                <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Upravit aktualitu</h1>
+                            <div className="bg-white border rounded-lg shadow-sm p-6">
+                                <h1 className="text-xl sm:text-2xl font-bold mb-6">Upravit aktualitu</h1>
                                 
-                                <div className="space-y-4 sm:space-y-6">
+                                <div className="space-y-6">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Název
                                         </label>
                                         <input
-                                            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             value={title}
                                             onChange={e => setTitle(e.target.value)}
                                             placeholder="Zadejte název aktuality"
@@ -270,11 +253,10 @@ export default function NewsDetail() {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Obsah
                                         </label>
-                                        <IOSTextarea
+                                        <RichTextEditor
                                             value={content}
                                             onChange={setContent}
                                             placeholder="Zadejte obsah aktuality..."
-                                            className="min-h-[200px] sm:min-h-[300px]"
                                         />
                                     </div>
                                     
@@ -282,7 +264,7 @@ export default function NewsDetail() {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Obrázky
                                         </label>
-                                        <ImageUpload
+                                        <EnhancedImageUpload
                                             sources={images}
                                             onUpload={handleImageUpload}
                                             onDelete={handleImageDelete}
@@ -293,32 +275,38 @@ export default function NewsDetail() {
                                     </div>
                                 </div>
                                 
-                                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end mt-6 sm:mt-8">
-                                    <IOSButton 
-                                        variant="outline" 
+                                <div className="flex justify-end gap-3 mt-8">
+                                    <Button
+                                        variant="outline"
                                         onClick={() => router.push(`/aktuality/${params.aktualita}`)}
-                                        className="w-full sm:w-auto"
                                     >
                                         Zrušit
-                                    </IOSButton>
-                                    <IOSButton 
-                                        loading={isSubmitting} 
+                                    </Button>
+                                    <Button
                                         onClick={handleSubmit}
-                                        className="w-full sm:w-auto"
+                                        disabled={isSubmitting}
                                     >
-                                        Uložit změny
-                                    </IOSButton>
+                                        {isSubmitting ? "Ukládám..." : "Uložit"}
+                                    </Button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-white/95 backdrop-blur-2xl border border-gray-200/30 shadow-xl shadow-black/5 rounded-2xl sm:rounded-3xl overflow-visible transition-all duration-300 ease-out p-4 sm:p-6 md:p-8">
-                                {/* Header */}
-                                <div className="mb-6 sm:mb-8">
-                                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 leading-tight">
-                                        {newsItem.title}
-                                    </h1>
-                                    
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-gray-500">
+                            <div className="space-y-6">
+                                {/* Main Image */}
+                                {newsItem.images && newsItem.images.length > 0 && (
+                                    <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                        <Image
+                                            src={newsItem.images[0].url}
+                                            alt={newsItem.images[0].title || newsItem.title}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Article Content */}
+                                <div className="bg-white border rounded-lg shadow-sm p-6">
+                                    <div className="flex items-center gap-4 mb-6 text-sm text-muted-foreground">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="w-4 h-4" />
                                             <span>{formatDate(newsItem.createdAt)}</span>
@@ -328,40 +316,31 @@ export default function NewsDetail() {
                                             <span>{formatTime(newsItem.createdAt)}</span>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Content */}
-                                <div className="prose prose-sm sm:prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 mb-6 sm:mb-8">
-                                    {newsItem.content ? (
-                                        <div 
-                                            dangerouslySetInnerHTML={{ 
-                                                __html: newsItem.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                                            }} 
-                                        />
-                                    ) : (
-                                        <p className="text-gray-500 italic">Žádný obsah</p>
-                                    )}
+                                    <div className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600">
+                                        {newsItem.content ? (
+                                            <div 
+                                                dangerouslySetInnerHTML={{ 
+                                                    __html: newsItem.content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                                                }} 
+                                            />
+                                        ) : (
+                                            <p className="text-gray-500 italic">Žádný obsah</p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Additional Images */}
                                 {newsItem.images && newsItem.images.length > 1 && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-6 sm:mt-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {newsItem.images.slice(1).map((img, idx) => (
-                                            <div key={idx} className="relative group">
+                                            <div key={idx} className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
                                                 <Image
                                                     src={img.url}
-                                                    alt={img.title || newsItem.title}
-                                                    className="w-full h-36 sm:h-48 object-cover rounded-xl"
-                                                    width={600}
-                                                    height={240}
+                                                    alt={img.title || `Obrázek ${idx + 2}`}
+                                                    fill
+                                                    className="object-cover"
                                                 />
-                                                {img.title && (
-                                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 rounded-b-xl">
-                                                        <p className="text-white text-sm font-medium">
-                                                            {img.title}
-                                                        </p>
-                                                    </div>
-                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -369,12 +348,12 @@ export default function NewsDetail() {
                             </div>
                         )
                     ) : (
-                        <div className="text-center py-8 sm:py-12 px-4">
-                            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Aktualita nebyla nalezena</h2>
-                            <p className="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base">Požadovaná aktualita neexistuje nebo byla smazána.</p>
-                            <IOSButton onClick={() => router.push("/aktuality")} className="w-full sm:w-auto">
-                                Zpět na aktuality
-                            </IOSButton>
+                        <div className="text-center py-12">
+                            <div className="text-gray-400 mb-4">
+                                <Calendar className="w-16 h-16 mx-auto" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Aktualita nebyla nalezena</h3>
+                            <p className="text-gray-500">Požadovaná aktualita neexistuje nebo byla smazána.</p>
                         </div>
                     )}
                 </div>

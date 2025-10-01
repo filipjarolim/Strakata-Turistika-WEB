@@ -1,93 +1,67 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { currentRole } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
+import { NextRequest } from "next/server";
+import { NewsService, CreateNewsData } from "@/lib/news-service";
+import { 
+    createSuccessResponse, 
+    createErrorResponse, 
+    handleApiError,
+    extractRequestBody,
+    validateRequiredFields
+} from "@/lib/api-response";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const news = await db.news.findMany({
-            orderBy: { createdAt: "desc" },
-            select: {
-                id: true,
-                title: true,
-                content: true,
-                createdAt: true,
-                images: true
-            }
-        });
+        const { searchParams } = new URL(request.url);
         
-        return new NextResponse(JSON.stringify(news), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59'
-            },
+        // Parse query parameters
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '20');
+        const search = searchParams.get('search') || undefined;
+        const sortBy = searchParams.get('sortBy') as 'createdAt' | 'title' || 'createdAt';
+        const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' || 'desc';
+
+        // Validate parameters
+        if (page < 1 || limit < 1 || limit > 100) {
+            return createErrorResponse("INVALID_PARAMETERS", 400, "Invalid pagination parameters");
+        }
+
+        const result = await NewsService.getNews({
+            page,
+            limit,
+            search,
+            sortBy,
+            sortOrder
         });
-    } catch (error) {
-        console.error("Error fetching news:", error);
-        return new NextResponse(
-            JSON.stringify({ error: "Internal Server Error" }), 
-            { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            }
+
+        return createSuccessResponse(
+            result.data,
+            200,
+            "News fetched successfully",
+            result.pagination
         );
+    } catch (error) {
+        return handleApiError(error, "GET /api/news");
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const role = await currentRole();
-
-        if (role !== UserRole.ADMIN) {
-            return new NextResponse(
-                JSON.stringify({ error: "Unauthorized" }),
-                { 
-                    status: 403,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
+        const body = await extractRequestBody<CreateNewsData>(request);
+        
+        // Validate required fields
+        const validationErrors = validateRequiredFields(body as unknown as Record<string, unknown>, ['title']);
+        if (validationErrors.length > 0) {
+            return createErrorResponse("VALIDATION_ERROR", 400, "Validation failed", { errors: validationErrors });
         }
 
-        const { title, content, images } = await req.json();
-
-        if (!title) {
-            return new NextResponse(
-                JSON.stringify({ error: "Title is required" }),
-                { 
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
-        }
-
-        const news = await db.news.create({
-            data: { title, content, images },
-            select: {
-                id: true,
-                title: true,
-                content: true,
-                createdAt: true,
-                images: true
-            }
-        });
-
-        return new NextResponse(
-            JSON.stringify(news),
-            { 
-                status: 201,
-                headers: { 'Content-Type': 'application/json' }
-            }
+        const news = await NewsService.createNews(body);
+        
+        return createSuccessResponse(
+            news,
+            201,
+            "News created successfully"
         );
     } catch (error) {
-        console.error("Error creating news:", error);
-        return new NextResponse(
-            JSON.stringify({ error: "Internal Server Error" }),
-            { 
-                status: 500,
-                headers: { 'Content-Type': 'application/json' }
-            }
-        );
+        return handleApiError(error, "POST /api/news");
     }
 }
 

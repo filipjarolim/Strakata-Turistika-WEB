@@ -1,185 +1,169 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCurrentRole } from "@/hooks/use-current-role";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
-import Link from 'next/link';
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Upload, Play, Star, ArrowRight, MapPin, Trophy, Users, Calendar } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Upload, Play, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from "@/lib/utils";
+import UploadStep from './steps/UploadStep';
+import EditStep from './steps/EditStep';
+import FinishStep from './steps/FinishStep';
+
+type Step = 'home' | 'upload' | 'edit' | 'finish';
 
 const Page = () => {
   const user = useCurrentUser();
   const role = useCurrentRole();
+  const [currentStep, setCurrentStep] = useState<Step>('home');
+  const [uploadedRouteId, setUploadedRouteId] = useState<string | null>(null);
+
+  const handleStartUpload = () => {
+    setCurrentStep('upload');
+  };
+
+  const handleBackToHome = () => {
+    setCurrentStep('home');
+    setUploadedRouteId(null);
+  };
+
+  const handleUploadComplete = (routeId: string) => {
+    setUploadedRouteId(routeId);
+    setCurrentStep('edit');
+  };
+
+  const handleEditComplete = () => {
+    setCurrentStep('finish');
+  };
+
+  const handleFinishComplete = () => {
+    // Navigate to results or home
+    setCurrentStep('home');
+    setUploadedRouteId(null);
+  };
 
   return (
     <CommonPageTemplate 
-      contents={{header: true}} 
-      headerMode='auto-hide'
+      contents={{header: false, bugreport: false}} 
       currentUser={user} 
-      currentRole={role} 
+      currentRole={role}
+      className="!px-0"
     >
-      <div className="h-screen overflow-hidden p-3 sm:p-4 md:p-6">
-        <div className="h-full flex flex-col max-w-7xl mx-auto">
-          {/* Main Content Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-full"
-          >
-            {/* Nahrát trasu karta */}
-            <Link href="/soutez/nahrat" className="block h-full">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="h-full"
-              >
-                <Card className="h-full flex flex-col group hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/30 bg-gradient-to-br from-blue-50/50 to-white">
-                  <CardContent className="flex flex-col items-center justify-center flex-1 p-4 sm:p-6 lg:p-8">
-                    <motion.div
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                      className="flex items-center justify-center w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 mb-4 relative"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
-                      <div className="absolute inset-2 bg-gradient-to-br from-blue-200 to-blue-300 rounded-full opacity-20 group-hover:opacity-30 transition-opacity duration-300" />
-                      <Image
-                        src="/icons/soutez/3.png"
-                        alt="Nahrát trasu"
-                        width={160}
-                        height={160}
-                        className="object-contain relative z-10 group-hover:scale-110 transition-transform duration-300"
-                      />
-                    </motion.div>
-                    
-                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 text-center group-hover:text-primary transition-colors">
-                      Nahrát trasu
-                    </h2>
-                    <p className="text-gray-600 mb-4 text-center text-sm sm:text-base max-w-sm">
-                      Nahrajte svou trasu z GPS zařízení a získejte body za své návštěvy
-                    </p>
-                    
-                    <Button 
-                      size="lg" 
-                      className="w-full max-w-sm text-base py-4 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-lg group-hover:shadow-xl mb-4"
-                    >
-                      Pokračovat
-                      <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
+      <div className="relative min-h-screen flex items-center p-6 lg:p-12">
+        {/* Background Image - non-copyable */}
+        <div className="absolute inset-0 w-full h-full -z-10 select-none pointer-events-none">
+          <Image
+            src="/images/soutezBackground.png"
+            alt="Soutěž pozadí"
+            fill
+            className="object-cover select-none pointer-events-none"
+            priority
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+          <div className="absolute inset-0 bg-black/30"></div>
+        </div>
 
-                    {/* Informační kontejnery */}
-                    <div className="grid grid-cols-1 gap-3 w-full max-w-sm">
-                      <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg group-hover:bg-blue-100/50 transition-colors">
-                        <Upload className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">GPS soubory</div>
-                          <div className="text-gray-600">GPX, KML, FIT formáty</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg group-hover:bg-blue-100/50 transition-colors">
-                        <Trophy className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Automatické body</div>
-                          <div className="text-gray-600">Za délku a zajímavost</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg group-hover:bg-blue-100/50 transition-colors">
-                        <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Okamžité zobrazení</div>
-                          <div className="text-gray-600">Trasa na mapě ihned</div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Link>
-
-            {/* Google Play Widget */}
+        {/* Content */}
+        <AnimatePresence mode="wait">
+          {currentStep === 'home' ? (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="h-full"
+              key="home"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="relative z-10 w-full max-w-[60%] space-y-6"
             >
-              <Card className="h-full group hover:shadow-2xl transition-all duration-300 border-2 hover:border-green-300 bg-gradient-to-br from-green-50/50 to-white">
-                <CardContent className="h-full flex flex-col justify-center p-4 sm:p-6 lg:p-8">
-                  <div className="flex flex-col items-center text-center">
-                    <motion.div
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.5 }}
-                      className="relative mb-4"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-green-200 rounded-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
-                      <div className="absolute inset-2 bg-gradient-to-br from-green-200 to-green-300 rounded-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-300" />
-                      <Image
-                        src="/icons/icon-512x512.png"
-                        alt="Strakatá Turistika"
-                        width={100}
-                        height={100}
-                        className="rounded-3xl relative z-10 group-hover:scale-110 transition-transform duration-300"
-                      />
-                    </motion.div>
-                    
-                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">
-                      Strakatá Turistika
-                    </h3>
-                    <p className="text-gray-600 mb-4 text-sm sm:text-base max-w-sm">
-                      Stáhněte si naši mobilní aplikaci pro lepší zážitek z turistiky
-                    </p>
-                    
-                    <a
-                      href="https://play.google.com/store/apps/details?id=cz.strakata.turistika.strakataturistikaandroidapp"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full max-w-sm"
-                    >
-                      <Button 
-                        size="lg" 
-                        className="w-full bg-green-600 hover:bg-green-700 text-white group-hover:scale-105 transition-all duration-300 shadow-lg group-hover:shadow-xl text-base py-4 mb-4"
-                      >
-                        <Play className="h-5 w-5 mr-2" />
-                        Stáhnout z Google Play
-                      </Button>
-                    </a>
+              <div className="mb-8">
+                <h1 className="text-4xl font-bold text-white mb-4 drop-shadow-lg">Soutěžte ve Strakaté Turistice</h1>
+                <p className="text-lg text-white/90 drop-shadow-md">Vyberte si, jak chcete pokračovat</p>
+              </div>
 
-                    {/* Informační kontejnery */}
-                    <div className="grid grid-cols-1 gap-3 w-full max-w-sm">
-                      <div className="flex items-center gap-3 p-3 bg-green-50/50 rounded-lg group-hover:bg-green-100/50 transition-colors">
-                        <Play className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Offline režim</div>
-                          <div className="text-gray-600">Funguje bez internetu</div>
+              <div className="space-y-6">
+                {/* Nahrát trasu button */}
+                <div 
+                  onClick={handleStartUpload} 
+                  className="block w-full text-left cursor-pointer"
+                >
+                  <div className="p-8 bg-black/60 backdrop-blur-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 border border-white/20 hover:border-white/40 hover:bg-black/70">
+                    <div className="flex items-center gap-6">
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center border border-blue-400/30">
+                          <Upload className="h-8 w-8 text-blue-400" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-green-50/50 rounded-lg group-hover:bg-green-100/50 transition-colors">
-                        <Calendar className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Synchronizace</div>
-                          <div className="text-gray-600">Data se ukládají do cloudu</div>
-                        </div>
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-white mb-2">Nahrát trasu</h2>
+                        <p className="text-gray-300">Nahrajte svou GPS trasu a získejte body za své návštěvy</p>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-green-50/50 rounded-lg group-hover:bg-green-100/50 transition-colors">
-                        <Users className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900">Komunita</div>
-                          <div className="text-gray-600">Sdílejte s ostatními</div>
-                        </div>
+                      <div className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+                        Pokračovat
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-4 py-4">
+                  <div className="flex-1 h-px bg-white/20"></div>
+                  <span className="text-white/70 text-sm font-medium px-4">nebo vyzkoušejte naši aplikaci</span>
+                  <div className="flex-1 h-px bg-white/20"></div>
+                </div>
+
+                {/* Google Play Badge */}
+                <a 
+                  href="https://play.google.com/store/apps/details?id=cz.strakata.turistika.strakataturistikaandroidapp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Image 
+                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                    alt="Get it on Google Play"
+                    width={155}
+                    height={60}
+                    className="h-20 w-auto"
+                  />
+                </a>
+              </div>
             </motion.div>
-          </motion.div>
-        </div>
+          ) : (
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="relative z-10 w-full max-w-[90%] space-y-6"
+            >
+              {/* Back button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToHome}
+                className="text-white hover:bg-white/10 mb-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Zpět
+              </Button>
+
+              {/* Step content */}
+              {currentStep === 'upload' && user && (
+                <UploadStep onComplete={handleUploadComplete} user={user} />
+              )}
+              {currentStep === 'edit' && uploadedRouteId && user && (
+                <EditStep routeId={uploadedRouteId} onComplete={handleEditComplete} user={user} />
+              )}
+              {currentStep === 'finish' && uploadedRouteId && user && (
+                <FinishStep routeId={uploadedRouteId} onComplete={handleFinishComplete} user={user} />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </CommonPageTemplate>
   );

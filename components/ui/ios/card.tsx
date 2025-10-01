@@ -13,6 +13,8 @@ interface IOSCardProps extends React.HTMLAttributes<HTMLDivElement> {
   headerClassName?: string;
   contentClassName?: string;
   footerClassName?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
 }
 
 export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
@@ -28,6 +30,8 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
     headerClassName,
     contentClassName,
     footerClassName,
+    titleClassName,
+    subtitleClassName,
     children, 
     ...props 
   }, ref) => {
@@ -45,7 +49,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
     );
 
     const iconStyles = cn(
-      "w-6 h-6 sm:w-7 sm:h-7",
+      "w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center",
       iconColor
     );
 
@@ -75,12 +79,18 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
             )}
             <div className="flex-1 min-w-0">
               {title && (
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                <h3 className={cn(
+                  "text-xl sm:text-2xl font-bold mb-2",
+                  titleClassName || "text-gray-900"
+                )}>
                   {title}
                 </h3>
               )}
               {subtitle && (
-                <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                <p className={cn(
+                  "text-sm line-clamp-2 leading-relaxed",
+                  subtitleClassName || "text-gray-600"
+                )}>
                   {subtitle}
                 </p>
               )}

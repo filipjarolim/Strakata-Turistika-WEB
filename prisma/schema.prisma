@@ -6,6 +6,8 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
 }
 
 datasource db {
@@ -30,7 +32,7 @@ model User {
   id                    String                 @id @default(cuid()) @map("_id")
   name                  String?
   email                 String?                @unique
-  emailVerified         DateTime?
+  emailVerified         Json?                  // Using Json to handle mixed DateTime/String types
   image                 String?
   password              String?
   role                  UserRole               @default(UZIVATEL)

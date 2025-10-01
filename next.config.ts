@@ -3,7 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
     experimental: {
         optimizePackageImports: ["lucide-react"],
+        turbo: {
+            rules: {
+                '*.node': {
+                    loaders: ['file-loader'],
+                    as: '*.js'
+                }
+            }
+        }
     },
+    serverExternalPackages: ['@prisma/client', 'prisma'],
         images: {
         remotePatterns: [
             {
@@ -122,7 +131,17 @@ const nextConfig: NextConfig = {
             };
         }
         
-
+        // Ignore Prisma WASM files
+        config.resolve.alias = {
+            ...config.resolve.alias,
+            './query_engine_bg.js': false,
+            './query_engine_bg.wasm': false,
+            './query_engine_bg.wasm?module': false,
+        };
+        
+        // Ignore WASM files in module resolution
+        config.resolve.extensions = config.resolve.extensions || [];
+        config.resolve.extensions = config.resolve.extensions.filter((ext: string) => ext !== '.wasm');
         
         return config;
     },

@@ -9,6 +9,7 @@ import { Camera, Upload, X, Loader2, Plus } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { compressImage, validateImageFile, formatFileSize } from "@/lib/image-compression";
 
 export interface ImageSource {
   url: string;
@@ -55,15 +56,28 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
+
     setIsUploading(true);
     try {
-      await onUpload(file, title || file.name);
+      // Compress image before upload
+      console.log(`Original file size: ${formatFileSize(file.size)}`);
+      const compressedResult = await compressImage(file);
+      console.log(`Compressed file size: ${formatFileSize(compressedResult.compressedSize)} (${compressedResult.compressionRatio}% reduction)`);
+      
+      await onUpload(compressedResult.file, title || file.name);
       setTitle("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     } catch (error) {
       console.error("Upload failed:", error);
+      alert("Nahrávání se nezdařilo. Zkuste to prosím znovu.");
     } finally {
       setIsUploading(false);
     }

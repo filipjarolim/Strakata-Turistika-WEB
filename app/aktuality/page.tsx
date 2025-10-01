@@ -2,7 +2,9 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import News from "@/components/blocks/News";
 import { currentUser, currentRole } from "@/lib/auth";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
-import { Newspaper } from "lucide-react";
+import { Newspaper, Plus, Settings } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default async function AktualityPage() {
     const user = await currentUser();
@@ -11,32 +13,41 @@ export default async function AktualityPage() {
     return (
         <CommonPageTemplate 
             contents={{header: true}}
-            headerMode="fixed"
+            headerMode="auto-hide"
             currentUser={user}
             currentRole={role}
-            showHeaderGap={false} // disables the header gap so blue goes behind header
         >
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
-                {/* Hero Section */}
-                <div className="relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-100/60 to-indigo-100/60" />
-                    <div className="relative max-w-4xl mx-auto px-3 sm:px-4 md:px-8 pt-12 sm:pt-16 pb-8 sm:pb-10 flex flex-col items-center">
-                        <IOSCircleIcon variant="blue" size="lg" className="mb-4 sm:mb-6 shadow-lg">
-                            <Newspaper className="w-8 h-8 sm:w-10 sm:h-10" />
-                        </IOSCircleIcon>
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 text-center mb-3 sm:mb-4 drop-shadow-sm">
-                            Aktuality
-                        </h1>
-                        <p className="text-base sm:text-lg md:text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed text-center px-2">
-                            Sledujte nejnovější zprávy a události ze světa Strakaté turistiky.
-                            <br className="hidden sm:block" />
-                            <span className="block sm:inline"> Zůstaňte informováni o soutěžích, novinkách a zajímavostech.</span>
-                        </p>
+            <div className="w-full">
+                {/* Header Section */}
+                <div className="p-3 sm:p-4 md:p-6">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4 max-w-7xl mx-auto">
+                        <div className="flex items-center gap-3">
+                            <IOSCircleIcon variant="blue" size="lg" className="shadow-lg">
+                                <Newspaper className="w-8 h-8" />
+                            </IOSCircleIcon>
+                            <div>
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">Aktuality</h1>
+                                <p className="text-sm sm:text-base text-muted-foreground mt-1">Sledujte nejnovější zprávy a události</p>
+                            </div>
+                        </div>
+                        
+                        {/* Admin Actions */}
+                        {role === "ADMIN" && (
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <Link href="/admin/News">
+                                    <Button variant="outline" className="flex items-center gap-2 flex-1 sm:flex-none" size="sm">
+                                        <Settings className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Správa</span>
+                                        <span className="sm:hidden">Admin</span>
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* News Content */}
-                <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 lg:px-0 pb-16 sm:pb-24">
+                {/* News Content - Full Width */}
+                <div className="w-full">
                     <News standalone />
                 </div>
             </div>

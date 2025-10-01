@@ -104,10 +104,8 @@ export const IOSTextarea = ({
                 .ProseMirror {
                     min-height: 100px;
                     padding: 0.75rem 1rem;
-                    background: rgba(255,255,255,0.5);
-                    backdrop-filter: blur(4px);
+                    background: transparent;
                     border-radius: 0.75rem;
-                    box-shadow: 0 1px 2px 0 rgb(16 24 40 / 5%);
                     border: none;
                 }
                 
@@ -201,7 +199,8 @@ export const IOSTextarea = ({
                 .ProseMirror p.is-editor-empty:first-child::before {
                     content: attr(data-placeholder);
                     float: left;
-                    color: #9ca3af;
+                    color: inherit;
+                    opacity: 0.4;
                     pointer-events: none;
                     height: 0;
                 }

@@ -5,8 +5,8 @@ import { IOSCard } from "@/components/ui/ios/card";
 import { IOSButton } from "@/components/ui/ios/button";
 import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSImageShowcase } from "@/components/ui/ios/image-showcase";
-import { ImageUpload, ImageSource } from "@/components/ui/ios/image-upload";
-import { IOSTextarea } from "@/components/ui/ios/textarea";
+import { EnhancedImageUpload, ImageSource } from "@/components/ui/ios/enhanced-image-upload";
+import { RichTextEditor } from "@/components/ui/ios/rich-text-editor";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Trash, Pencil, Plus, Loader2, Calendar, Clock } from "lucide-react";
@@ -51,10 +51,18 @@ export default function News({ showHeader = true, showAddButton = true, standalo
             setIsLoading(true);
             const res = await fetch("/api/news");
             if (!res.ok) {
-                throw new Error(`Error: ${res.status}`);
+                const errorData = await res.json();
+                throw new Error(errorData.message || `Error: ${res.status}`);
             }
-            const data: NewsItem[] = await res.json();
-            setNews(data);
+            const response = await res.json();
+            
+            // Handle new API response format
+            if (response.success && response.data) {
+                setNews(response.data);
+            } else {
+                // Fallback for old format
+                setNews(Array.isArray(response) ? response : []);
+            }
         } catch (error) {
             console.error("Error fetching news:", error);
             toast.error("Nepodařilo se načíst aktuality");
@@ -77,10 +85,8 @@ export default function News({ showHeader = true, showAddButton = true, standalo
             });
 
             if (!response.ok) {
-                if (response.status === 403) {
-                    throw new Error("Unauthorized");
-                }
-                throw new Error(`Error: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Error: ${response.status}`);
             }
 
             await fetchNews();
@@ -92,8 +98,14 @@ export default function News({ showHeader = true, showAddButton = true, standalo
             toast.success(editId ? "Aktualita byla upravena" : "Aktualita byla přidána");
         } catch (error) {
             console.error("Error submitting news:", error);
-            if (error instanceof Error && error.message === "Unauthorized") {
-                toast.error("Nemáte oprávnění k této akci");
+            if (error instanceof Error) {
+                if (error.message.includes("Unauthorized")) {
+                    toast.error("Nemáte oprávnění k této akci");
+                } else if (error.message.includes("Validation failed")) {
+                    toast.error("Chyba ve formuláři: " + error.message);
+                } else {
+                    toast.error(error.message || "Něco se pokazilo");
+                }
             } else {
                 toast.error("Něco se pokazilo");
             }
@@ -106,17 +118,19 @@ export default function News({ showHeader = true, showAddButton = true, standalo
         try {
             const response = await fetch(`/api/news/${id}`, { method: "DELETE" });
             if (!response.ok) {
-                if (response.status === 403) {
-                    throw new Error("Unauthorized");
-                }
-                throw new Error(`Error: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Error: ${response.status}`);
             }
             await fetchNews();
             toast.success("Aktualita byla smazána");
         } catch (error) {
             console.error("Error deleting news:", error);
-            if (error instanceof Error && error.message === "Unauthorized") {
-                toast.error("Nemáte oprávnění k této akci");
+            if (error instanceof Error) {
+                if (error.message.includes("Unauthorized")) {
+                    toast.error("Nemáte oprávnění k této akci");
+                } else {
+                    toast.error(error.message || "Něco se pokazilo");
+                }
             } else {
                 toast.error("Něco se pokazilo");
             }
@@ -268,6 +282,7 @@ export default function News({ showHeader = true, showAddButton = true, standalo
                                                             setOpen(true);
                                                         }}
                                                         className="bg-black text-white px-4 py-2 text-sm rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+                                                        title="Rychlá úprava"
                                                     >
                                                         <Pencil className="w-4 h-4" />
                                                     </button>
@@ -279,6 +294,7 @@ export default function News({ showHeader = true, showAddButton = true, standalo
                                                             handleDelete(item.id);
                                                         }}
                                                         className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                                                        title="Smazat aktualitu"
                                                     >
                                                         <Trash className="w-4 h-4" />
                                                     </button>
@@ -401,6 +417,7 @@ export default function News({ showHeader = true, showAddButton = true, standalo
                                                             setOpen(true);
                                                         }}
                                                         className="bg-black text-white px-4 py-2 text-sm rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+                                                        title="Rychlá úprava"
                                                     >
                                                         <Pencil className="w-4 h-4" />
                                                     </button>
@@ -412,6 +429,7 @@ export default function News({ showHeader = true, showAddButton = true, standalo
                                                             handleDelete(item.id);
                                                         }}
                                                         className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                                                        title="Smazat aktualitu"
                                                     >
                                                         <Trash className="w-4 h-4" />
                                                     </button>
@@ -464,11 +482,10 @@ export default function News({ showHeader = true, showAddButton = true, standalo
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Obsah
                             </label>
-                            <IOSTextarea
+                            <RichTextEditor
                                 value={content}
                                 onChange={setContent}
                                 placeholder="Zadejte obsah aktuality..."
-                                className="min-h-[200px]"
                             />
                         </div>
                         
@@ -476,7 +493,7 @@ export default function News({ showHeader = true, showAddButton = true, standalo
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Obrázky
                             </label>
-                            <ImageUpload
+                            <EnhancedImageUpload
                                 sources={images}
                                 onUpload={handleImageUpload}
                                 onDelete={handleImageDelete}

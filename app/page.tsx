@@ -30,17 +30,17 @@ const benefits = [
     {
         title: "Objevujte nov&aacute; m&iacute;sta",
         description: "Prozkoumejte nezn&aacute;m&aacute; m&iacute;sta s vaš&iacute;m ps&iacute;m parť&aacute;kem.",
-        icon: <MapPin className="w-10 h-10 text-amber-500" />
+        icon: <MapPin className="w-10 h-10" style={{ color: '#4CAF50' }} />
     },
     {
         title: "Pl&aacute;nujte v&yacute;lety",
         description: "Jednoduše napl&aacute;nujte a zaznamenejte vaše dobrodružstv&iacute;.",
-        icon: <Calendar className="w-10 h-10 text-amber-500" />
+        icon: <Calendar className="w-10 h-10" style={{ color: '#4CAF50' }} />
     },
     {
         title: "Z&iacute;skejte odměny",
         description: "Sb&iacute;rejte body a z&iacute;skejte oceněn&iacute; za vaše cesty.",
-        icon: <Award className="w-10 h-10 text-amber-500" />
+        icon: <Award className="w-10 h-10" style={{ color: '#4CAF50' }} />
     }
 ];
 
@@ -56,7 +56,7 @@ const Home = async () => {
     const role = await currentRole()
 
     return (
-        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showHeaderGap={true} className='p-0'>
+        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showHeaderGap={false} className='p-0'>
             {/* Hero Section with Background Image */}
             <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] overflow-visible">
                 {/* Background Image */}

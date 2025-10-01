@@ -113,18 +113,18 @@ const Header = ({
         }
         if (isScrolled) {
             return {
-                background: 'rgba(255, 255, 255, 0.90)',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: '1px solid rgba(0, 0, 0, 0.08)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03)'
+                background: 'rgba(255, 255, 255, 0.50)',
+                backdropFilter: 'blur(32px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(32px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.02)'
             };
         }
         return {
-            background: 'rgba(255, 255, 255, 0.85)',
-            backdropFilter: 'blur(16px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            background: 'rgba(255, 255, 255, 0.40)',
+            backdropFilter: 'blur(28px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             boxShadow: 'none'
         };
     };

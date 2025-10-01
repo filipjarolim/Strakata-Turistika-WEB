@@ -3,6 +3,14 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 type DynamicFormProps = {
     initialData: { [key: string]: string | number | boolean | object | null };
@@ -85,82 +93,183 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
     };
 
     return (
-        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-6 bg-white shadow-lg rounded-lg space-y-6">
-            {Object.entries(formData).map(([key, value]) => {
-                // Do not allow editing of the primary key.
-                if (key === "id") {
-                    return (
-                        <div key={key} className="flex flex-col">
-                            <label className="mb-1 font-semibold text-gray-700">{key}</label>
-                            <input
-                                type="text"
-                                name={key}
-                                value={String(value)}
-                                readOnly
-                                className="border p-2 bg-gray-100 cursor-not-allowed rounded"
-                            />
+        <div className="max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-2xl font-bold">
+                                Editovat {collection} záznam
+                            </CardTitle>
+                            <div className="text-muted-foreground mt-1">
+                                ID: <Badge variant="outline" className="font-mono text-xs">{recordId}</Badge>
+                            </div>
                         </div>
-                    );
-                }
-
-                // Determine input type based on the value.
-                let inputType = "text";
-                if (typeof value === "number") {
-                    inputType = "number";
-                } else if (typeof value === "boolean") {
-                    inputType = "checkbox";
-                } else if (key.toLowerCase().includes("email")) {
-                    inputType = "email";
-                } else if (isISODate(value)) {
-                    inputType = "date";
-                    // Format the date for the input element (yyyy-MM-dd).
-                    value = typeof value === 'string' ? new Date(value).toISOString().substring(0, 10) : '';
-                } else if (typeof value === "object" && value !== null) {
-                    // For JSON objects, use a textarea.
-                    return (
-                        <div key={key} className="flex flex-col">
-                            <label className="mb-1 font-semibold text-gray-700">{key} (JSON)</label>
-                            <textarea
-                                name={key}
-                                defaultValue={JSON.stringify(value, null, 2)}
-                                onChange={(e) => handleJSONChange(e, key)}
-                                className="border p-2 font-mono h-32 rounded"
-                            />
-                        </div>
-                    );
-                }
-
-                return (
-                    <div key={key} className="flex flex-col">
-                        <label className="mb-1 font-semibold text-gray-700">{key}</label>
-                        {inputType === "checkbox" ? (
-                            <input
-                                type={inputType}
-                                name={key}
-                                checked={Boolean(value)}
-                                onChange={handleChange}
-                                className="h-5 w-5"
-                            />
-                        ) : (
-                            <input
-                                type={inputType}
-                                name={key}
-                                value={typeof value === 'boolean' ? (value ? 'true' : 'false') : String(value ?? '')}
-                                onChange={handleChange}
-                                className="border p-2 rounded"
-                            />
-                        )}
+                        <Link href={`/admin/${collection}`}>
+                            <Button variant="outline" size="sm">
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Zpět na seznam
+                            </Button>
+                        </Link>
                     </div>
-                );
-            })}
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
-            >
-                {loading ? "Updating..." : "Update Record"}
-            </button>
-        </form>
+                </CardHeader>
+            </Card>
+
+            {/* Form */}
+            <Card>
+                <CardContent className="p-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {Object.entries(formData).map(([key, value]) => {
+                            // Do not allow editing of the primary key.
+                            if (key === "id") {
+                                return (
+                                    <div key={key} className="space-y-2">
+                                        <Label className="text-sm font-medium">{key}</Label>
+                                        <Input
+                                            type="text"
+                                            name={key}
+                                            value={String(value)}
+                                            readOnly
+                                            className="bg-muted cursor-not-allowed"
+                                        />
+                                    </div>
+                                );
+                            }
+
+                            // Special handling for News collection
+                            if (collection === 'News') {
+                                if (key === 'title') {
+                                    return (
+                                        <div key={key} className="space-y-2">
+                                            <Label className="text-sm font-medium">Název aktuality</Label>
+                                            <Input
+                                                name={key}
+                                                value={String(value ?? '')}
+                                                onChange={handleChange}
+                                                placeholder="Zadejte název aktuality"
+                                                className="text-lg font-medium"
+                                            />
+                                        </div>
+                                    );
+                                }
+                                
+                                if (key === 'content') {
+                                    return (
+                                        <div key={key} className="space-y-2">
+                                            <Label className="text-sm font-medium">Obsah aktuality</Label>
+                                            <Textarea
+                                                name={key}
+                                                value={String(value ?? '')}
+                                                onChange={handleChange}
+                                                placeholder="Zadejte obsah aktuality..."
+                                                className="min-h-[200px] resize-y"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                Podporuje HTML značky pro formátování
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                
+                                if (key === 'images') {
+                                    return (
+                                        <div key={key} className="space-y-2">
+                                            <Label className="text-sm font-medium">Obrázky</Label>
+                                            <Textarea
+                                                name={key}
+                                                defaultValue={JSON.stringify(value, null, 2)}
+                                                onChange={(e) => handleJSONChange(e, key)}
+                                                placeholder="JSON pole s obrázky..."
+                                                className="min-h-[100px] font-mono text-xs"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                JSON pole s obrázky - upravte pouze pokud víte, co děláte
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                            }
+
+                            // Determine input type based on the value.
+                            let inputType = "text";
+                            if (typeof value === "number") {
+                                inputType = "number";
+                            } else if (typeof value === "boolean") {
+                                inputType = "checkbox";
+                            } else if (key.toLowerCase().includes("email")) {
+                                inputType = "email";
+                            } else if (isISODate(value)) {
+                                inputType = "date";
+                                // Format the date for the input element (yyyy-MM-dd).
+                                value = typeof value === 'string' ? new Date(value).toISOString().substring(0, 10) : '';
+                            } else if (typeof value === "object" && value !== null) {
+                                // For JSON objects, use a textarea.
+                                return (
+                                    <div key={key} className="space-y-2">
+                                        <Label className="text-sm font-medium">{key} (JSON)</Label>
+                                        <Textarea
+                                            name={key}
+                                            defaultValue={JSON.stringify(value, null, 2)}
+                                            onChange={(e) => handleJSONChange(e, key)}
+                                            className="min-h-[120px] font-mono text-xs"
+                                        />
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div key={key} className="space-y-2">
+                                    <Label className="text-sm font-medium">{key}</Label>
+                                    {inputType === "checkbox" ? (
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type={inputType}
+                                                name={key}
+                                                checked={Boolean(value)}
+                                                onChange={handleChange}
+                                                className="h-4 w-4 rounded border-gray-300"
+                                            />
+                                            <span className="text-sm text-muted-foreground">
+                                                {Boolean(value) ? "Ano" : "Ne"}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            type={inputType}
+                                            name={key}
+                                            value={typeof value === 'boolean' ? (value ? 'true' : 'false') : String(value ?? '')}
+                                            onChange={handleChange}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
+                        
+                        <div className="flex justify-end gap-3 pt-6 border-t">
+                            <Link href={`/admin/${collection}`}>
+                                <Button type="button" variant="outline">
+                                    Zrušit
+                                </Button>
+                            </Link>
+                            <Button type="submit" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Ukládám...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Uložit změny
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 
