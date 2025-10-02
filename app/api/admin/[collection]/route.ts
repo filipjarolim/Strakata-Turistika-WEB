@@ -231,4 +231,82 @@ export async function GET(
         console.error("Admin API: Error fetching records:", error);
         return new NextResponse(`Internal Server Error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
     }
+}
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ collection: string }> }
+) {
+    try {
+        const role = await currentRole();
+        if (role !== UserRole.ADMIN) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        const { collection } = await params;
+        const body = await request.json();
+        const { ids } = body as { ids: string[] };
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return NextResponse.json({ error: "No IDs provided" }, { status: 400 });
+        }
+
+        console.log(`Bulk deleting ${ids.length} records from collection ${collection}`);
+
+        let deletedCount = 0;
+
+        // Delete records based on collection
+        switch (collection) {
+            case "User":
+                const userResult = await db.user.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = userResult.count;
+                break;
+            case "Account":
+                const accountResult = await db.account.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = accountResult.count;
+                break;
+            case "VerificationToken":
+                const verificationResult = await db.verificationToken.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = verificationResult.count;
+                break;
+            case "PasswordResetToken":
+                const passwordResetResult = await db.passwordResetToken.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = passwordResetResult.count;
+                break;
+            case "TwoFactorToken":
+                const twoFactorTokenResult = await db.twoFactorToken.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = twoFactorTokenResult.count;
+                break;
+            case "TwoFactorConfirmation":
+                const twoFactorConfirmationResult = await db.twoFactorConfirmation.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = twoFactorConfirmationResult.count;
+                break;
+            case "News":
+                const newsResult = await db.news.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = newsResult.count;
+                break;
+            case "Season":
+                const seasonResult = await db.season.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = seasonResult.count;
+                break;
+            case "VisitData":
+                const visitDataResult = await db.visitData.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = visitDataResult.count;
+                break;
+            default:
+                return NextResponse.json({ error: `Unknown collection: ${collection}` }, { status: 400 });
+        }
+
+        return NextResponse.json({ 
+            success: true, 
+            message: `Successfully deleted ${deletedCount} record(s)`,
+            deletedCount 
+        });
+    } catch (error: unknown) {
+        console.error("Error bulk deleting records:", error);
+        if (error instanceof Error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        return NextResponse.json({ error: "Unknown error" }, { status: 500 });
+    }
 } 

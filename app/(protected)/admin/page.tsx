@@ -77,14 +77,14 @@ const AdminDashboardPage = () => {
     useEffect(() => {
         const loadStats = async () => {
             try {
-                const response = await fetch('/api/admin/VisitData?limit=1');
+                const response = await fetch('/api/admin/stats');
                 if (response.ok) {
                     const data = await response.json();
                     setVisitDataStats({
                         total: data.total || 0,
-                        pending: 0, // We'll need a separate endpoint for this
-                        approved: 0,
-                        rejected: 0
+                        pending: data.pending || 0,
+                        approved: data.approved || 0,
+                        rejected: data.rejected || 0
                     });
                 }
             } catch (error) {

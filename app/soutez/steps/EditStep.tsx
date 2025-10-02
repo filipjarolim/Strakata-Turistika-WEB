@@ -186,10 +186,10 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Upravit trasu</h2>
-        <p className="text-white/90">Přidejte detaily a fotky k vaší trase</p>
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+      <div className="mb-4 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Upravit trasu</h2>
+        <p className="text-sm sm:text-base text-white/90">Přidejte detaily a fotky k vaší trase</p>
       </div>
 
       {error && (
@@ -212,7 +212,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
         titleClassName="text-white"
         subtitleClassName="text-white/70"
       >
-        <div className="h-96 sm:h-[32rem] md:h-[40rem]">
+        <div className="h-56 sm:h-80 md:h-96 lg:h-[32rem] xl:h-[40rem]">
           {route.track.length > 0 && (
             <DynamicGpxEditor
               initialTrack={downsampleTrack(route.track)}
@@ -224,7 +224,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
         </div>
       </IOSCard>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-2">
         {/* Details Card */}
         <IOSCard
           title="Detaily trasy"
@@ -237,7 +237,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <IOSTextInput
               label="Čas (hodiny)"
               placeholder="Např. 2.5"
@@ -259,7 +259,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
               dark
             />
 
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               <label className="text-sm font-medium text-white/90">Datum absolvování</label>
               <IOSCalendar
                 selectedDate={visitDate}

@@ -197,12 +197,12 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
                                 inputType = "number";
                             } else if (typeof value === "boolean") {
                                 inputType = "checkbox";
-                            } else if (key.toLowerCase().includes("email")) {
-                                inputType = "email";
                             } else if (isISODate(value)) {
                                 inputType = "date";
                                 // Format the date for the input element (yyyy-MM-dd).
                                 value = typeof value === 'string' ? new Date(value).toISOString().substring(0, 10) : '';
+                            } else if (key.toLowerCase().includes("email") && !key.toLowerCase().includes("verified")) {
+                                inputType = "email";
                             } else if (typeof value === "object" && value !== null) {
                                 // For JSON objects, use a textarea.
                                 return (

@@ -197,10 +197,10 @@ export default function UploadStep({ onComplete, user }: UploadStepProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Nahrát trasu</h2>
-        <p className="text-white/90">Nahrajte soubor s GPS trasou</p>
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+      <div className="mb-4 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Nahrát trasu</h2>
+        <p className="text-sm sm:text-base text-white/90">Nahrajte soubor s GPS trasou</p>
       </div>
 
       {error && (
@@ -211,7 +211,7 @@ export default function UploadStep({ onComplete, user }: UploadStepProps) {
         </Alert>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-2">
         <IOSCard
           title="Nahrát trasu"
           subtitle="Nahrajte soubor s GPS trasou (GPX, KML, TCX a další formáty)"
@@ -223,23 +223,23 @@ export default function UploadStep({ onComplete, user }: UploadStepProps) {
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center justify-center w-full">
               <label
                 htmlFor="gpx-upload"
                 className={cn(
-                  "flex flex-col items-center justify-center w-full h-48 sm:h-64 border-2 border-dashed rounded-xl cursor-pointer",
+                  "flex flex-col items-center justify-center w-full h-40 sm:h-48 md:h-64 border-2 border-dashed rounded-xl cursor-pointer",
                   "bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors",
                   "border-white/30 hover:border-blue-400/60",
                   "focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                 )}
               >
-                <div className="flex flex-col items-center justify-center pt-4 sm:pt-5 pb-4 sm:pb-6 px-2">
-                  <Upload className="w-8 h-8 sm:w-10 sm:h-10 mb-2 sm:mb-3 text-white/70" />
-                  <p className="mb-2 text-xs sm:text-sm text-white/90 text-center">
+                <div className="flex flex-col items-center justify-center pt-3 sm:pt-4 md:pt-5 pb-3 sm:pb-4 md:pb-6 px-2">
+                  <Upload className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 mb-2 sm:mb-3 text-white/70" />
+                  <p className="mb-1 sm:mb-2 text-xs sm:text-sm text-white/90 text-center">
                     <span className="font-semibold">Klikněte pro nahrání</span>
                   </p>
-                  <p className="text-[10px] sm:text-xs text-white/70 text-center leading-tight">
+                  <p className="text-[10px] sm:text-xs text-white/70 text-center leading-tight px-2">
                     GPX, KML, TCX, CSV, GeoJSON
                   </p>
                 </div>
@@ -253,9 +253,9 @@ export default function UploadStep({ onComplete, user }: UploadStepProps) {
               </label>
             </div>
             {selectedFile && (
-              <div className="text-sm text-white/90 flex items-center gap-2">
-                <MapIcon className="h-4 w-4" />
-                <span>Vybraný soubor: {selectedFile.name}</span>
+              <div className="text-xs sm:text-sm text-white/90 flex items-center gap-2 overflow-hidden">
+                <MapIcon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">Vybraný soubor: {selectedFile.name}</span>
               </div>
             )}
           </div>
@@ -273,7 +273,7 @@ export default function UploadStep({ onComplete, user }: UploadStepProps) {
             titleClassName="text-white"
             subtitleClassName="text-white/70"
           >
-            <div className="h-64 sm:h-80 md:h-96">
+            <div className="h-56 sm:h-64 md:h-80 lg:h-96">
               <DynamicGpxEditor
                 initialTrack={trackPoints}
                 onSave={() => {}}
@@ -297,7 +297,7 @@ export default function UploadStep({ onComplete, user }: UploadStepProps) {
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
               <IOSTextInput
                 label="Název trasy"

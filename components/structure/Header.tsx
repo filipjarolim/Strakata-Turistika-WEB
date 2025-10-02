@@ -156,8 +156,7 @@ const Header = ({
                     <span className="md:hidden absolute -top-1 -left-1 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
                     <span 
                         className={cn(
-                            "text-[16px] sm:text-[18px] md:text-[22px] font-bold tracking-tight transition-colors duration-200",
-                            textColor,
+                            "text-[16px] sm:text-[18px] md:text-[2  2px] font-bold tracking-tight transition-colors duration-200 text-gray-700",
                             "drop-shadow-sm"
                         )}
                     >

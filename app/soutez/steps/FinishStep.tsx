@@ -39,9 +39,9 @@ interface Route {
 }
 
 const InfoSection = ({ label, value }: { label: string; value: string | number | null | undefined }) => (
-  <div className="space-y-1">
-    <div className="text-sm text-white/70">{label}</div>
-    <div className="text-base font-medium text-white">{value || '—'}</div>
+  <div className="space-y-0.5 sm:space-y-1">
+    <div className="text-xs sm:text-sm text-white/70">{label}</div>
+    <div className="text-sm sm:text-base font-medium text-white break-words">{value || '—'}</div>
   </div>
 );
 
@@ -132,10 +132,10 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Dokončení</h2>
-        <p className="text-white/90">Zkontrolujte a odešlete vaši trasu</p>
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+      <div className="mb-4 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Dokončení</h2>
+        <p className="text-sm sm:text-base text-white/90">Zkontrolujte a odešlete vaši trasu</p>
       </div>
 
       {error && (
@@ -146,7 +146,7 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
         </Alert>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-2">
         {/* Stats Card */}
         <IOSCard
           title="Statistiky trasy"
@@ -159,7 +159,7 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <InfoSection 
               label="Vzdálenost" 
               value={`${route.extraPoints?.distance?.toFixed(2) || '0'} km`} 
@@ -191,7 +191,7 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <InfoSection 
               label="Název trasy" 
               value={route.routeTitle} 
@@ -205,12 +205,12 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
               }) : '—'} 
             />
             <div className="space-y-1">
-              <div className="text-sm text-white/70">Popis trasy</div>
-              <div className="text-base text-white whitespace-pre-wrap">
+              <div className="text-xs sm:text-sm text-white/70">Popis trasy</div>
+              <div className="text-sm sm:text-base text-white whitespace-pre-wrap break-words">
                 {route.routeDescription || '—'}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="text-sm text-white/70">Zákaz vstupu se psy:</div>
               <div className={cn(
                 "text-sm font-medium px-2 py-0.5 rounded-full",

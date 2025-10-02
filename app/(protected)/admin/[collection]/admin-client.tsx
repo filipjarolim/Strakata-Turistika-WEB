@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -23,6 +24,16 @@ import { cs } from 'date-fns/locale';
 import { useAdmin } from '@/hooks/useAdmin';
 import { LoadingSkeleton, LoadingSpinner, EmptyState, ErrorState } from '@/components/results/LoadingSkeleton';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AdminRecord {
   id: string;
@@ -38,6 +49,11 @@ export default function AdminClient() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Setup infinite scroll
   useEffect(() => {
@@ -76,6 +92,66 @@ export default function AdminClient() {
     });
   }, [state.collection, state.records.length, state.isInitialLoading, state.error]);
 
+  // Clear selection when collection changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [collection]);
+
+  // Selection handlers
+  const handleSelectRecord = (id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(state.records.map(r => r.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  // Delete handler
+  const handleDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/${collection}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete records');
+      }
+
+      // Reload data after successful deletion
+      setSelectedIds(new Set());
+      actions.onSearchChanged(state.searchQuery); // Trigger reload
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Error deleting records:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete records');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const allSelected = state.records.length > 0 && selectedIds.size === state.records.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < state.records.length;
+
   // Render individual record item
   const renderRecordItem = (record: AdminRecord) => {
     const keys = Object.keys(record).filter(key => key !== 'id');
@@ -86,18 +162,25 @@ export default function AdminClient() {
       const content = record.content ? String(record.content) : null;
       const createdAt = record.createdAt ? String(record.createdAt) : null;
       const images = record.images ? record.images : null;
+      const isSelected = selectedIds.has(record.id);
       
       return (
         <motion.div
           key={record.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+          className={`border rounded-lg p-3 sm:p-4 hover:shadow-md transition-all ${
+            isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
+          }`}
         >
           <div className="flex flex-col gap-3">
-            {/* Header with ID and actions */}
+            {/* Header with checkbox, ID and actions */}
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+                />
                 <Badge variant="outline" className="text-xs font-mono">
                   {String(record.id).slice(0, 8)}...
                 </Badge>
@@ -161,18 +244,25 @@ export default function AdminClient() {
       const dogNotAllowed = record.dogNotAllowed === 'true';
       const visitedPlaces = record.visitedPlaces ? String(record.visitedPlaces) : null;
       const visitDate = record.visitDate ? String(record.visitDate) : null;
+      const isSelected = selectedIds.has(record.id);
       
       return (
         <motion.div
           key={record.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+          className={`border rounded-lg p-3 sm:p-4 hover:shadow-md transition-all ${
+            isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
+          }`}
         >
           <div className="flex flex-col gap-3">
-            {/* Header with ID and actions */}
+            {/* Header with checkbox, ID and actions */}
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+                />
                 <Badge variant="outline" className="text-xs font-mono">
                   {String(record.id).slice(0, 8)}...
                 </Badge>
@@ -255,17 +345,25 @@ export default function AdminClient() {
     }
 
     // Default rendering for other collections
+    const isSelected = selectedIds.has(record.id);
+    
     return (
       <motion.div
         key={record.id}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+        className={`border rounded-lg p-3 sm:p-4 hover:shadow-md transition-all ${
+          isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
+        }`}
       >
         <div className="flex flex-col gap-3">
-          {/* Header with ID and actions */}
+          {/* Header with checkbox, ID and actions */}
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+              />
               <Badge variant="outline" className="text-xs font-mono">
                 {String(record.id).length > 12 ? `${String(record.id).slice(0, 12)}...` : String(record.id)}
               </Badge>
@@ -368,8 +466,36 @@ export default function AdminClient() {
               <ArrowUpDown className="h-4 w-4" />
               <span className="hidden sm:inline">Seřadit</span>
             </Button>
+            {selectedIds.size > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                className="flex items-center gap-2 flex-1 sm:flex-none"
+                size="sm"
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Smazat ({selectedIds.size})</span>
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Select All */}
+        {state.records.length > 0 && (
+          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={handleSelectAll}
+              className={someSelected ? 'data-[state=checked]:bg-blue-500' : ''}
+            />
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.size > 0 
+                ? `Vybráno: ${selectedIds.size} z ${state.records.length}`
+                : 'Vybrat vše'}
+            </span>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative">
@@ -448,6 +574,39 @@ export default function AdminClient() {
           </div>
         </ScrollArea>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Opravdu chcete smazat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Chystáte se trvale smazat {selectedIds.size} {selectedIds.size === 1 ? 'záznam' : selectedIds.size < 5 ? 'záznamy' : 'záznamů'} z databáze.
+              Tuto akci nelze vrátit zpět.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Zrušit</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Mazání...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Smazat
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
