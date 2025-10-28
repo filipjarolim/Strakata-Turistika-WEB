@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Check, MapPin, BarChart, Calendar, Send } from 'lucide-react';
+import { Check, MapPin, BarChart, Calendar, Send, Mountain, Eye, TreeDeciduous, Award } from 'lucide-react';
 import { IOSButton } from '@/components/ui/ios/button';
 import { IOSCard } from "@/components/ui/ios/card";
 import { IOSImageShowcase } from '@/components/ui/ios/image-showcase';
@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import type { Place } from '@/components/soutez/PlacesManager';
 
 interface User {
   id?: string;
@@ -24,18 +25,29 @@ interface FinishStepProps {
   user: User;
 }
 
+interface ScoringResult {
+  scoringModel: string;
+  distanceKm: number;
+  distancePoints: number;
+  placePoints: number;
+  peaks: number;
+  towers: number;
+  trees: number;
+  others: number;
+  places: string[];
+  totalPoints: number;
+  durationMinutes: number;
+}
+
 interface Route {
   id: string;
   routeTitle: string;
   routeDescription: string;
   visitDate: Date | null;
-  extraPoints?: {
-    distance: number;
-    totalAscent: number;
-    elapsedTime: number;
-    difficulty: number;
-  };
+  extraPoints?: ScoringResult;
   photos: { url: string; public_id: string; title: string }[];
+  places?: Place[];
+  points: number;
 }
 
 const InfoSection = ({ label, value }: { label: string; value: string | number | null | undefined }) => (
@@ -44,6 +56,11 @@ const InfoSection = ({ label, value }: { label: string; value: string | number |
     <div className="text-sm sm:text-base font-medium text-white break-words">{value || '—'}</div>
   </div>
 );
+
+// Helper function to safely render HTML content
+const renderHTML = (html: string) => {
+  return <div dangerouslySetInnerHTML={{ __html: html }} className="prose prose-invert max-w-none prose-p:text-white prose-p:text-sm prose-p:whitespace-pre-wrap break-words" />;
+};
 
 export default function FinishStep({ routeId, onComplete, user }: FinishStepProps) {
   const router = useRouter();
@@ -72,13 +89,10 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
           routeTitle: data.routeTitle,
           routeDescription: data.routeDescription,
           visitDate: data.visitDate ? new Date(data.visitDate) : null,
-          extraPoints: {
-            distance: data.extraPoints?.distance || 0,
-            totalAscent: data.extraPoints?.totalAscent || 0,
-            elapsedTime: data.extraPoints?.elapsedTime || 0,
-            difficulty: data.extraPoints?.difficulty || 1
-          },
-          photos: data.photos || []
+          extraPoints: data.extraPoints,
+          photos: data.photos || [],
+          places: data.places || [],
+          points: data.points || 0
         });
       } catch (err) {
         setError('Failed to load route');
@@ -91,27 +105,36 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
   }, [routeId]);
 
   const handlePublish = async () => {
-    if (!route) return;
+    if (!route) {
+      setError('Trasa nebyla nalezena');
+      return;
+    }
 
     setIsPublishing(true);
+    setError(null);
+
     try {
       const response = await fetch(`/api/visitData/${routeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          state: 'PUBLISHED'
+          state: 'PENDING_REVIEW' // Submit for admin review
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to publish route');
-      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit route for review');
+      }
+
       // Clear sessionStorage
       sessionStorage.removeItem('routeData');
       
-      // Navigate to results
+      // Navigate to results with success message
       router.push('/vysledky/moje');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish route');
+      console.error('Error publishing route:', err);
+      setError(err instanceof Error ? err.message : 'Nepodařilo se odeslat trasu. Zkuste to prosím znovu.');
     } finally {
       setIsPublishing(false);
     }
@@ -121,6 +144,32 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
+  };
+
+  const getPlaceTypeIcon = (type: string) => {
+    switch (type) {
+      case 'PEAK':
+        return <Mountain className="h-4 w-4 text-blue-400" />;
+      case 'TOWER':
+        return <Eye className="h-4 w-4 text-purple-400" />;
+      case 'TREE':
+        return <TreeDeciduous className="h-4 w-4 text-green-400" />;
+      default:
+        return <MapPin className="h-4 w-4 text-orange-400" />;
+    }
+  };
+
+  const getPlaceTypeLabel = (type: string) => {
+    switch (type) {
+      case 'PEAK':
+        return 'Vrchol';
+      case 'TOWER':
+        return 'Rozhledna';
+      case 'TREE':
+        return 'Strom';
+      default:
+        return 'Jiné';
+    }
   };
 
   if (isLoading) {
@@ -146,6 +195,83 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
         </Alert>
       )}
 
+      {/* Scoring Breakdown */}
+      <IOSCard
+        title="Bodové hodnocení"
+        subtitle="Přehled bodového hodnocení trasy"
+        icon={<Award className="h-5 w-5" />}
+        iconBackground="bg-yellow-900/40"
+        iconColor="text-yellow-300"
+        variant="elevated"
+        className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
+        titleClassName="text-white"
+        subtitleClassName="text-white/70"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <div className="text-xs text-white/70">Vzdálenost</div>
+              <div className="text-lg font-semibold text-white">
+                {route.extraPoints?.distanceKm?.toFixed(2) || '0'} km
+              </div>
+              <div className="text-sm text-green-400">
+                +{route.extraPoints?.distancePoints?.toFixed(1) || '0'} bodů
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-white/70">Čas</div>
+              <div className="text-lg font-semibold text-white">
+                {formatDuration(route.extraPoints?.durationMinutes || 0)}
+              </div>
+            </div>
+          </div>
+
+          {route.extraPoints && (route.extraPoints.peaks + route.extraPoints.towers + route.extraPoints.trees + route.extraPoints.others) > 0 && (
+            <div className="border-t border-white/10 pt-4">
+              <div className="text-sm text-white/70 mb-3">Bodovaná místa</div>
+              <div className="grid grid-cols-2 gap-3">
+                {route.extraPoints.peaks > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Mountain className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm text-white/90">{route.extraPoints.peaks}× Vrchol</span>
+                  </div>
+                )}
+                {route.extraPoints.towers > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-purple-400" />
+                    <span className="text-sm text-white/90">{route.extraPoints.towers}× Rozhledna</span>
+                  </div>
+                )}
+                {route.extraPoints.trees > 0 && (
+                  <div className="flex items-center gap-2">
+                    <TreeDeciduous className="h-4 w-4 text-green-400" />
+                    <span className="text-sm text-white/90">{route.extraPoints.trees}× Strom</span>
+                  </div>
+                )}
+                {route.extraPoints.others > 0 && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-orange-400" />
+                    <span className="text-sm text-white/90">{route.extraPoints.others}× Jiné</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-green-400 mt-3">
+                +{route.extraPoints?.placePoints?.toFixed(1) || '0'} bodů
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-medium text-white">Celkem</span>
+              <span className="text-2xl font-bold text-yellow-400">
+                {route.extraPoints?.totalPoints?.toFixed(1) || '0'} bodů
+              </span>
+            </div>
+          </div>
+        </div>
+      </IOSCard>
+
       <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-2">
         {/* Stats Card */}
         <IOSCard
@@ -162,19 +288,19 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
           <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <InfoSection 
               label="Vzdálenost" 
-              value={`${route.extraPoints?.distance?.toFixed(2) || '0'} km`} 
-            />
-            <InfoSection 
-              label="Převýšení" 
-              value={`${route.extraPoints?.totalAscent?.toFixed(0) || '0'} m`} 
+              value={`${route.extraPoints?.distanceKm?.toFixed(2) || '0'} km`} 
             />
             <InfoSection 
               label="Čas" 
-              value={formatDuration(route.extraPoints?.elapsedTime || 0)} 
+              value={formatDuration(route.extraPoints?.durationMinutes || 0)} 
             />
             <InfoSection 
-              label="Obtížnost" 
-              value={`${route.extraPoints?.difficulty || 1}/5`} 
+              label="Body" 
+              value={`${route.extraPoints?.totalPoints?.toFixed(1) || '0'} bodů`} 
+            />
+            <InfoSection 
+              label="Místa" 
+              value={route.places?.length || 0} 
             />
           </div>
         </IOSCard>
@@ -206,9 +332,7 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
             />
             <div className="space-y-1">
               <div className="text-xs sm:text-sm text-white/70">Popis trasy</div>
-              <div className="text-sm sm:text-base text-white whitespace-pre-wrap break-words">
-                {route.routeDescription || '—'}
-              </div>
+              {route.routeDescription ? renderHTML(route.routeDescription) : '—'}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-sm text-white/70">Zákaz vstupu se psy:</div>
@@ -225,14 +349,69 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
         </IOSCard>
       </div>
 
+      {/* Places */}
+      {route.places && route.places.length > 0 && (
+        <IOSCard
+          title="Bodovaná místa"
+          subtitle={`${route.places.length} ${route.places.length === 1 ? 'místo' : route.places.length < 5 ? 'místa' : 'míst'}`}
+          icon={<Mountain className="h-5 w-5" />}
+          iconBackground="bg-green-900/40"
+          iconColor="text-green-300"
+          variant="elevated"
+          className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
+          titleClassName="text-white"
+          subtitleClassName="text-white/70"
+        >
+          <div className="space-y-3">
+            {route.places.map((place) => (
+              <div key={place.id} className="border border-white/10 rounded-lg p-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getPlaceTypeIcon(place.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-white">{place.name}</span>
+                      <span className="text-xs text-white/50">{getPlaceTypeLabel(place.type)}</span>
+                    </div>
+                    {place.description && (
+                      <div className="text-sm text-white/70 mb-2">
+                        {renderHTML(place.description)}
+                      </div>
+                    )}
+                    {place.photos && place.photos.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {place.photos.slice(0, 3).map((photo) => (
+                          <img
+                            key={photo.id}
+                            src={photo.url}
+                            alt={photo.title || place.name}
+                            className="h-16 w-16 object-cover rounded-md border border-white/10"
+                          />
+                        ))}
+                        {place.photos.length > 3 && (
+                          <div className="h-16 w-16 rounded-md border border-white/10 flex items-center justify-center bg-white/5 text-xs text-white/50">
+                            +{place.photos.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </IOSCard>
+      )}
+
       {/* Photos */}
       {route.photos && route.photos.length > 0 && (
         <IOSCard
           title="Fotografie"
           subtitle={`${route.photos.length} ${route.photos.length === 1 ? 'fotka' : route.photos.length < 5 ? 'fotky' : 'fotek'}`}
           icon={<Calendar className="h-5 w-5" />}
-          iconBackground="bg-green-900/40"
-          iconColor="text-green-300"
+          iconBackground="bg-orange-900/40"
+          iconColor="text-orange-300"
           variant="elevated"
           className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
           titleClassName="text-white"

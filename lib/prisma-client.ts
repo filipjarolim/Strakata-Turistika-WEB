@@ -16,3 +16,8 @@ export const db = globalThis.prisma ?? createPrismaClient()
 if (process.env.NODE_ENV !== 'production') globalThis.prisma = db
 
 
+
+
+
+
+

@@ -70,22 +70,22 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ initialData, collection, reco
             });
             if (res.ok) {
                 toast({
-                    title: "Success",
-                    description: "Record updated successfully!",
+                    title: "Úspěch",
+                    description: "Záznam byl úspěšně aktualizován!",
                     variant: "default",
                 });
                 router.back();
             } else {
                 toast({
-                    title: "Error",
-                    description: "Error updating record",
+                    title: "Chyba",
+                    description: "Chyba při aktualizaci záznamu",
                     variant: "destructive",
                 });
             }
         } catch (error) {
             toast({
-                title: "Error",
-                description: "Network error",
+                title: "Chyba",
+                description: "Chyba sítě",
                 variant: "destructive",
             });
         }

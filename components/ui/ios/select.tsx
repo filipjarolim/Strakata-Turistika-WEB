@@ -13,6 +13,7 @@ interface IOSSelectProps {
     required?: boolean;
     name?: string;
     label?: string;
+    dark?: boolean;
 }
 
 export const IOSSelect = ({
@@ -23,7 +24,8 @@ export const IOSSelect = ({
     className,
     required,
     name,
-    label
+    label,
+    dark = false
 }: IOSSelectProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedLabel, setSelectedLabel] = useState('');
@@ -79,7 +81,9 @@ export const IOSSelect = ({
                     onClick={handleToggle}
                     className={cn(
                         "w-full h-12 px-4 rounded-xl",
-                        "bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-sm",
+                        dark 
+                            ? "bg-black/40 backdrop-blur-sm border border-white/30 hover:bg-black/50 hover:border-white/40"
+                            : "bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-sm",
                         "focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50",
                         "transition-all duration-200",
                         "flex items-center justify-between",
@@ -87,12 +91,17 @@ export const IOSSelect = ({
                         className
                     )}
                 >
-                    <span className={value ? "text-gray-900" : "text-gray-400"}>
+                    <span className={cn(
+                        dark 
+                            ? (value ? "text-white" : "text-white/60")
+                            : (value ? "text-gray-900" : "text-gray-400")
+                    )}>
                         {selectedLabel || placeholder}
                     </span>
                     <ChevronDown 
                         className={cn(
                             "w-4 h-4 transition-transform duration-200",
+                            dark ? "text-white/80" : "text-gray-600",
                             isOpen && "transform rotate-180"
                         )} 
                     />
@@ -109,7 +118,9 @@ export const IOSSelect = ({
                             className={cn(
                                 "absolute z-[99999] w-full",
                                 dropdownPosition === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2',
-                                "bg-white/95 backdrop-blur-xl",
+                                dark 
+                                    ? "bg-gray-800/95 backdrop-blur-xl border-white/30" 
+                                    : "bg-white/95 backdrop-blur-xl",
                                 "rounded-xl border shadow-lg",
                                 "max-h-[300px] overflow-y-auto",
                                 "py-2"
@@ -129,9 +140,11 @@ export const IOSSelect = ({
                                     }}
                                     className={cn(
                                         "w-full px-4 py-2 text-left",
-                                        "hover:bg-gray-100/50",
+                                        dark
+                                            ? "text-white hover:bg-white/10"
+                                            : "text-gray-900 hover:bg-gray-100/50",
                                         "transition-colors duration-200",
-                                        value === option.value && "bg-gray-100/50"
+                                        value === option.value && (dark ? "bg-white/10" : "bg-gray-100/50")
                                     )}
                                 >
                                     {option.label}

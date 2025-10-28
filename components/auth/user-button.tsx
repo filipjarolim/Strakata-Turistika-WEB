@@ -129,18 +129,6 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                     </IOSDropdownMenuItem>
                 </Link>
             )}
-
-            {/* Tester Routes */}
-            {role === "TESTER" && (
-                <Link href="/tester">
-                    <IOSDropdownMenuItem 
-                        icon={<Settings className="h-4 w-4" />}
-                        className="px-3 py-2.5"
-                    >
-                        Testování
-                    </IOSDropdownMenuItem>
-                </Link>
-            )}
             
             <IOSDropdownMenuSeparator />
             <LogoutButton>

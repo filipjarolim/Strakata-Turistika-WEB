@@ -31,6 +31,17 @@ const Page = () => {
     setUploadedRouteId(null);
   };
 
+  const handleBackStep = () => {
+    if (currentStep === 'finish') {
+      setCurrentStep('edit');
+    } else if (currentStep === 'edit') {
+      setCurrentStep('upload');
+    } else if (currentStep === 'upload') {
+      setCurrentStep('home');
+      setUploadedRouteId(null);
+    }
+  };
+
   const handleUploadComplete = (routeId: string) => {
     setUploadedRouteId(routeId);
     setCurrentStep('edit');
@@ -190,7 +201,7 @@ const Page = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleBackToHome}
+                onClick={handleBackStep}
                 className="text-white hover:bg-white/10 hover:text-white backdrop-blur-sm mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />

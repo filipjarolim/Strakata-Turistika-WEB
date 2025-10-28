@@ -22,9 +22,9 @@ export const IOSSwitch = React.forwardRef<HTMLInputElement, IOSSwitchProps>(
             {label}
           </IOSLabel>
         )}
-        <label className="flex items-center justify-between cursor-pointer p-4 rounded-2xl bg-gray-50/50 backdrop-blur-sm border border-gray-200/50 transition-all duration-200 hover:bg-gray-100/50">
+        <label className="flex items-center justify-between cursor-pointer p-4 rounded-2xl bg-black/40 backdrop-blur-sm border border-white/30 transition-all duration-200 hover:bg-black/50">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-gray-700 select-none">
+            <span className="text-sm font-semibold text-white select-none">
               {label}
             </span>
           </div>
@@ -40,7 +40,7 @@ export const IOSSwitch = React.forwardRef<HTMLInputElement, IOSSwitchProps>(
             <div
               className={cn(
                 "w-12 h-7 rounded-full transition-all duration-300 ease-out",
-                "bg-gray-200 shadow-inner",
+                "bg-white/20 shadow-inner",
                 checked && "bg-blue-500 shadow-md",
                 disabled && "opacity-50 cursor-not-allowed",
                 className

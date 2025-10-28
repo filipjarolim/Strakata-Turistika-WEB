@@ -186,6 +186,9 @@ export async function getPaginatedVisitData(
         state: true,
         rejectionReason: true,
         createdAt: true,
+        route: true,
+        photos: true,
+        places: true,
         user: {
           select: {
             id: true,
@@ -194,7 +197,6 @@ export async function getPaginatedVisitData(
             image: true
           }
         }
-        // Exclude large fields: route, routeDescription, photos
       }
     });
 

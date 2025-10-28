@@ -3,6 +3,7 @@
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 
 interface LoadingSkeletonProps {
   count?: number;
@@ -14,7 +15,13 @@ export function LoadingSkeleton({ count = 5, type = 'visit' }: LoadingSkeletonPr
     return (
       <div className="space-y-4">
         {Array.from({ length: count }).map((_, index) => (
-          <Card key={index} className="p-4">
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+          >
+            <Card className="p-4">
             <CardContent className="p-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -37,6 +44,7 @@ export function LoadingSkeleton({ count = 5, type = 'visit' }: LoadingSkeletonPr
               </div>
             </CardContent>
           </Card>
+          </motion.div>
         ))}
       </div>
     );
@@ -46,7 +54,13 @@ export function LoadingSkeleton({ count = 5, type = 'visit' }: LoadingSkeletonPr
   return (
     <div className="space-y-4">
       {Array.from({ length: count }).map((_, index) => (
-        <Card key={index} className="p-4">
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.05 }}
+        >
+          <Card className="p-4">
           <CardContent className="p-0">
             <div className="space-y-3">
               {/* Header with date and points */}
@@ -76,6 +90,7 @@ export function LoadingSkeleton({ count = 5, type = 'visit' }: LoadingSkeletonPr
             </div>
           </CardContent>
         </Card>
+        </motion.div>
       ))}
     </div>
   );

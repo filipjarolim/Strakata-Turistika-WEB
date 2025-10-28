@@ -72,6 +72,9 @@ export async function getRawVisitData(filters: Record<string, unknown>, options:
         visitedPlaces: 1,
         dogNotAllowed: 1,
         routeLink: 1,
+        route: 1,
+        photos: 1,
+        places: 1,
         extraPoints: 1,
         state: 1,
         rejectionReason: 1,
@@ -85,7 +88,6 @@ export async function getRawVisitData(filters: Record<string, unknown>, options:
         },
         debugUserId: 1,
         debugUserArray: 1
-        // Exclude large fields: route, routeDescription, photos
       }
     },
     ...(options.sort ? [{ $sort: options.sort }] : []),

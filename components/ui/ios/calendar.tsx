@@ -35,10 +35,10 @@ export const IOSCalendar = ({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-full px-4 py-2 rounded-xl",
-          "bg-white/50 backdrop-blur-sm border border-gray-200",
-          "text-gray-900 text-sm",
+          "bg-black/40 backdrop-blur-sm border border-white/30",
+          "text-white text-sm font-medium",
           "cursor-pointer transition-all",
-          "hover:bg-white/60",
+          "hover:bg-black/50 hover:border-white/40",
           "focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         )}
       >
@@ -48,8 +48,8 @@ export const IOSCalendar = ({
       {/* Calendar dropdown */}
       {isOpen && (
         <div className={cn(
-          "absolute z-50 mt-2 p-4 rounded-2xl shadow-xl",
-          "bg-white/80 backdrop-blur-xl border border-gray-200",
+          "absolute z-[9999] mt-2 p-4 rounded-2xl shadow-xl",
+          "bg-black/90 backdrop-blur-xl border border-white/30",
           "animate-in fade-in-0 zoom-in-95",
           "w-[320px]"
         )}>
@@ -57,18 +57,18 @@ export const IOSCalendar = ({
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={handlePrevMonth}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+              <ChevronLeft className="h-5 w-5 text-white" />
             </button>
-            <h2 className="text-sm font-medium text-gray-900">
+            <h2 className="text-sm font-medium text-white">
               {format(currentMonth, 'LLLL yyyy', { locale: cs })}
             </h2>
             <button
               onClick={handleNextMonth}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-full hover:bg-white/10 transition-colors"
             >
-              <ChevronRight className="h-5 w-5 text-gray-600" />
+              <ChevronRight className="h-5 w-5 text-white" />
             </button>
           </div>
 
@@ -77,7 +77,7 @@ export const IOSCalendar = ({
             {['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'].map((day) => (
               <div
                 key={day}
-                className="text-center text-xs font-medium text-gray-500 py-1"
+                className="text-center text-xs font-medium text-white/60 py-1"
               >
                 {day}
               </div>
@@ -102,10 +102,10 @@ export const IOSCalendar = ({
                   }}
                   className={cn(
                     "aspect-square rounded-full flex items-center justify-center text-sm transition-all",
-                    "hover:bg-blue-50",
+                    "hover:bg-white/10",
                     isSelected && "bg-blue-500 text-white hover:bg-blue-600",
-                    !isCurrentMonth && "text-gray-300",
-                    !isSelected && isCurrentMonth && "text-gray-900"
+                    !isCurrentMonth && "text-white/30",
+                    !isSelected && isCurrentMonth && "text-white"
                   )}
                 >
                   {format(day, 'd')}

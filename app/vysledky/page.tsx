@@ -25,7 +25,7 @@ export default function SeasonsPage() {
     const role = useCurrentRole();
 
     useEffect(() => {
-        async function fetchSeasons() {
+            async function fetchSeasons() {
             setIsLoading(true);
             try {
                 const res = await fetch('/api/seasons');

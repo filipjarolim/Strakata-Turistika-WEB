@@ -45,7 +45,7 @@ export interface IOSFormProps {
 export const IOSForm = ({
     fields,
     onSubmit,
-    submitLabel = "Submit",
+    submitLabel = "Odeslat",
     className,
     colors = {
         text: "text-gray-900",
@@ -79,15 +79,15 @@ export const IOSForm = ({
             } else {
                 switch (field.type) {
                     case 'email':
-                        fieldSchema = z.string().email("Invalid email address");
+                        fieldSchema = z.string().email("Neplatná emailová adresa");
                         if (field.required) {
-                            fieldSchema = (fieldSchema as z.ZodString).min(1, "This field is required");
+                            fieldSchema = (fieldSchema as z.ZodString).min(1, "Toto pole je povinné");
                         }
                         break;
                     case 'number':
                         fieldSchema = z.number();
                         if (field.required) {
-                            fieldSchema = (fieldSchema as z.ZodNumber).min(1, "This field is required");
+                            fieldSchema = (fieldSchema as z.ZodNumber).min(1, "Toto pole je povinné");
                         }
                         break;
                     case 'text':
@@ -95,13 +95,13 @@ export const IOSForm = ({
                     case 'textarea':
                         fieldSchema = z.string();
                         if (field.required) {
-                            fieldSchema = (fieldSchema as z.ZodString).min(1, "This field is required");
+                            fieldSchema = (fieldSchema as z.ZodString).min(1, "Toto pole je povinné");
                         }
                         break;
                     case 'select':
                         fieldSchema = z.string();
                         if (field.required) {
-                            fieldSchema = (fieldSchema as z.ZodString).min(1, "This field is required");
+                            fieldSchema = (fieldSchema as z.ZodString).min(1, "Toto pole je povinné");
                         }
                         break;
                     default:
@@ -137,11 +137,11 @@ export const IOSForm = ({
                 const result = field.validation.safeParse(formData[field.name]);
                 if (!result.success) {
                     valid = false;
-                    newErrors[field.name] = result.error.errors[0]?.message || 'Invalid value';
+                    newErrors[field.name] = result.error.errors[0]?.message || 'Neplatná hodnota';
                 }
             } else if (field.required && !formData[field.name]) {
                 valid = false;
-                newErrors[field.name] = 'This field is required';
+                newErrors[field.name] = 'Toto pole je povinné';
             }
         }
         setErrors(newErrors);
@@ -224,7 +224,7 @@ export const IOSForm = ({
                     colors.button
                 )}
             >
-                {loading ? "Loading..." : submitLabel}
+                {loading ? "Načítání..." : submitLabel}
             </IOSButton>
         </form>
     );

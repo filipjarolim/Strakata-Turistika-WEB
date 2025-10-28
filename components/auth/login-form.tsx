@@ -28,7 +28,7 @@ import { GoogleLoginButton } from "@/components/auth/google-login-button";
 export const LoginForm = () => {
 
     const searchParams = useSearchParams()
-    const urlError = searchParams.get("error") === "OAuthAccountNotLinked" ? "Email already in use with different provider!" : ""
+    const urlError = searchParams.get("error") === "OAuthAccountNotLinked" ? "Email je již používán s jiným poskytovatelem!" : ""
 
     const [showTwoFactor, setShowTwoFactor] = React.useState(false)
     const [error, setError] = React.useState<string | undefined>("")
@@ -86,7 +86,7 @@ export const LoginForm = () => {
                                 name={"code"}
                                 render={({field}) => (
                                     <FormItem>
-                                        <FormLabel>Two Factor Code</FormLabel>
+                                        <FormLabel>Dvoufaktorový kód</FormLabel>
                                         <FormControl>
                                             <Input
                                                 {...field}

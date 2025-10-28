@@ -85,11 +85,11 @@ export const BugReportPanel = ({ currentUser, currentRole }: BugReportPanelProps
     const formFields: FormField[] = [
         {
             name: 'name',
-            label: 'Name',
+            label: 'Jméno',
             type: 'text',
             required: true,
             defaultValue: currentUser?.name || '',
-            validation: z.string().min(2, "Name must be at least 2 characters")
+            validation: z.string().min(2, "Jméno musí mít alespoň 2 znaky")
         },
         {
             name: 'email',
@@ -97,29 +97,29 @@ export const BugReportPanel = ({ currentUser, currentRole }: BugReportPanelProps
             type: 'email',
             required: true,
             defaultValue: currentUser?.email || '',
-            validation: z.string().email("Invalid email address")
+            validation: z.string().email("Neplatná emailová adresa")
         },
         {
             name: 'bugType',
-            label: 'Bug Type',
+            label: 'Typ chyby',
             type: 'select',
             required: true,
             options: [
-                { value: 'ui', label: 'UI/UX Issue' },
-                { value: 'functionality', label: 'Functionality Bug' },
-                { value: 'performance', label: 'Performance Issue' },
-                { value: 'security', label: 'Security Concern' },
-                { value: 'other', label: 'Other' }
+                { value: 'ui', label: 'Problém s UI/UX' },
+                { value: 'functionality', label: 'Funkční chyba' },
+                { value: 'performance', label: 'Problém s výkonem' },
+                { value: 'security', label: 'Bezpečnostní problém' },
+                { value: 'other', label: 'Jiné' }
             ],
             validation: z.enum(['ui', 'functionality', 'performance', 'security', 'other'])
         },
         {
             name: 'message',
-            label: 'Description',
+            label: 'Popis',
             type: 'textarea',
             required: true,
-            placeholder: 'Please describe the bug in detail...',
-            validation: z.string().min(10, "Description must be at least 10 characters")
+            placeholder: 'Prosím popište chybu podrobně...',
+            validation: z.string().min(10, "Popis musí mít alespoň 10 znaků")
         }
     ];
 
@@ -209,7 +209,7 @@ export const BugReportPanel = ({ currentUser, currentRole }: BugReportPanelProps
                 <div className="p-6">
                     <div className="flex justify-between items-center mb-8">
                         <h2 className={cn("text-xl font-semibold", colors.text)}>
-                            Bug Report
+                            Nahlášení chyby
                         </h2>
                         <button 
                             onClick={close}
@@ -228,7 +228,7 @@ export const BugReportPanel = ({ currentUser, currentRole }: BugReportPanelProps
                             bugType: data.bugType as BugReportFormData['bugType'],
                             message: String(data.message),
                         })}
-                        submitLabel="Submit Report"
+                        submitLabel="Odeslat hlášení"
                         isLoading={isSubmitting}
                         initialData={{
                             name: currentUser?.name || '',

@@ -7,13 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Filter, 
   Search,
-  X
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Calendar,
+  Award,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface SimpleFilterState {
   searchQuery?: string;
   showOnlyMyVisits?: boolean;
+  sortBy?: 'visitDate' | 'points' | 'routeTitle';
+  sortDescending?: boolean;
 }
 
 interface SimpleFiltersProps {
@@ -23,6 +31,8 @@ interface SimpleFiltersProps {
   isLoading?: boolean;
   className?: string;
   currentUserId?: string;
+  showSort?: boolean;
+  onSortChange?: (sortBy: 'visitDate' | 'points' | 'routeTitle', descending: boolean) => void;
 }
 
 export function SimpleFilters({ 
@@ -31,7 +41,9 @@ export function SimpleFilters({
   onClearFilters, 
   isLoading = false,
   className,
-  currentUserId
+  currentUserId,
+  showSort = false,
+  onSortChange
 }: SimpleFiltersProps) {
   
   const hasActiveFilters = () => {
@@ -75,7 +87,14 @@ export function SimpleFilters({
           <Input
             placeholder="Hledat trasy, místa..."
             value={filters.searchQuery || ''}
-            onChange={(e) => updateFilter('searchQuery', e.target.value)}
+            onChange={(e) => {
+              updateFilter('searchQuery', e.target.value);
+              // Also call onFiltersChange to update parent immediately for better UX
+              onFiltersChange({
+                ...filters,
+                searchQuery: e.target.value
+              });
+            }}
             className="pl-10"
             disabled={isLoading}
           />
@@ -115,6 +134,58 @@ export function SimpleFilters({
           )}
         </div>
       </div>
+
+      {/* Sort Buttons */}
+      {showSort && onSortChange && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-sm text-muted-foreground hidden sm:inline">Řadit podle:</span>
+          <Button
+            variant={filters.sortBy === 'visitDate' ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const isCurrent = filters.sortBy === 'visitDate';
+              const descending = isCurrent ? !filters.sortDescending : true;
+              onSortChange('visitDate', descending);
+            }}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Datum
+            {filters.sortBy === 'visitDate' && (filters.sortDescending ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
+          </Button>
+          <Button
+            variant={filters.sortBy === 'points' ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const isCurrent = filters.sortBy === 'points';
+              const descending = isCurrent ? !filters.sortDescending : true;
+              onSortChange('points', descending);
+            }}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <Award className="h-4 w-4" />
+            Body
+            {filters.sortBy === 'points' && (filters.sortDescending ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
+          </Button>
+          <Button
+            variant={filters.sortBy === 'routeTitle' ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const isCurrent = filters.sortBy === 'routeTitle';
+              const descending = isCurrent ? !filters.sortDescending : true;
+              onSortChange('routeTitle', descending);
+            }}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Název
+            {filters.sortBy === 'routeTitle' && (filters.sortDescending ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
+          </Button>
+        </div>
+      )}
 
       {/* Active Filters Display */}
       {hasActiveFilters() && (

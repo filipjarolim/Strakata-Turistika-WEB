@@ -114,7 +114,7 @@ model Season {
 
 model VisitData {
   id            String    @id @default(cuid()) @map("_id")
-    visitDate     Json?     // Using Json to handle mixed DateTime/String types
+  visitDate     Json?     // Using Json to handle mixed DateTime/String types
   routeTitle    String?
   routeDescription String?
   dogName       String?
@@ -122,13 +122,15 @@ model VisitData {
   visitedPlaces String
   dogNotAllowed String?
   routeLink     String?
-  route         Json?     // Making route nullable
+  route         Json?     // { trackPoints: [{latitude, longitude, timestamp, speed, accuracy, heading, altitude, verticalAccuracy}], totalDistance, duration, startTime, endTime, source }
   year          Int       @map("seasonYear") // This remains for simplified queries
-  extraPoints   Json
+  extraPoints   Json      // { scoringModel, config, distanceKm, distancePoints, placePoints, peaks, towers, trees, places, totalPoints, durationMinutes }
   state         VisitState @default(DRAFT)
   rejectionReason String?
   createdAt     DateTime? @default(now())
   photos        Json?     // Array of { url: string, public_id: string, title: string }
+  places        Json?     // Array of { id, name, type, photos: [{ id, url, public_id, title, description, uploadedAt, isLocal }], description, createdAt }
+  extraData     Json?     // Dynamic form data: { fieldName: value }
 
   // Relation to Season
   seasonId String?
@@ -143,4 +145,44 @@ model Rules {
   id      String @id @map("_id")
   content String
   updatedAt DateTime @updatedAt
+}
+
+model ScoringConfig {
+  id                      String   @id @default(cuid()) @map("_id")
+  pointsPerKm             Float    @default(2.0)
+  minDistanceKm           Float    @default(3.0)
+  requireAtLeastOnePlace  Boolean  @default(true)
+  placeTypePoints         Json     // { "PEAK": 5.0, "TOWER": 3.0, "TREE": 2.0, "OTHER": 1.0 }
+  active                  Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model PlaceTypeConfig {
+  id          String   @id @default(cuid()) @map("_id")
+  name        String   @unique // "PEAK", "TOWER", "TREE", "OTHER" - internal name
+  label       String   // "Vrchol", "Rozhledna", "Strom", "Jiné" - user-friendly label
+  icon        String   // Icon name (for web: "Mountain", "Eye", etc.)
+  color       String   // CSS color class (for web) or hex
+  points      Float    @default(0)
+  isActive    Boolean  @default(true) @map("active") // renamed to match mobile app
+  order       Int      @default(0) // display order
+  createdBy   String?  // userId who created this
+  updatedBy   String?  // userId who last updated this
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FormField {
+  id          String   @id @default(cuid()) @map("_id")
+  name        String   @unique
+  label       String
+  type        String   // "text", "number", "select", "checkbox", "textarea"
+  placeholder String?
+  required    Boolean  @default(false)
+  options     Json?    // For select fields: [{ value, label }]
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

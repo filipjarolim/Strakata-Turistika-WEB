@@ -32,6 +32,8 @@ interface AdminState {
   searchQuery: string;
   sortBy: string;
   sortDescending: boolean;
+  seasonFilter: string;
+  stateFilter: string;
   
   // Error handling
   error: string | null;
@@ -51,6 +53,8 @@ export function useAdmin(initialCollection: string) {
     searchQuery: '',
     sortBy: 'id',
     sortDescending: true,
+    seasonFilter: '',
+    stateFilter: initialCollection === 'VisitData' ? 'PENDING_REVIEW' : '', // Default to PENDING_REVIEW for VisitData
     error: null
   });
 
@@ -71,6 +75,14 @@ export function useAdmin(initialCollection: string) {
 
       if (state.searchQuery) {
         params.append('search', state.searchQuery);
+      }
+
+      if (state.seasonFilter) {
+        params.append('season', state.seasonFilter);
+      }
+
+      if (state.stateFilter) {
+        params.append('state', state.stateFilter);
       }
 
       console.log('Loading initial records for collection:', collection, 'page: 1');
@@ -110,7 +122,7 @@ export function useAdmin(initialCollection: string) {
         error: error instanceof Error ? error.message : 'Failed to load initial data'
       }));
     }
-  }, [state.limit, state.searchQuery, state.sortBy, state.sortDescending]);
+  }, [state.limit, state.searchQuery, state.sortBy, state.sortDescending, state.seasonFilter, state.stateFilter]);
 
   // Load next page for infinite scroll
   const loadNextPage = useCallback(async () => {
@@ -129,6 +141,14 @@ export function useAdmin(initialCollection: string) {
 
       if (state.searchQuery) {
         params.append('search', state.searchQuery);
+      }
+
+      if (state.seasonFilter) {
+        params.append('season', state.seasonFilter);
+      }
+
+      if (state.stateFilter) {
+        params.append('state', state.stateFilter);
       }
 
       console.log('Loading more records for collection:', state.collection, 'page:', pageToLoad);
@@ -170,7 +190,7 @@ export function useAdmin(initialCollection: string) {
         error: error instanceof Error ? error.message : 'Failed to load more data'
       }));
     }
-  }, [state.isLoadingMore, state.hasMore, state.limit, state.collection, state.searchQuery, state.sortBy, state.sortDescending]);
+  }, [state.isLoadingMore, state.hasMore, state.limit, state.collection, state.searchQuery, state.sortBy, state.sortDescending, state.seasonFilter, state.stateFilter]);
 
   // Reset pagination and reload data
   const reloadForCurrentFilters = useCallback(async () => {
@@ -209,6 +229,7 @@ export function useAdmin(initialCollection: string) {
 
   // Change sort order
   const changeSort = useCallback((sortBy: string, descending: boolean = true) => {
+    console.log('Changing sort to:', sortBy, descending);
     setState(prev => ({ ...prev, sortBy, sortDescending: descending }));
     reloadForCurrentFilters();
   }, [reloadForCurrentFilters]);
@@ -216,6 +237,18 @@ export function useAdmin(initialCollection: string) {
   // Change collection
   const changeCollection = useCallback((collection: string) => {
     setState(prev => ({ ...prev, collection }));
+    reloadForCurrentFilters();
+  }, [reloadForCurrentFilters]);
+
+  // Change season filter
+  const changeSeasonFilter = useCallback((seasonId: string) => {
+    setState(prev => ({ ...prev, seasonFilter: seasonId }));
+    reloadForCurrentFilters();
+  }, [reloadForCurrentFilters]);
+
+  // Change state filter
+  const changeStateFilter = useCallback((stateValue: string) => {
+    setState(prev => ({ ...prev, stateFilter: stateValue }));
     reloadForCurrentFilters();
   }, [reloadForCurrentFilters]);
 
@@ -283,6 +316,8 @@ export function useAdmin(initialCollection: string) {
       onSearchChanged,
       changeSort,
       changeCollection,
+      changeSeasonFilter,
+      changeStateFilter,
       clearError,
       clearData
     }

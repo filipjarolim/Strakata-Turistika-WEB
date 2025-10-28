@@ -19,7 +19,31 @@ export async function getRecordById(collection: string, id: string) {
         case "Season":
             return db.season.findUnique({ where: { id } });
         case "VisitData":
-            return db.visitData.findUnique({ where: { id } });
+            // Exclude createdAt to avoid DateTime conversion error
+            return db.visitData.findUnique({ 
+                where: { id },
+                select: {
+                    id: true,
+                    visitDate: true,
+                    routeTitle: true,
+                    routeDescription: true,
+                    dogName: true,
+                    points: true,
+                    visitedPlaces: true,
+                    dogNotAllowed: true,
+                    routeLink: true,
+                    route: true,
+                    year: true,
+                    extraPoints: true,
+                    state: true,
+                    rejectionReason: true,
+                    photos: true,
+                    places: true,
+                    seasonId: true,
+                    userId: true,
+                    // createdAt excluded due to DateTime format issue
+                }
+            });
         default:
             throw new Error("Unknown collection");
     }

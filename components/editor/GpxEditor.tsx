@@ -175,16 +175,16 @@ function IOSMapControls({
       >
         {/* Controls: left-aligned, horizontal row, responsive size */}
         <div className={cn('flex flex-row flex-wrap items-center', IOS_MAP_CONTROLS_STYLE.barGap)}>
-          <Control onClick={onToggleFullscreen} icon={isFullscreen ? <X className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Maximize2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={isFullscreen ? 'Close' : 'Enlarge'} id="fullscreen" />
+          <Control onClick={onToggleFullscreen} icon={isFullscreen ? <X className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Maximize2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={isFullscreen ? 'Zavřít' : 'Zvětšit'} id="fullscreen" />
           {/* Edit mode: Pencil icon from lucide-react */}
-          {!readOnly && <Control onClick={onToggleEditMode} icon={<Pencil className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={editMode ? 'Edit' : 'View'} id="editMode" />}
-          {!readOnly && <Control onClick={onUndo} disabled={!canUndo || !editMode} icon={<RotateCcw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Undo" id="undo" />}
-          {!readOnly && <Control onClick={onRedo} disabled={!canRedo || !editMode} icon={<RotateCw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Redo" id="redo" />}
-          {!readOnly && <Control onClick={onAddPoint} disabled={!editMode || !selectedSegment} icon={<Plus className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Add" id="add" />}
-          {!readOnly && <Control onClick={onDeletePoint} disabled={!canDelete || !editMode} icon={<Trash2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Delete" id="delete" />}
-          {!readOnly && <Control onClick={onSimplify} disabled={!editMode} icon={<span className="font-bold text-lg">S</span>} label="Simplify" id="simplify" />}
-          <Control onClick={onHidePoints} icon={hidePoints ? <EyeOff className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Eye className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={hidePoints ? 'Show' : 'Hide'} id="hidePoints" />
-          <Control onClick={onZoomToSelected} disabled={!canZoomToSelected} icon={<MapPin className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Zoom" id="zoom" />
+          {!readOnly && <Control onClick={onToggleEditMode} icon={<Pencil className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={editMode ? 'Upravit' : 'Zobrazit'} id="editMode" />}
+          {!readOnly && <Control onClick={onUndo} disabled={!canUndo || !editMode} icon={<RotateCcw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Zpět" id="undo" />}
+          {!readOnly && <Control onClick={onRedo} disabled={!canRedo || !editMode} icon={<RotateCw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Znovu" id="redo" />}
+          {!readOnly && <Control onClick={onAddPoint} disabled={!editMode || !selectedSegment} icon={<Plus className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Přidat" id="add" />}
+          {!readOnly && <Control onClick={onDeletePoint} disabled={!canDelete || !editMode} icon={<Trash2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Smazat" id="delete" />}
+          {!readOnly && <Control onClick={onSimplify} disabled={!editMode} icon={<span className="font-bold text-lg">S</span>} label="Zjednodušit" id="simplify" />}
+          <Control onClick={onHidePoints} icon={hidePoints ? <EyeOff className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Eye className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={hidePoints ? 'Zobrazit' : 'Skrýt'} id="hidePoints" />
+          <Control onClick={onZoomToSelected} disabled={!canZoomToSelected} icon={<MapPin className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Přiblížit" id="zoom" />
         </div>
         {/* Stats: right-aligned */}
         <div className="flex flex-col items-end text-xs sm:text-sm px-2 select-none">

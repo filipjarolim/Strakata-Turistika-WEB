@@ -143,6 +143,24 @@ const nextConfig: NextConfig = {
         config.resolve.extensions = config.resolve.extensions || [];
         config.resolve.extensions = config.resolve.extensions.filter((ext: string) => ext !== '.wasm');
         
+        // Suppress Edge Runtime warnings for bcryptjs (it's dynamically imported and won't execute in Edge)
+        if (config.module) {
+            config.module.parser = {
+                ...config.module.parser,
+                javascript: {
+                    ...config.module.parser?.javascript,
+                    strictExportPresence: false,
+                },
+            };
+        }
+        
+        // Ignore warnings about Node.js APIs in Edge Runtime for bcryptjs
+        config.ignoreWarnings = [
+            ...(config.ignoreWarnings || []),
+            /bcryptjs/,
+            /Edge Runtime/,
+        ];
+        
         return config;
     },
 

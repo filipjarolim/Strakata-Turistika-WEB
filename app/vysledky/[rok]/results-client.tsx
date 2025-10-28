@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -10,7 +9,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, 
   Trophy, 
   List, 
   Award, 
@@ -25,6 +23,7 @@ import { useSession } from 'next-auth/react';
 import { SimpleFilters, SimpleFilterState } from '@/components/results/SimpleFilters';
 import { VisitDataWithUser, LeaderboardEntry } from '@/lib/results-utils';
 import { LoadingSkeleton, LoadingSpinner, EmptyState, ErrorState } from '@/components/results/LoadingSkeleton';
+import { VisitDetailSheet } from '@/components/results/VisitDetailSheet';
 
 export default function ResultsClient() {
   const params = useParams();
@@ -32,6 +31,8 @@ export default function ResultsClient() {
   
   const { data: session } = useSession();
   const [simpleFilters, setSimpleFilters] = useState<SimpleFilterState>({});
+  const [selectedVisit, setSelectedVisit] = useState<VisitDataWithUser | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   const { state, actions } = useResults(year);
   
@@ -67,22 +68,6 @@ export default function ResultsClient() {
     };
   }, [state.showLeaderboard, state.hasMore, state.isLoadingMore, actions]);
 
-  // Initial load - let the hook handle this
-  useEffect(() => {
-    console.log('ResultsClient: Component mounted for year:', year);
-    // Don't call reloadForCurrentFilters here - let the hook handle initial load
-  }, [year]);
-
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log('ResultsClient state update:', {
-      showLeaderboard: state.showLeaderboard,
-      itemsCount: state.items.length,
-      leadersCount: state.leaders.length,
-      isLoading: state.isInitialLoading,
-      error: state.error
-    });
-  }, [state.showLeaderboard, state.items.length, state.leaders.length, state.isInitialLoading, state.error]);
 
   // Handle filter changes by updating the hook's internal state
   const handleFiltersChange = useCallback((newFilters: SimpleFilterState) => {
@@ -92,15 +77,29 @@ export default function ResultsClient() {
     // TODO: Handle showOnlyMyVisits filter - we'll need to add this to the hook
   }, [actions]);
 
+  // Handle sort changes
+  const handleSortChange = useCallback((sortBy: 'visitDate' | 'points' | 'routeTitle', descending: boolean) => {
+    actions.changeSort(sortBy, descending);
+    setSimpleFilters(prev => ({ ...prev, sortBy, sortDescending: descending }));
+  }, [actions]);
+
+  // Handle visit item click
+  const handleVisitClick = (item: VisitDataWithUser) => {
+    setSelectedVisit(item);
+    setSheetOpen(true);
+  };
+
   // Render individual visit item
   const renderVisitItem = (item: VisitDataWithUser) => {
-    console.log('Rendering item with ID:', item.id, 'at index:', state.items.findIndex(i => i.id === item.id));
     return (
     <motion.div
       key={item.id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => handleVisitClick(item)}
     >
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -229,37 +228,31 @@ export default function ResultsClient() {
 
         {/* Search and Filters */}
         <div className="flex flex-col gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Hledat podle názvu trasy nebo místa..."
-              value={state.searchQuery}
-              onChange={(e) => actions.onSearchChanged(e.target.value)}
-              className="pl-10 text-sm sm:text-base"
-            />
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2">
-            <SimpleFilters
-              filters={simpleFilters}
+          <SimpleFilters
+              filters={{
+                ...simpleFilters,
+                sortBy: state.sortBy === 'createdAt' ? undefined : state.sortBy,
+                sortDescending: state.sortDescending
+              }}
               onFiltersChange={handleFiltersChange}
               onClearFilters={() => handleFiltersChange({})}
               isLoading={state.isInitialLoading || state.isLoadingMore}
               currentUserId={session?.user?.id}
+              showSort={!state.showLeaderboard}
+              onSortChange={handleSortChange}
             />
             
-            {state.showLeaderboard && (
-              <Button
-                variant="outline"
-                onClick={actions.toggleLeaderboardSort}
-                className="flex items-center gap-2 text-sm"
-                size="sm"
-              >
-                <Award className="h-4 w-4" />
-                {state.sortLeaderboardByVisits ? 'Podle návštěv' : 'Podle bodů'}
-              </Button>
-            )}
-          </div>
+          {state.showLeaderboard && (
+            <Button
+              variant="outline"
+              onClick={actions.toggleLeaderboardSort}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Award className="h-4 w-4" />
+              {state.sortLeaderboardByVisits ? 'Podle návštěv' : 'Podle bodů'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -328,6 +321,13 @@ export default function ResultsClient() {
           </div>
         </ScrollArea>
       )}
+
+      {/* Visit Detail Sheet */}
+      <VisitDetailSheet 
+        visit={selectedVisit} 
+        open={sheetOpen} 
+        onClose={() => setSheetOpen(false)} 
+      />
     </div>
   );
 }

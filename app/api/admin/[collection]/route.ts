@@ -29,6 +29,8 @@ export async function GET(
         const searchQuery = url.searchParams.get('search') || '';
         const sortBy = url.searchParams.get('sortBy') || 'id';
         const sortDesc = url.searchParams.get('sortDesc') === 'true';
+        const seasonFilter = url.searchParams.get('season') || '';
+        const stateFilter = url.searchParams.get('state') || '';
         
         console.log("Admin API: Pagination params:", { page, limit, searchQuery, sortBy, sortDesc });
         
@@ -119,21 +121,38 @@ export async function GET(
                 totalCount = await db.season.count();
                 break;
             case "VisitData":
-                try {
-                    // Use findMany with select to avoid type conversion issues
-                    const visitDataWhere = searchQuery ? {
+                // Build where clause with search, season and state filter
+                const visitDataWhereConditions: Record<string, unknown>[] = [];
+                
+                if (searchQuery) {
+                    visitDataWhereConditions.push({
                         OR: [
                             { routeTitle: { contains: searchQuery, mode: 'insensitive' as const } },
                             { routeDescription: { contains: searchQuery, mode: 'insensitive' as const } },
                             { visitedPlaces: { contains: searchQuery, mode: 'insensitive' as const } }
                         ]
-                    } : {};
-                    
+                    });
+                }
+                
+                if (seasonFilter) {
+                    visitDataWhereConditions.push({ seasonId: seasonFilter });
+                }
+                
+                if (stateFilter) {
+                    visitDataWhereConditions.push({ state: stateFilter });
+                }
+                
+                const visitDataWhere = visitDataWhereConditions.length > 0 
+                    ? { AND: visitDataWhereConditions }
+                    : {};
+                
+                // Query without problematic createdAt field
+                try {
                     const rawRecords = await db.visitData.findMany({
                         where: visitDataWhere,
                         skip,
                         take: limit,
-                        orderBy,
+                        orderBy: { id: 'desc' }, // Sort by ID descending (newer IDs are higher)
                         select: {
                             id: true,
                             visitDate: true,
@@ -149,65 +168,76 @@ export async function GET(
                             extraPoints: true,
                             state: true,
                             rejectionReason: true,
-                            createdAt: true,
                             photos: true,
                             seasonId: true,
-                            userId: true
+                            userId: true,
+                            places: true
                         }
                     });
                     
-                    // Process the records to handle visitDate properly
-                    records = rawRecords.map(record => ({
-                        ...record,
-                        visitDate: record.visitDate ? 
-                            (typeof record.visitDate === 'string' ? record.visitDate : 
-                             record.visitDate instanceof Date ? record.visitDate.toISOString() :
-                             JSON.stringify(record.visitDate)) : null,
-                        createdAt: record.createdAt ? 
-                            (record.createdAt instanceof Date ? record.createdAt.toISOString() : record.createdAt) : null
-                    }));
-                    
+                    records = rawRecords;
                     totalCount = await db.visitData.count({ where: visitDataWhere });
                 } catch (visitDataError) {
                     console.error("VisitData query error:", visitDataError);
-                    // Fallback: try to get records without select
-                    try {
-                        console.log("Trying fallback query for VisitData...");
-                        const fallbackRecords = await db.visitData.findMany({
-                            where: searchQuery ? {
-                                OR: [
-                                    { routeTitle: { contains: searchQuery, mode: 'insensitive' as const } },
-                                    { routeDescription: { contains: searchQuery, mode: 'insensitive' as const } },
-                                    { visitedPlaces: { contains: searchQuery, mode: 'insensitive' as const } }
-                                ]
-                            } : {},
-                            skip,
-                            take: limit,
-                            orderBy
-                        });
-                        
-                        records = fallbackRecords.map(record => ({
-                            ...record,
-                            visitDate: record.visitDate ? String(record.visitDate) : null,
-                            createdAt: record.createdAt ? 
-                                (record.createdAt instanceof Date ? record.createdAt.toISOString() : String(record.createdAt)) : null
-                        }));
-                        
-                        totalCount = await db.visitData.count({ 
-                            where: searchQuery ? {
-                                OR: [
-                                    { routeTitle: { contains: searchQuery, mode: 'insensitive' as const } },
-                                    { routeDescription: { contains: searchQuery, mode: 'insensitive' as const } },
-                                    { visitedPlaces: { contains: searchQuery, mode: 'insensitive' as const } }
-                                ]
-                            } : {}
-                        });
-                    } catch (fallbackError) {
-                        console.error("VisitData fallback query also failed:", fallbackError);
-                        records = [];
-                        totalCount = 0;
-                    }
+                    records = [];
+                    totalCount = 0;
                 }
+                break;
+            case "FormField":
+                // Exclude DateTime fields due to conversion issues
+                records = await db.formField.findMany({
+                    skip,
+                    take: limit,
+                    select: {
+                        id: true,
+                        name: true,
+                        label: true,
+                        type: true,
+                        placeholder: true,
+                        required: true,
+                        options: true,
+                        order: true,
+                        active: true
+                    },
+                    orderBy: { order: 'asc' }
+                });
+                totalCount = await db.formField.count();
+                break;
+            case "PlaceTypeConfig":
+                // Exclude DateTime fields due to conversion issues
+                records = await db.placeTypeConfig.findMany({
+                    skip,
+                    take: limit,
+                    select: {
+                        id: true,
+                        name: true,
+                        label: true,
+                        icon: true,
+                        color: true,
+                        points: true,
+                        isActive: true,
+                        order: true,
+                        createdBy: true,
+                        updatedBy: true
+                    }
+                });
+                totalCount = await db.placeTypeConfig.count();
+                break;
+            case "ScoringConfig":
+                // Exclude DateTime fields due to conversion issues
+                records = await db.scoringConfig.findMany({
+                    skip,
+                    take: limit,
+                    select: {
+                        id: true,
+                        pointsPerKm: true,
+                        minDistanceKm: true,
+                        requireAtLeastOnePlace: true,
+                        placeTypePoints: true,
+                        active: true
+                    }
+                });
+                totalCount = await db.scoringConfig.count();
                 break;
             default:
                 console.log("Admin API: Unknown collection:", collection);
@@ -292,6 +322,18 @@ export async function DELETE(
             case "VisitData":
                 const visitDataResult = await db.visitData.deleteMany({ where: { id: { in: ids } } });
                 deletedCount = visitDataResult.count;
+                break;
+            case "FormField":
+                const formFieldResult = await db.formField.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = formFieldResult.count;
+                break;
+            case "PlaceTypeConfig":
+                const placeTypeConfigResult = await db.placeTypeConfig.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = placeTypeConfigResult.count;
+                break;
+            case "ScoringConfig":
+                const scoringConfigResult = await db.scoringConfig.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = scoringConfigResult.count;
                 break;
             default:
                 return NextResponse.json({ error: `Unknown collection: ${collection}` }, { status: 400 });

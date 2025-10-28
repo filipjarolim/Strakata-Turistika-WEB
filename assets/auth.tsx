@@ -10,7 +10,7 @@ export const authprefix = {
                 "label": "Pokračovat k přihlášení",
                 "icon": <ScanFace className={tooltipIconClass} />
             },
-            "label": "Login"
+            "label": "Přihlášení"
         },
         "register": {
             "tooltip": {

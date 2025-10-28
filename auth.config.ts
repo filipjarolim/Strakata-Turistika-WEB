@@ -4,14 +4,8 @@ import type { NextAuthConfig } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 
-
-
-import bcrypt from "bcryptjs"
-
 import { LoginSchema } from "@/schemas"
 import {getUserByEmail} from "@/data/user";
-
-export const runtime = 'nodejs';
 
 export default {
     providers: [
@@ -42,6 +36,8 @@ export default {
                     if (!user || !user.password) return null
 
                     //      CODING THE PASSWORD --- IMPORTANT
+                    // Dynamic import for Edge Runtime compatibility
+                    const bcrypt = (await import("bcryptjs")).default
 
                     const passwordsMatch = await bcrypt.compare(password, user.password)
 

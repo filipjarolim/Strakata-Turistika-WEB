@@ -5,21 +5,24 @@ import { useSession } from 'next-auth/react';
 import { useResults } from '@/hooks/useResults';
 import { SimpleFilters, SimpleFilterState } from '@/components/results/SimpleFilters';
 import { LoadingSkeleton, LoadingSpinner, EmptyState, ErrorState } from '@/components/results/LoadingSkeleton';
-import { VisitDataWithUser, LeaderboardEntry } from '@/lib/results-utils';
+import { VisitDataWithUser } from '@/lib/results-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { List, Trophy, Search, Users, Award, AlertCircle, AlertTriangle, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Search, Users, AlertCircle, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import Link from 'next/link';
+import { VisitDetailSheet } from '@/components/results/VisitDetailSheet';
 
 export default function MojeClient() {
   const { data: session } = useSession();
   const [simpleFilters, setSimpleFilters] = useState<SimpleFilterState>({});
+  const [selectedVisit, setSelectedVisit] = useState<VisitDataWithUser | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [allYears, setAllYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [loadingYears, setLoadingYears] = useState(true);
@@ -38,7 +41,7 @@ export default function MojeClient() {
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const response = await fetch('/api/results/seasons');
+        const response = await fetch('/api/seasons');
         if (response.ok) {
           const years = await response.json();
           setAllYears(years);
@@ -60,10 +63,6 @@ export default function MojeClient() {
     item.user?.id === session?.user?.id
   );
 
-  const filteredLeaders = state.leaders.filter(leader => 
-    leader.userId === session?.user?.id ||
-    leader.userName === session?.user?.name
-  );
 
   // Handle filter changes by updating the hook's internal state
   const handleFiltersChange = useCallback((newFilters: SimpleFilterState) => {
@@ -73,6 +72,18 @@ export default function MojeClient() {
     // TODO: Handle showOnlyMyVisits filter - we'll need to add this to the hook
   }, [actions]);
 
+  // Handle sort changes
+  const handleSortChange = useCallback((sortBy: 'visitDate' | 'points' | 'routeTitle', descending: boolean) => {
+    actions.changeSort(sortBy, descending);
+    setSimpleFilters(prev => ({ ...prev, sortBy, sortDescending: descending }));
+  }, [actions]);
+
+  // Handle visit item click
+  const handleVisitClick = (item: VisitDataWithUser) => {
+    setSelectedVisit(item);
+    setSheetOpen(true);
+  };
+
   // Render individual visit item
   const renderVisitItem = (item: VisitDataWithUser) => {
     return (
@@ -80,7 +91,10 @@ export default function MojeClient() {
       key={item.id}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => handleVisitClick(item)}
     >
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -142,50 +156,9 @@ export default function MojeClient() {
     );
   };
 
-  // Render leaderboard item
-  const renderLeaderboardItem = (item: LeaderboardEntry, index: number) => (
-    <motion.div
-      key={item.userId}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:shadow-md transition-shadow gap-3"
-    >
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary text-primary-foreground text-xs sm:text-sm font-bold">
-          {index + 1}
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm sm:text-base">{item.userName}</h3>
-          {item.dogName && (
-            <p className="text-xs sm:text-sm text-gray-600">{item.dogName}</p>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex flex-row sm:flex-col sm:text-right justify-between sm:justify-start">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="text-center">
-            <p className="text-base sm:text-lg font-bold text-green-600">{item.totalPoints}</p>
-            <p className="text-xs text-gray-500">bodů</p>
-          </div>
-          <div className="text-center">
-            <p className="text-base sm:text-lg font-bold text-blue-600">{item.visitsCount}</p>
-            <p className="text-xs text-gray-500">návštěv</p>
-          </div>
-        </div>
-        {item.lastVisitDate && (
-          <p className="text-xs text-gray-500 mt-1">
-            Poslední: {format(new Date(item.lastVisitDate), "d. MMM", { locale: cs })}
-          </p>
-        )}
-      </div>
-    </motion.div>
-  );
-
   // Set up intersection observer for infinite scrolling
   useEffect(() => {
-    if (!loadMoreRef.current || state.showLeaderboard) return;
+    if (!loadMoreRef.current) return;
     
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -203,7 +176,7 @@ export default function MojeClient() {
         observerRef.current.disconnect();
       }
     };
-  }, [state.showLeaderboard, state.hasMore, state.isLoadingMore, actions]);
+  }, [state.hasMore, state.isLoadingMore, actions]);
 
   const handleYearChange = (year: number | null) => {
     setSelectedYear(year);
@@ -217,38 +190,6 @@ export default function MojeClient() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header Controls */}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Moje výsledky</h1>
-            <p className="text-sm sm:text-base text-gray-600">
-              {state.showLeaderboard ? 'Mé umístění v žebříčku' : 'Mé návštěvy'}
-            </p>
-          </div>
-          
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button
-              variant={state.showLeaderboard ? "outline" : "default"}
-              onClick={actions.toggleView}
-              className="flex items-center gap-2 flex-1 sm:flex-none"
-              size="sm"
-            >
-              <List className="h-4 w-4" />
-              <span className="hidden sm:inline">Návštěvy</span>
-              <span className="sm:hidden">Návštěvy</span>
-            </Button>
-            <Button
-              variant={state.showLeaderboard ? "default" : "outline"}
-              onClick={actions.toggleView}
-              className="flex items-center gap-2 flex-1 sm:flex-none"
-              size="sm"
-            >
-              <Trophy className="h-4 w-4" />
-              <span className="hidden sm:inline">Žebříček</span>
-              <span className="sm:hidden">Žebříček</span>
-            </Button>
-          </div>
-        </div>
-
         {/* Year Selector */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex gap-2">
@@ -276,37 +217,19 @@ export default function MojeClient() {
 
         {/* Search and Filters */}
         <div className="flex flex-col gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Hledat podle názvu trasy nebo místa..."
-              value={state.searchQuery}
-              onChange={(e) => actions.onSearchChanged(e.target.value)}
-              className="pl-10 text-sm sm:text-base"
-            />
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-2">
-            <SimpleFilters
-              filters={simpleFilters}
-              onFiltersChange={handleFiltersChange}
-              onClearFilters={() => handleFiltersChange({})}
-              isLoading={state.isInitialLoading || state.isLoadingMore}
-              currentUserId={session?.user?.id}
-            />
-            
-            {state.showLeaderboard && (
-              <Button
-                variant="outline"
-                onClick={actions.toggleLeaderboardSort}
-                className="flex items-center gap-2 text-sm"
-                size="sm"
-              >
-                <Award className="h-4 w-4" />
-                {state.sortLeaderboardByVisits ? 'Podle návštěv' : 'Podle bodů'}
-              </Button>
-            )}
-          </div>
+          <SimpleFilters
+            filters={{
+              ...simpleFilters,
+              sortBy: state.sortBy === 'createdAt' ? undefined : state.sortBy,
+              sortDescending: state.sortDescending
+            }}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={() => handleFiltersChange({})}
+            isLoading={state.isInitialLoading || state.isLoadingMore}
+            currentUserId={session?.user?.id}
+            showSort={true}
+            onSortChange={handleSortChange}
+          />
         </div>
       </div>
 
@@ -322,21 +245,17 @@ export default function MojeClient() {
       {state.isInitialLoading ? (
         <LoadingSkeleton 
           count={5} 
-          type={state.showLeaderboard ? 'leaderboard' : 'visit'} 
+          type="visit" 
         />
       ) : (
         <ScrollArea ref={scrollRef} className="h-[500px] sm:h-[600px]">
           <div className="space-y-3 sm:space-y-4">
             <AnimatePresence>
-              {state.showLeaderboard ? (
-                filteredLeaders.map((leader, index) => renderLeaderboardItem(leader, index))
-              ) : (
-                filteredItems.map(renderVisitItem)
-              )}
+              {filteredItems.map(renderVisitItem)}
             </AnimatePresence>
 
             {/* Load More Trigger */}
-            {!state.showLeaderboard && state.hasMore && (
+            {state.hasMore && (
               <div ref={loadMoreRef} className="flex justify-center py-4">
                 {state.isLoadingMore ? (
                   <LoadingSpinner size="sm" text="Načítání dalších výsledků..." />
@@ -349,9 +268,7 @@ export default function MojeClient() {
             )}
 
             {/* Empty State */}
-            {!state.isInitialLoading && (
-              state.showLeaderboard ? filteredLeaders.length === 0 : filteredItems.length === 0
-            ) && (
+            {!state.isInitialLoading && filteredItems.length === 0 && (
               <EmptyState
                 title="Žádná data k zobrazení"
                 description={
@@ -374,6 +291,13 @@ export default function MojeClient() {
           </div>
         </ScrollArea>
       )}
+
+      {/* Visit Detail Sheet */}
+      <VisitDetailSheet 
+        visit={selectedVisit} 
+        open={sheetOpen} 
+        onClose={() => setSheetOpen(false)} 
+      />
     </div>
   );
 }

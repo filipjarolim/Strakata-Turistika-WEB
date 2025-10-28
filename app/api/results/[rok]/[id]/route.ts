@@ -36,8 +36,9 @@ export async function GET(request: Request, { params }: { params: tParams }) {
                 extraPoints: true,
                 state: true,
                 rejectionReason: true,
-                createdAt: true,
+                // Note: createdAt excluded to avoid Prisma conversion errors
                 photos: true,
+                places: true,
                 user: {
                     select: {
                         name: true,
