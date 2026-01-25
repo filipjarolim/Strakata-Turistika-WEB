@@ -1,4 +1,5 @@
 import NextAuth from "next-auth"
+import { NextResponse } from "next/server"
 
 import authConfig from "@/auth.config"
 import {
@@ -41,7 +42,7 @@ export default auth((req) => {
         return Response.redirect(new URL("/auth/login", nextUrl))
     }
 
-    return
+    return NextResponse.next()
 
 })
 

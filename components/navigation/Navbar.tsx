@@ -188,29 +188,31 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                             </NavigationMenuItem>
                         ) : (
                             <NavigationMenuItem key={index} className="cursor-pointer">
-                                <Link href={navItem.href as string} legacyBehavior passHref>
-                                    <NavigationMenuLink
-                                        className={cn(
-                                            "flex items-center gap-1.5 text-sm transition-all duration-300 ease-out px-4 py-2 rounded-xl h-full backdrop-blur-xl font-semibold",
-                                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
-                                            isActive
-                                                ? "bg-white/60 text-gray-950 border border-white/80 scale-[1.03]"
-                                                : cn(textColor, "bg-white/40 hover:bg-white/60 border border-white/50 hover:border-white/80 hover:scale-[1.03] active:scale-[0.98]", hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
-                                        )}
-                                    >
-                                        {navItem.icon && (
-                                            <Icon
-                                                icon={navItem.icon}
-                                                className={cn(
-                                                    "w-4 h-4 transition-opacity duration-200",
-                                                    isActive ? "opacity-100" : "opacity-70"
-                                                )}
-                                            />
-                                        )}
-                                        <span>{navItem.title}</span>
-                                        {navItem.badge && <StyledBadge type={navItem.badge} className="ml-1" />}
-                                    </NavigationMenuLink>
-                                </Link>
+                                <NavigationMenuLink asChild>
+                                    <Link href={navItem.href as string}>
+                                        <div
+                                            className={cn(
+                                                "flex items-center gap-1.5 text-sm transition-all duration-300 ease-out px-4 py-2 rounded-xl h-full backdrop-blur-xl font-semibold",
+                                                "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
+                                                isActive
+                                                    ? "bg-white/60 text-gray-950 border border-white/80 scale-[1.03]"
+                                                    : cn(textColor, "bg-white/40 hover:bg-white/60 border border-white/50 hover:border-white/80 hover:scale-[1.03] active:scale-[0.98]", hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
+                                            )}
+                                        >
+                                            {navItem.icon && (
+                                                <Icon
+                                                    icon={navItem.icon}
+                                                    className={cn(
+                                                        "w-4 h-4 transition-opacity duration-200",
+                                                        isActive ? "opacity-100" : "opacity-70"
+                                                    )}
+                                                />
+                                            )}
+                                            <span>{navItem.title}</span>
+                                            {navItem.badge && <StyledBadge type={navItem.badge} className="ml-1" />}
+                                        </div>
+                                    </Link>
+                                </NavigationMenuLink>
                             </NavigationMenuItem>
                         );
                     })}
@@ -227,35 +229,34 @@ const ListItem = React.forwardRef<
     return (
         <li>
             <NavigationMenuLink asChild>
-                <Link href={props.href ?? "#"} legacyBehavior passHref>
-                    <a
-                        ref={ref}
-                        className={cn(
-                            "group flex flex-col gap-2 rounded-xl p-3.5 transition-all duration-300 ease-out",
-                            "hover:bg-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-[1.02]",
-                            "border border-transparent hover:border-white/60",
-                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
-                            className
-                        )}
-                        {...props}
-                    >
-                        <div className="flex items-center gap-3">
-                            {icon && (
-                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100/50 group-hover:bg-white group-hover:shadow-sm transition-all duration-300 border border-transparent group-hover:border-gray-200/50">
-                                    <Icon icon={icon} className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
-                                </div>
-                            )}
-                            <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[15px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">{title}</span>
-                                    {badge && <StyledBadge type={badge} />}
-                                </div>
-                                {children && (
-                                    <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-200">{children}</p>
-                                )}
+                <Link
+                    href={props.href ?? "#"}
+                    ref={ref as any}
+                    className={cn(
+                        "group flex flex-col gap-2 rounded-xl p-3.5 transition-all duration-300 ease-out",
+                        "hover:bg-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-[1.02]",
+                        "border border-transparent hover:border-white/60",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
+                        className
+                    )}
+                    {...props}
+                >
+                    <div className="flex items-center gap-3">
+                        {icon && (
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100/50 group-hover:bg-white group-hover:shadow-sm transition-all duration-300 border border-transparent group-hover:border-gray-200/50">
+                                <Icon icon={icon} className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
                             </div>
+                        )}
+                        <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[15px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">{title}</span>
+                                {badge && <StyledBadge type={badge} />}
+                            </div>
+                            {children && (
+                                <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-200">{children}</p>
+                            )}
                         </div>
-                    </a>
+                    </div>
                 </Link>
             </NavigationMenuLink>
         </li>
