@@ -20,6 +20,7 @@ export const {
         signIn: "/auth/login",
         error: "/auth/error"
     },
+    debug: process.env.NODE_ENV === "development" || process.env.DEBUG_AUTH === "true",
     events: {
         async linkAccount({ user }) {
             await db.user.update({
@@ -32,7 +33,7 @@ export const {
         async signIn({ user, account, profile }) {
             if (account?.provider !== "credentials") {
                 const imageUrl = profile?.image_url || profile?.picture;
-                
+
                 // First check if user exists
                 const existingUser = await db.user.findUnique({
                     where: { email: user.email || "" }
