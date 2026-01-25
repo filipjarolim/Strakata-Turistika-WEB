@@ -27,7 +27,7 @@ export const IOSDropdownMenu = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contentRef.current && !contentRef.current.contains(event.target as Node) &&
-          triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+        triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -38,12 +38,12 @@ export const IOSDropdownMenu = ({
         const triggerRect = triggerRef.current?.getBoundingClientRect();
         if (triggerRect) {
           const contentWidth = 256;
-            const contentHeight = 300; // Approximate dropdown height
+          const contentHeight = 300; // Approximate dropdown height
           const viewportWidth = window.innerWidth;
           const viewportHeight = window.innerHeight;
           const margin = 16;
           const isMobile = viewportWidth < 768;
-          
+
           // Horizontal positioning
           if (isMobile) {
             setPosition('left');
@@ -56,7 +56,7 @@ export const IOSDropdownMenu = ({
               setPosition(align);
             }
           }
-          
+
           // Vertical positioning
           if (triggerRect.bottom + contentHeight > viewportHeight - margin) {
             setVerticalPosition('top');
@@ -84,10 +84,10 @@ export const IOSDropdownMenu = ({
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       const margin = 16; // 16px margin from screen edges
-      
+
       // For mobile devices (viewport < 768px), use more conservative positioning
       const isMobile = viewportWidth < 768;
-      
+
       // Horizontal positioning
       if (isMobile) {
         // On mobile, always use left alignment to prevent right overflow
@@ -102,7 +102,7 @@ export const IOSDropdownMenu = ({
           setPosition(align);
         }
       }
-      
+
       // Vertical positioning - check if dropdown would go off bottom of screen
       if (triggerRect.bottom + contentHeight > viewportHeight - margin) {
         setVerticalPosition('top');
@@ -122,24 +122,24 @@ export const IOSDropdownMenu = ({
         {isOpen && (
           <motion.div
             ref={contentRef}
-            initial={{ 
-              opacity: 0, 
-              y: verticalPosition === 'top' ? 8 : -8, 
-              scale: 0.98 
+            initial={{
+              opacity: 0,
+              y: verticalPosition === 'top' ? 8 : -8,
+              scale: 0.98
             }}
-            animate={{ 
-              opacity: 1, 
-              y: 0, 
-              scale: 1 
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1
             }}
-            exit={{ 
-              opacity: 0, 
-              y: verticalPosition === 'top' ? 8 : -8, 
-              scale: 0.98 
+            exit={{
+              opacity: 0,
+              y: verticalPosition === 'top' ? 8 : -8,
+              scale: 0.98
             }}
-            transition={{ 
-              type: "spring", 
-              damping: 30, 
+            transition={{
+              type: "spring",
+              damping: 30,
               stiffness: 400,
               mass: 0.8
             }}
@@ -152,8 +152,8 @@ export const IOSDropdownMenu = ({
               position === 'right' ? 'right-0' : 'left-0',
               // Ensure dropdown stays within viewport bounds
               position === 'right' ? 'sm:right-0 right-1' : 'sm:left-0 left-1',
-              "bg-white border border-gray-200/60",
-              "rounded-2xl shadow-xl shadow-black/10",
+              "bg-white/80 backdrop-blur-2xl border border-white/40",
+              "rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)]",
               "p-2",
               className
             )}
@@ -186,22 +186,22 @@ export const IOSDropdownMenuItem = ({
       onClick={onClick}
       className={cn(
         "w-full px-3 py-2.5 text-left",
-        "hover:bg-gray-50 active:bg-gray-100",
-        "transition-all duration-200 ease-out",
+        "hover:bg-white/60 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)]",
+        "transition-all duration-300 ease-out",
         "flex items-center justify-between",
-        "text-sm font-medium",
+        "text-sm font-semibold",
         "rounded-xl",
-        "group",
+        "group hover:scale-[1.02] active:scale-[0.98]",
         className
       )}
     >
       <div className="flex items-center gap-3">
         {icon && (
-          <span className="text-gray-500 group-hover:text-gray-700 transition-colors duration-200 w-4 h-4 flex items-center justify-center">
+          <span className="text-gray-500 group-hover:text-blue-600 transition-colors duration-300 w-4 h-4 flex items-center justify-center">
             {icon}
           </span>
         )}
-        <span className="text-gray-900 group-hover:text-gray-700 transition-colors duration-200">{children}</span>
+        <span className="text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{children}</span>
       </div>
       {shortcut && (
         <span className="text-xs text-gray-400 font-medium group-hover:text-gray-500 transition-colors duration-200">{shortcut}</span>

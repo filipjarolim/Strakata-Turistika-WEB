@@ -41,6 +41,9 @@ model User {
   isTwoFactorEnabled    Boolean                @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
   visitData             VisitData[]            @relation("UserVisitData")
+  news                  News[]                 @relation("UserNews")
+
+  @@map("users")
 }
 
 model Account {
@@ -60,6 +63,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model VerificationToken {
@@ -69,6 +73,7 @@ model VerificationToken {
   expires DateTime
 
   @@unique([email, token])
+  @@map("verification_tokens")
 }
 
 model PasswordResetToken {
@@ -78,6 +83,7 @@ model PasswordResetToken {
   expires DateTime
 
   @@unique([email, token])
+  @@map("password_reset_tokens")
 }
 
 model TwoFactorToken {
@@ -87,6 +93,7 @@ model TwoFactorToken {
   expires DateTime
 
   @@unique([email, token])
+  @@map("two_factor_tokens")
 }
 
 model TwoFactorConfirmation {
@@ -96,20 +103,34 @@ model TwoFactorConfirmation {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
+  @@map("two_factor_confirmations")
 }
 
 model News {
   id        String   @id @default(cuid()) @map("_id")
   title     String
+  slug      String?  @unique
   content   String?
+  summary   String?
+  published Boolean  @default(true)
+  tags      Json?    // Array of strings
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   images    Json?    // Array of { url, public_id, title }
+  
+  // Author relation
+  authorId  String?
+  author    User?    @relation("UserNews", fields: [authorId], references: [id])
+
+  @@map("news")
 }
 
 model Season {
   id        String      @id @default(cuid()) @map("_id")
   year      Int         @unique
   visitData VisitData[] @relation("SeasonVisitData")
+
+  @@map("seasons")
 }
 
 model VisitData {
@@ -139,12 +160,16 @@ model VisitData {
   // Relation to User
   userId   String?
   user     User?   @relation("UserVisitData", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("visits")
 }
 
 model Rules {
   id      String @id @map("_id")
   content String
   updatedAt DateTime @updatedAt
+
+  @@map("rules")
 }
 
 model ScoringConfig {
@@ -156,6 +181,8 @@ model ScoringConfig {
   active                  Boolean  @default(true)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+
+  @@map("scoring_configs")
 }
 
 model PlaceTypeConfig {
@@ -165,12 +192,14 @@ model PlaceTypeConfig {
   icon        String   // Icon name (for web: "Mountain", "Eye", etc.)
   color       String   // CSS color class (for web) or hex
   points      Float    @default(0)
-  isActive    Boolean  @default(true) @map("active") // renamed to match mobile app
+  isActive    Boolean  @default(true) // removed @map("active") to match DB field isActive
   order       Int      @default(0) // display order
   createdBy   String?  // userId who created this
   updatedBy   String?  // userId who last updated this
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("place_type_configs")
 }
 
 model FormField {
@@ -185,4 +214,6 @@ model FormField {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("form_fields")
 }

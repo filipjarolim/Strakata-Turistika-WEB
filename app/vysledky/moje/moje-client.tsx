@@ -1,302 +1,163 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useResults } from '@/hooks/useResults';
-import { SimpleFilters, SimpleFilterState } from '@/components/results/SimpleFilters';
-import { LoadingSkeleton, LoadingSpinner, EmptyState, ErrorState } from '@/components/results/LoadingSkeleton';
 import { VisitDataWithUser } from '@/lib/results-utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, Users, AlertCircle, ExternalLink } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
-import { cs } from 'date-fns/locale';
-import Link from 'next/link';
 import { VisitDetailSheet } from '@/components/results/VisitDetailSheet';
+import { VisitCard } from '@/components/results/VisitCard'; // New Shared Component
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Loader2,
+  AlertCircle,
+  Search,
+  Calendar,
+  User,
+  Dog,
+  Map as MapIcon
+} from 'lucide-react';
+import { cn } from "@/lib/utils";
+
+// Reusing Glass Button logic
+const GlassButton = ({ active, children, onClick, icon: Icon, className, disabled }: any) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={cn(
+      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border disabled:opacity-50 disabled:cursor-not-allowed",
+      active
+        ? "bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-black dark:border-white shadow-lg"
+        : "bg-white/50 text-gray-500 border-black/5 hover:bg-black/5 hover:text-black dark:bg-white/5 dark:text-gray-400 dark:border-white/10 dark:hover:bg-white/10 dark:hover:text-white",
+      className
+    )}
+  >
+    {Icon && <Icon className="w-4 h-4" />}
+    {children}
+  </button>
+);
 
 export default function MojeClient() {
   const { data: session } = useSession();
-  const [simpleFilters, setSimpleFilters] = useState<SimpleFilterState>({});
-  const [selectedVisit, setSelectedVisit] = useState<VisitDataWithUser | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // State
   const [allYears, setAllYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [loadingYears, setLoadingYears] = useState(true);
-  
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [visits, setVisits] = useState<VisitDataWithUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get current year as default
-  const currentYear = new Date().getFullYear();
-  
-  // Use the results hook with current year
-  const { state, actions } = useResults(selectedYear || currentYear);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<VisitDataWithUser | null>(null);
 
-  // Fetch available years
+  // Fetch Years
   useEffect(() => {
-    const fetchYears = async () => {
-      try {
-        const response = await fetch('/api/seasons');
-        if (response.ok) {
-          const years = await response.json();
-          setAllYears(years);
+    fetch('/api/seasons')
+      .then(res => res.json())
+      .then(data => {
+        const sorted = [...data].sort((a: number, b: number) => b - a);
+        setAllYears(sorted);
+        if (sorted.length > 0 && !sorted.includes(selectedYear)) {
+          setSelectedYear(sorted[0]);
         }
-      } catch (error) {
-        console.error('Failed to fetch years:', error);
-      } finally {
-        setLoadingYears(false);
-      }
-    };
-    
-    fetchYears();
+      })
+      .catch(err => console.error(err));
   }, []);
 
-  // Filter data to show only current user's visits
-  const filteredItems = state.items.filter(item => 
-    item.userId === session?.user?.id || 
-    item.displayName === session?.user?.name ||
-    item.user?.id === session?.user?.id
-  );
-
-
-  // Handle filter changes by updating the hook's internal state
-  const handleFiltersChange = useCallback((newFilters: SimpleFilterState) => {
-    setSimpleFilters(newFilters);
-    // Update search query in the hook
-    actions.onSearchChanged(newFilters.searchQuery || '');
-    // TODO: Handle showOnlyMyVisits filter - we'll need to add this to the hook
-  }, [actions]);
-
-  // Handle sort changes
-  const handleSortChange = useCallback((sortBy: 'visitDate' | 'points' | 'routeTitle', descending: boolean) => {
-    actions.changeSort(sortBy, descending);
-    setSimpleFilters(prev => ({ ...prev, sortBy, sortDescending: descending }));
-  }, [actions]);
-
-  // Handle visit item click
-  const handleVisitClick = (item: VisitDataWithUser) => {
-    setSelectedVisit(item);
-    setSheetOpen(true);
-  };
-
-  // Render individual visit item
-  const renderVisitItem = (item: VisitDataWithUser) => {
-    return (
-    <motion.div
-      key={item.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => handleVisitClick(item)}
-    >
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <Badge variant="outline" className="text-xs w-fit">
-            {item.visitDate ? format(new Date(item.visitDate), "d. MMM", { locale: cs }) : 'N/A'}
-          </Badge>
-          <span className="font-medium text-sm sm:text-base">{item.displayName}</span>
-        </div>
-        <Badge variant="default" className="bg-green-100 text-green-800 w-fit">
-          {item.points} bodů
-        </Badge>
-      </div>
-      
-      {item.routeTitle && (
-        <h3 className="font-semibold text-base sm:text-lg mb-2">{item.routeTitle}</h3>
-      )}
-      
-      <div className="flex flex-wrap gap-1 mb-2">
-        {item.visitedPlaces.split(',').slice(0, 3).map((place: string, index: number) => (
-          <Badge key={index} variant="secondary" className="text-xs">
-            {place.trim()}
-          </Badge>
-        ))}
-        {item.visitedPlaces.split(',').length > 3 && (
-          <Badge variant="secondary" className="text-xs">
-            +{item.visitedPlaces.split(',').length - 3} dalších
-          </Badge>
-        )}
-      </div>
-      
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-        {item.user?.dogName && (
-          <span className="flex items-center gap-1">
-            <Users className="h-3 w-3" />
-            <span className="hidden sm:inline">{item.user.dogName}</span>
-            <span className="sm:hidden">{item.user.dogName}</span>
-          </span>
-        )}
-        {item.dogNotAllowed === 'true' && (
-          <Badge variant="destructive" className="text-xs w-fit">
-            <span className="hidden sm:inline">Psi zakázáni</span>
-            <span className="sm:hidden">Psi nepovoleni</span>
-          </Badge>
-        )}
-        {item.routeLink && (
-          <a 
-            href={item.routeLink} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-          >
-            <ExternalLink className="h-3 w-3" />
-            <span className="hidden sm:inline">Zobrazit trasu</span>
-            <span className="sm:hidden">Trasa</span>
-          </a>
-        )}
-      </div>
-    </motion.div>
-    );
-  };
-
-  // Set up intersection observer for infinite scrolling
+  // Fetch User Visits when Year Changes
   useEffect(() => {
-    if (!loadMoreRef.current) return;
-    
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && state.hasMore && !state.isLoadingMore) {
-          actions.loadNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    
-    observerRef.current.observe(loadMoreRef.current);
-    
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [state.hasMore, state.isLoadingMore, actions]);
+    if (!session?.user?.id) return;
 
-  const handleYearChange = (year: number | null) => {
-    setSelectedYear(year);
-    if (year) {
-      // Reload data for the selected year
-      actions.reloadForCurrentFilters();
-    }
-  };
+    setIsLoading(true);
+    // Fetch all user visits for the season (limit 100 should be enough for one user)
+    fetch(`/api/results/visits/${selectedYear}?userId=${session.user.id}&limit=100&state=APPROVED`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch visits');
+        return res.json();
+      })
+      .then(resData => {
+        // API returns PaginatedResponse { data: [...] }
+        setVisits(resData.data || []);
+      })
+      .catch(err => {
+        console.error(err);
+        setError("Nepodařilo se načíst vaše výlety.");
+      })
+      .finally(() => setIsLoading(false));
+  }, [selectedYear, session?.user?.id]);
+
+  if (!session) {
+    return <div className="p-10 text-center text-gray-500">Pro zobrazení výsledků se musíte přihlásit.</div>;
+  }
+
+  const totalPoints = visits.reduce((sum, item) => sum + (item.points || 0), 0);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header Controls */}
-      <div className="flex flex-col gap-4">
+    <div>
+      {/* Controls */}
+      <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-4 mb-8 flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center shadow-sm">
         {/* Year Selector */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex gap-2">
-            <Button
-              variant={selectedYear === null ? "default" : "outline"}
-              onClick={() => handleYearChange(null)}
-              size="sm"
-              disabled={loadingYears}
+        <div className="flex flex-wrap gap-2">
+          {allYears.map(y => (
+            <GlassButton
+              key={y}
+              active={selectedYear === y}
+              onClick={() => setSelectedYear(y)}
             >
-              Vše
-            </Button>
-            {allYears.map(year => (
-              <Button
-                key={year}
-                variant={selectedYear === year ? "default" : "outline"}
-                onClick={() => handleYearChange(year)}
-                size="sm"
-                disabled={loadingYears}
-              >
-                {year}
-              </Button>
-            ))}
-          </div>
+              {y}
+            </GlassButton>
+          ))}
         </div>
 
-        {/* Search and Filters */}
-        <div className="flex flex-col gap-3">
-          <SimpleFilters
-            filters={{
-              ...simpleFilters,
-              sortBy: state.sortBy === 'createdAt' ? undefined : state.sortBy,
-              sortDescending: state.sortDescending
-            }}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={() => handleFiltersChange({})}
-            isLoading={state.isInitialLoading || state.isLoadingMore}
-            currentUserId={session?.user?.id}
-            showSort={true}
-            onSortChange={handleSortChange}
-          />
+        {/* Stats Summary */}
+        <div className="flex items-center gap-6 divide-x divide-gray-200 dark:divide-white/10 bg-gray-50 dark:bg-black/20 px-6 py-3 rounded-2xl border border-gray-200 dark:border-white/5">
+          <div className="pr-2">
+            <div className="text-xs text-gray-500 uppercase font-bold">Výlety</div>
+            <div className="text-xl font-black text-gray-900 dark:text-white">{visits.length}</div>
+          </div>
+          <div className="pl-6">
+            <div className="text-xs text-gray-500 uppercase font-bold">Celkem Body</div>
+            <div className="text-xl font-black text-blue-600 dark:text-blue-400">
+              {totalPoints}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Error State */}
-      {state.error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Loading State */}
-      {state.isInitialLoading ? (
-        <LoadingSkeleton 
-          count={5} 
-          type="visit" 
-        />
+      {/* List / Grid */}
+      {isLoading ? (
+        <div className="py-20 flex flex-col items-center justify-center text-gray-500">
+          <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-500" />
+          <p>Načítám vaše výsledky...</p>
+        </div>
       ) : (
-        <ScrollArea ref={scrollRef} className="h-[500px] sm:h-[600px]">
-          <div className="space-y-3 sm:space-y-4">
-            <AnimatePresence>
-              {filteredItems.map(renderVisitItem)}
-            </AnimatePresence>
-
-            {/* Load More Trigger */}
-            {state.hasMore && (
-              <div ref={loadMoreRef} className="flex justify-center py-4">
-                {state.isLoadingMore ? (
-                  <LoadingSpinner size="sm" text="Načítání dalších výsledků..." />
-                ) : (
-                  <Button variant="outline" onClick={actions.loadNextPage}>
-                    Načíst více
-                  </Button>
-                )}
+        <div className="min-h-[400px]">
+          <AnimatePresence mode="popLayout">
+            {visits.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {visits.map(visit => (
+                  <VisitCard
+                    key={visit.id}
+                    visit={visit}
+                    onClick={() => { setSelectedVisit(visit); setSheetOpen(true); }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-gray-50 dark:bg-white/5 rounded-3xl border border-gray-200 dark:border-white/10">
+                <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Žádné výsledky</h3>
+                <p className="text-gray-500 dark:text-gray-400">
+                  V roce {selectedYear} nemáte žádné zapsané výlety.
+                </p>
               </div>
             )}
-
-            {/* Empty State */}
-            {!state.isInitialLoading && filteredItems.length === 0 && (
-              <EmptyState
-                title="Žádná data k zobrazení"
-                description={
-                  state.searchQuery 
-                    ? 'Pro váš vyhledávací dotaz nebyly nalezeny žádné výsledky.'
-                    : 'Nemáte žádné výsledky pro tuto sezónu.'
-                }
-                action={
-                  state.searchQuery && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => actions.onSearchChanged('')}
-                    >
-                      Vymazat vyhledávání
-                    </Button>
-                  )
-                }
-              />
-            )}
-          </div>
-        </ScrollArea>
+          </AnimatePresence>
+        </div>
       )}
 
-      {/* Visit Detail Sheet */}
-      <VisitDetailSheet 
-        visit={selectedVisit} 
-        open={sheetOpen} 
-        onClose={() => setSheetOpen(false)} 
+      <VisitDetailSheet
+        visit={selectedVisit}
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
       />
     </div>
   );

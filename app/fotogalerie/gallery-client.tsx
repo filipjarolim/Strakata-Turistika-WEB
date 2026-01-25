@@ -25,53 +25,53 @@ export interface Category {
 
 // Categories for tabs with icons and colors
 export const CATEGORIES: Category[] = [
-    { 
-        id: "all", 
-        label: "Vše", 
+    {
+        id: "all",
+        label: "Vše",
         icon: <Filter className="h-4 w-4" />,
         color: "bg-gray-100 text-gray-800"
     },
-    { 
-        id: "mountains", 
-        label: "Hory", 
+    {
+        id: "mountains",
+        label: "Hory",
         icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>,
         color: "bg-blue-100 text-blue-800"
     },
-    { 
-        id: "water", 
-        label: "Voda", 
+    {
+        id: "water",
+        label: "Voda",
         icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 22h20"></path><path d="M15 10h5v8h-5"></path><path d="M4 10h5v8H4"></path><path d="M9 10h5v8H9"></path><path d="M5 2v8"></path><path d="M19 2v8"></path><path d="M12 2v8"></path></svg>,
         color: "bg-cyan-100 text-cyan-800"
     },
-    { 
-        id: "forest", 
-        label: "Les", 
+    {
+        id: "forest",
+        label: "Les",
         icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16"></path><path d="M12 2v8"></path><path d="m9 7 3 3 3-3"></path><path d="M13 5a4 4 0 0 1 4 4"></path></svg>,
         color: "bg-green-100 text-green-800"
     },
-    { 
-        id: "winter", 
-        label: "Zima", 
+    {
+        id: "winter",
+        label: "Zima",
         icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12v9"></path><path d="M12 3v9"></path><path d="m8 7 4-4 4 4"></path><path d="m8 17 4 4 4-4"></path><path d="M3 12h9"></path><path d="M12 12h9"></path><path d="m7 8-4 4 4 4"></path><path d="m17 8 4 4-4 4"></path></svg>,
         color: "bg-slate-100 text-slate-800"
     },
-    { 
-        id: "city", 
-        label: "Město", 
+    {
+        id: "city",
+        label: "Město",
         icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>,
         color: "bg-orange-100 text-orange-800"
     },
 ];
 
 interface GalleryImage {
-  public_id: string;
-  url: string;
-  title: string;
-  description: string;
-  location: string;
-  category: string;
-  created_at: string;
-  aspectRatio?: string;
+    public_id: string;
+    url: string;
+    title: string;
+    description: string;
+    location: string;
+    category: string;
+    created_at: string;
+    aspectRatio?: string;
 }
 
 export const GalleryClient = () => {
@@ -102,8 +102,8 @@ export const GalleryClient = () => {
 
     // Filter images based on search and category
     const filteredImages = images.filter(img => {
-        const matchesSearch = 
-            img.title.toLowerCase().includes(search.toLowerCase()) || 
+        const matchesSearch =
+            img.title.toLowerCase().includes(search.toLowerCase()) ||
             img.description.toLowerCase().includes(search.toLowerCase()) ||
             img.location.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = category === "all" || img.category === category;
@@ -120,7 +120,7 @@ export const GalleryClient = () => {
 
     // Get aspect ratio class
     const getAspectRatioClass = (aspectRatio: string): string => {
-        switch(aspectRatio) {
+        switch (aspectRatio) {
             case 'portrait': return 'aspect-[3/4]';
             case 'landscape': return 'aspect-[4/3]';
             default: return 'aspect-square';
@@ -129,7 +129,7 @@ export const GalleryClient = () => {
 
     const ImageCard = ({ image, index }: { image: GalleryImage; index: number }) => {
         const categoryInfo = CATEGORIES.find(cat => cat.id === image.category);
-        
+
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -150,7 +150,7 @@ export const GalleryClient = () => {
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
-                        
+
                         {/* Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -212,7 +212,7 @@ export const GalleryClient = () => {
     return (
         <div className="max-w-7xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
             {/* Header */}
-            <motion.div 
+            <motion.div
                 className="text-center space-y-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -293,10 +293,10 @@ export const GalleryClient = () => {
                                 >
                                     Masonry
                                 </IOSButton>
+                            </div>
+                            <UploadForm />
                         </div>
-                        <UploadForm />
                     </div>
-                </div>
                 </IOSCard>
             </motion.div>
 
@@ -306,24 +306,24 @@ export const GalleryClient = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
             >
-                    {loading ? (
-                        // Skeleton loading state
+                {loading ? (
+                    // Skeleton loading state
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                                <div key={i} className="animate-pulse">
+                            <div key={i} className="animate-pulse">
                                 <div className="bg-gray-200 rounded-3xl aspect-square"></div>
-                                    <div className="h-4 bg-gray-200 rounded mt-3 w-3/4"></div>
-                                    <div className="h-3 bg-gray-200 rounded mt-2 w-1/2"></div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredImages.length === 0 ? (
-                        // Empty state
+                                <div className="h-4 bg-gray-200 rounded mt-3 w-3/4"></div>
+                                <div className="h-3 bg-gray-200 rounded mt-2 w-1/2"></div>
+                            </div>
+                        ))}
+                    </div>
+                ) : filteredImages.length === 0 ? (
+                    // Empty state
                     <IOSCard
                         title="Žádné fotky nenalezeny"
-                        subtitle={search 
-                                    ? `Nepodařilo se najít žádné fotky odpovídající "${search}"`
-                                    : "V této kategorii zatím nejsou žádné fotky"}
+                        subtitle={search
+                            ? `Nepodařilo se najít žádné fotky odpovídající "${search}"`
+                            : "V této kategorii zatím nejsou žádné fotky"}
                         icon={<Images className="h-6 w-6" />}
                         iconBackground="bg-gray-100"
                         iconColor="text-gray-400"
@@ -334,7 +334,7 @@ export const GalleryClient = () => {
                             </IOSCircleIcon>
                             {search && (
                                 <IOSButton
-                                    variant="outline" 
+                                    variant="outline"
                                     onClick={() => setSearch("")}
                                     className="mt-4"
                                 >
@@ -347,20 +347,20 @@ export const GalleryClient = () => {
                     // Image Grid
                     <div className={cn(
                         "grid gap-6",
-                        viewMode === 'grid' 
-                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                        viewMode === 'grid'
+                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                             : "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 space-y-6"
                     )}>
                         {filteredImages.map((image, index) => (
                             <ImageCard key={image.public_id} image={image} index={index} />
-                            ))}
-                        </div>
-                    )}
+                        ))}
+                    </div>
+                )}
             </motion.div>
 
             {/* Image Modal */}
             <AnimatePresence>
-                    {selectedImage && (
+                {selectedImage && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -383,7 +383,7 @@ export const GalleryClient = () => {
                                     height={600}
                                     className="w-full h-auto max-h-[70vh] object-contain"
                                 />
-                                
+
                                 {/* Close Button */}
                                 <IOSButton
                                     size="icon"
@@ -394,10 +394,10 @@ export const GalleryClient = () => {
                                     <X className="h-5 w-5" />
                                 </IOSButton>
                             </div>
-                            
+
                             <div className="p-6">
                                 <div className="flex items-start justify-between mb-4">
-                                <div>
+                                    <div>
                                         <h3 className="text-xl font-semibold text-gray-900 mb-2">{selectedImage.title}</h3>
                                         <p className="text-gray-600 mb-3">{selectedImage.description}</p>
                                         <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -420,12 +420,12 @@ export const GalleryClient = () => {
                                             <Heart className="h-4 w-4 mr-2" />
                                             Líbí se mi
                                         </IOSButton>
-                                </div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
                     </motion.div>
-                    )}
+                )}
             </AnimatePresence>
         </div>
     );

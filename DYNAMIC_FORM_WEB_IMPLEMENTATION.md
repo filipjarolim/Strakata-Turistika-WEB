@@ -23,6 +23,8 @@ model FormField {
   active      Boolean  @default(true)    // Je pole aktivní?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@map("form_fields")
 }
 ```
 

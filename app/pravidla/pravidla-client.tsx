@@ -2,326 +2,295 @@
 
 import React from 'react';
 import { motion } from "framer-motion";
-import { 
-    BookOpen, 
-    FileText, 
-    Shield, 
-    Users, 
-    Award, 
-    Calendar, 
-    MapPin, 
-    Clock, 
-    AlertTriangle, 
-    CheckCircle, 
-    ExternalLink,
-    Download,
-    Eye,
-    Search,
-    Filter,
-    Bookmark,
-    Share2,
+import Image from "next/image";
+import {
+    MapPin,
+    Camera,
+    Shield,
+    AlertTriangle,
+    CheckCircle,
     Info,
-    Camera
+    FileText,
+    Download,
+    Award,
+    ExternalLink,
+    ChevronRight,
+    Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// iOS Components
-import { IOSCard } from "@/components/ui/ios/card";
 import { IOSButton } from "@/components/ui/ios/button";
-import { IOSTextInput } from "@/components/ui/ios/text-input";
-import { IOSSection } from "@/components/ui/ios/section";
-import { IOSBadge } from "@/components/ui/ios/badge";
-import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
 
-// Rules data
-const RULES_SECTIONS = [
+// --- Data ---
+
+const RULES_DATA = [
     {
-        id: "general",
-        title: "Základní pravidla soutěže",
-        icon: <Shield className="h-5 w-5" />,
-        color: "bg-blue-100 text-blue-600",
+        id: "how-to",
+        title: "Jak na to?",
+        subtitle: "Základní principy",
+        icon: <MapPin className="h-6 w-6" />,
+        color: "text-blue-500",
+        bgColor: "bg-blue-500/10",
+        image: "/img/mascot/hiking.png",
+        description: "Účast v soutěži je snadná. Stačí vzít svého strakáče, vyrazit do přírody a dodržet pár jednoduchých pravidel.",
         rules: [
             {
-                title: "Pozor změna oproti minulému ročníku",
-                content: "Letos je povolena pouze chůze, žádný dopravní prostředek (kolo, loď, běžky). V letošním roce budou základem soutěže zdolané kilometry + navštívená místa.",
-                important: true
+                title: "Pouze po svých",
+                content: "Žádná kola, lodě ani běžky. Uznáváme pouze pěší turistiku. Jen vy a váš pes v přírodě.",
+                important: true,
+                icon: <MapPin className="h-5 w-5" />
             },
             {
-                title: "Minimální délka trasy",
-                content: "Trasa musí měřit nejméně 3 km (poznámka: nevztahuje se na téma měsíce). Na trase musíte navštívit alespoň 1 bodované místo. Nejmenší počet bodů, které můžete získat je 4 - 3 za kilometry + 1 za bodované místo.",
-                important: true
+                title: "Minimálně 3 km",
+                content: "Každý výlet musí mít délku alespoň 3 km. Kratší procházky se do soutěže nepočítají.",
+                important: true,
+                icon: <Search className="h-5 w-5" />
             },
             {
-                title: "Počet tras za den",
-                content: "Počet tras ušlých za jeden den není nijak omezen.",
-                important: false
-            },
-            {
-                title: "Bodování kilometrů",
-                content: "Body se dávají i za desetiny kilometru - trasa 6,8 km znamená 6,8 bodů.",
-                important: false
-            },
-            {
-                title: "Důkaz ušlých kilometrů",
-                content: "Jako důkaz ušlých km budete posílat screen nebo odkaz z aplikace, z mobilu - stopař, strava apod. nebo z chytrých hodinek. Dále budete posílat fotky z bodovaných míst. Pokud by byl někdo, kdo nemá chytrý telefon ani chytré hodinky, tak pošle podrobně popsaný itinerář a jako důkaz fotky z trasy např. rozcestí, turistický přístřešek, parkoviště apod.",
-                important: true
-            },
-            {
-                title: "Fotky z trasy",
-                content: "Protože se letos bodují i ušlé kilometry, tak pokud na trase narazíte na místo, které se neboduje, ale je hezké (např. zřícenina hradu, potůček, výhled do kraje atd.) a váš pes hezky zapózuje a budete tak mít povedenou fotku, tak ji určitě pošlete s textem \"Foto z trasy\" - ať máme z čeho vybírat do kalendáře :-)",
-                important: false
-            },
-            {
-                title: "Opakované návštěvy míst",
-                content: "Pokud půjdete trasu, na které se nachází více bodovaných míst, tak je možné si body \"pošetřit\" - tzn. že neseberete všechny body hned napoprvé, ale pokud půjdete víckrát, tak nikdy nesmí být trasa úplně stejná - musí tam být změna - delší, zkrácená, přidaná cesta apod.",
-                important: false
-            },
-            {
-                title: "Dogtrekking a canicross",
-                content: "V případě, že se zúčastníte dogtrekingu, canicrossu či jiného závodu a po cestě navštívíte bodovaná místa, tak je možné body do ST použít, ale už nebudete moct bodovat s tím samým závodem v pracovním strakáči.",
-                important: false
+                title: "Důkaz o trase",
+                content: "Potřebujeme záznam trasy (z aplikace Stopař, Strava apod.) a fotku přímo z místa.",
+                important: false,
+                icon: <CheckCircle className="h-5 w-5" />
             }
         ]
     },
     {
-        id: "exceptions",
-        title: "Výjimky",
-        icon: <AlertTriangle className="h-5 w-5" />,
-        color: "bg-amber-100 text-amber-600",
+        id: "challenges",
+        title: "Místa a Výzvy",
+        subtitle: "Kde sbírat body",
+        icon: <Camera className="h-6 w-6" />,
+        color: "text-emerald-500",
+        bgColor: "bg-emerald-500/10",
+        image: "/img/mascot/photography.png",
+        description: "Objevujte nová místa a plňte měsíční výzvy. Každá fotka se počítá, pokud dodržíte zadání.",
         rules: [
             {
-                title: "Výjimka pro seniory a handicapované",
-                content: "Pro psí (i lidské) seniory, psy (i lidi) v rekonvalescenci, psy (i lidi) s handicapem apod. je v odůvodněných případech možné udělit výjimku. Pokud máte psa staršího 12 let, po nemoci, úrazu, v rekonvalescenci, s handicapem, nebo pokud sám jste po nemoci, úrazu, v rekonvalescenci, s handicapem, tak máte možnost požádat o výjimku, která vám umožní sbírat body po ujítí trasy minimálně 1,5 km.",
-                important: true
+                title: "Správná fotka",
+                content: "Pes musí být na fotce jasně vidět a fotka musí být pořízena přímo u cílového objektu.",
+                important: true,
+                icon: <Camera className="h-5 w-5" />
             },
             {
-                title: "Žádost o výjimku",
-                content: "O výjimku musíte požádat a zdůvodnit ji. Udělení výjimky není automatické, důvod musí být opodstatněný (že měl člověk chřipku, opravdu není ten správný důvod :-)).",
-                important: true
+                title: "Téma měsíce",
+                content: "Každý měsíc vyhlašujeme speciální téma. Najděte místa spojená s pohádkami a získejte bonus.",
+                important: false,
+                icon: <Award className="h-5 w-5" />
+            },
+            {
+                title: "Opakování povolený",
+                content: "Na stejné místo můžete vyrazit vícekrát, ale body z něj započítáme jen jednou ročně.",
+                important: false,
+                icon: <CheckCircle className="h-5 w-5" />
             }
         ]
     },
     {
-        id: "scoring",
-        title: "Bodování a pořadí",
-        icon: <Award className="h-5 w-5" />,
-        color: "bg-green-100 text-green-600",
+        id: "essentials",
+        title: "Důležité info",
+        subtitle: "Na co nezapomenout",
+        icon: <Shield className="h-6 w-6" />,
+        color: "text-amber-500",
+        bgColor: "bg-amber-500/10",
+        image: "/img/mascot/reading.png",
+        description: "Pár formalit, které je třeba dodržet, aby byly vaše body spravedlivě uznány.",
         rules: [
             {
-                title: "Rozhodování při rovnosti bodů",
-                content: "Při rovnosti bodů za celé bodovací období rozhoduje: 1) počet ušlých kilometrů, 2) počet bodů za navštívená místa.",
-                important: true
+                title: "14 dní na odeslání",
+                content: "Fotky a záznamy posílejte včas. Maximálně do 14 dnů od výletu, později to nejde.",
+                important: true,
+                icon: <AlertTriangle className="h-5 w-5" />
             },
             {
-                title: "Úprava pravidel",
-                content: "Organizátoři si vyhrazují právo na úpravu pravidel v průběhu soutěže. Neděláme to rádi, ale někdy v průběhu roku nastane neočekávaná situace a my na ni musíme zareagovat.",
-                important: false
+                title: "Členství ve spolku",
+                content: "Soutěž je exkluzivní pro členy Spolku českého strakatého psa.",
+                important: true,
+                icon: <Shield className="h-5 w-5" />
             },
             {
-                title: "Členství",
-                content: "Soutěž je pro členy Spolku českého strakatého psa.",
-                important: true
-            },
-            {
-                title: "Bodovací období",
-                content: "Bodovací období je pro letošní ročník od 1. 11. 2024 do 31. 10. 2025.",
-                important: true
-            },
-            {
-                title: "Termín pro zasílání fotek",
-                content: "Pro zasílání fotek používejte nejlépe formulář zde na stránce a fotka nesmí být starší 14 dní, max. 14 dní od pořízení, jinak nemusí být uznána! Konec ročníku 2025 je 31. 10. 2025 - tzn. že poslední termín pro zaslání fotky je nejdéle do 31. 10. 2025 24:00 hod.!",
-                important: true
-            }
-        ]
-    },
-    {
-        id: "places",
-        title: "Bodovaná místa",
-        icon: <MapPin className="h-5 w-5" />,
-        color: "bg-purple-100 text-purple-600",
-        rules: [
-            {
-                title: "Fotky z bodovaných míst",
-                content: "V letošním roce budeme striktně vyžadovat fotku přímo z bodovaného místa. Nebudou se tedy uznávat fotky, kde je např. hora krásně vyfocená v dálce a strakáč pózuje někde na úpatí na louce. Prostě budou uznané jen přímé důkazy o návštěvě místa.",
-                important: true
-            },
-            {
-                title: "Nedostupnost míst",
-                content: "Může se stát, že bodované místo bude nedostupné a tudíž se nemůže uznat. Není v našich silách zkontrolovat přístupnost všech bodů, je tedy potřeba si předem doma projít mapu a zkontrolovat místa, abyste se nevydali na výšlap a až na místě zjistili, že se objekt nachází např. v klidové zóně NP a není tam vstup povolen.",
-                important: true
-            },
-            {
-                title: "Opakované návštěvy",
-                content: "Bodované místo můžete navštívit za rok kolikrát chcete, ale body budete mít jen jednou - kromě sekce Strakáč zve - tam jsou vlastní upravená pravidla.",
-                important: false
-            },
-            {
-                title: "Vícebodová místa",
-                content: "V letošním ročníku jsou místa, kde můžete získat najednou více bodů, v tom případě musíte při posílání bodů napsat všechny získané body - není v našich silách tohle za vás kontrolovat.",
-                important: true
-            }
-        ]
-    },
-    {
-        id: "monthly-theme",
-        title: "Téma měsíce",
-        icon: <Calendar className="h-5 w-5" />,
-        color: "bg-pink-100 text-pink-600",
-        rules: [
-            {
-                title: "Princip tématu měsíce",
-                content: "Na každý měsíc budou vybrána tři slova, která se vztahují k pohádkám. Vaším úkolem bude najít na mapy.cz místo, které se k těmto slovům vztahuje. Uznávají se slova odvozená, příbuzná atd. (např. Kašpárek - Kašparova chata, vrchol Kašparka apod.).",
-                important: false
-            },
-            {
-                title: "Výjimka pro téma měsíce",
-                content: "Pozor! Pouze v kategorii téma měsíce není podmínka trasy 3 km, můžete poslat jen fotku, jak váš strakáč sedí před domem s pamětní deskou Jana Kašpara a v tom případě dostanete jen 1 bod. Pokud si k tomu uděláte ještě procházku, tak máte body za ušlé kilometry + 1 za kašpárka.",
-                important: true
-            },
-            {
-                title: "Bonus za všechna slova",
-                content: "Když se vám podaří v měsíci posbírat všechna tři slova, budete mít bonusové 2 body.",
-                important: false
-            },
-            {
-                title: "Označení slov",
-                content: "Je nutné, abyste k fotce sami psali, zda je to nalezené první, druhé nebo třetí slovo. Jedno slovo se boduje jen jednou.",
-                important: true
-            },
-            {
-                title: "Aktuální téma",
-                content: "červenec: Král - Koruna - Hrad",
-                important: false
-            }
-        ]
-    },
-    {
-        id: "photo-requirements",
-        title: "Požadavky na fotky",
-        icon: <Camera className="h-5 w-5" />,
-        color: "bg-indigo-100 text-indigo-600",
-        rules: [
-            {
-                title: "Informace k fotce",
-                content: "K fotce je potřeba doplnit: Jméno majitele + psa (oficiální i volací), datum, název místa - (pokud je to místo \"vícebodové\" viz příklad bodování výše, tak prosím napište všechny možnosti).",
-                important: true
-            },
-            {
-                title: "Pojmenování fotek",
-                content: "A ještě prosba: hodně nám pomůže, když fotku, kterou nahráváte pojmenujete podle místa, kde byla pořízená. Někteří z vás to tak dělají a pro uložení a zapsání bodů je to velká pomoc. Díky :-)",
-                important: false
-            },
-            {
-                title: "Souhlas se zveřejněním",
-                content: "Soutěžící účastí v soutěži souhlasí se zveřejněním fotek se svým jménem na veřejné sociální síti Rajce.net.",
-                important: false
+                title: "Sezóna 24/25",
+                content: "Body sbíráme od 1. listopadu 2024 až do 31. října 2025.",
+                important: false,
+                icon: <CheckCircle className="h-5 w-5" />
             }
         ]
     }
 ];
 
-const RuleCard = ({ rule, index }: { rule: { title: string; content: string; important: boolean }; index: number }) => {
-  return (
+// --- Components ---
+
+const RuleCard = ({ rule, index }: { rule: any, index: number }) => {
+    return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
+            className="group"
         >
-            <IOSCard
-                variant="outlined"
-                className="hover:shadow-lg transition-all duration-200"
-            >
-                <div className="flex items-start gap-3">
-                    <IOSCircleIcon 
-                        variant={rule.important ? "red" : "default"} 
-                        size="sm"
-                    >
-                        {rule.important ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                    </IOSCircleIcon>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                            <h4 className="font-semibold text-gray-900">{rule.title}</h4>
+            <div className={cn(
+                "h-full p-5 rounded-3xl border transition-all duration-300",
+                "bg-white/50 backdrop-blur-sm hover:bg-white hover:shadow-xl hover:shadow-blue-900/5",
+                "border-gray-100 dark:border-gray-800"
+            )}>
+                <div className="flex items-start gap-4">
+                    <div className={cn(
+                        "p-3 rounded-2xl shrink-0 transition-colors",
+                        rule.important ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600",
+                        "group-hover:scale-110 duration-300"
+                    )}>
+                        {rule.important ? <AlertTriangle size={20} /> : rule.icon}
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-bold text-gray-900 leading-tight">
+                                {rule.title}
+                            </h4>
                             {rule.important && (
-                                <IOSBadge
-                                    label="Důležité"
-                                    bgColor="bg-red-100"
-                                    textColor="text-red-800"
-                                    size="sm"
-                                />
+                                <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                    Důležité
+                                </span>
                             )}
                         </div>
-                        <div className="text-gray-600 text-sm leading-relaxed">
+                        <p className="text-sm text-gray-600 leading-relaxed group-hover:text-gray-900 transition-colors">
                             {rule.content}
-                        </div>
+                        </p>
                     </div>
                 </div>
-            </IOSCard>
+            </div>
         </motion.div>
+    );
+};
+
+const Section = ({ data, index }: { data: typeof RULES_DATA[0], index: number }) => {
+    const isEven = index % 2 === 0;
+
+    return (
+        <section className="py-24 relative">
+            {/* Background Decor */}
+            <div className={cn(
+                "absolute top-1/2 -translate-y-1/2 w-[120%] h-[80%] rounded-full blur-[100px] opacity-30 -z-10",
+                isEven ? "right-[-20%] bg-blue-200/50" : "left-[-20%] bg-green-200/50"
+            )} />
+
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                {/* Image Side */}
+                <motion.div
+                    className={cn(
+                        "relative group perspective-1000",
+                        isEven ? "lg:order-2" : "lg:order-1"
+                    )}
+                    initial={{ opacity: 0, scale: 0.95, rotate: isEven ? 2 : -2 }}
+                    whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                    viewport={{ once: true, margin: "-100px" }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                >
+                    <div className="relative aspect-square sm:aspect-[4/3] lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-700 group-hover:scale-[1.02]">
+                        <Image
+                            src={data.image}
+                            alt={data.title}
+                            fill
+                            className="object-cover"
+                            priority={index === 0}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
+
+                        {/* Floating Badge */}
+                        <div className={cn(
+                            "absolute bottom-8 left-8 right-8 glass-panel p-6 rounded-3xl backdrop-blur-xl border border-white/20 bg-white/20 text-white",
+                            "transform transition-all duration-500 group-hover:-translate-y-2"
+                        )}>
+                            <div className="flex items-center gap-4">
+                                <div className={cn("p-3 rounded-2xl bg-white/20", data.color.replace('text-', 'text-white '))} >
+                                    {data.icon}
+                                </div>
+                                <div>
+                                    <p className="text-white/80 text-sm font-medium uppercase tracking-wider">{data.subtitle}</p>
+                                    <h3 className="text-2xl font-bold text-white">{data.title}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Content Side */}
+                <div className={cn(
+                    "space-y-8",
+                    isEven ? "lg:order-1" : "lg:order-2"
+                )}>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">
+                            {data.title}
+                        </h2>
+                        <p className="text-xl text-gray-600 leading-relaxed font-medium">
+                            {data.description}
+                        </p>
+                    </motion.div>
+
+                    <div className="grid gap-4">
+                        {data.rules.map((rule, i) => (
+                            <RuleCard key={i} rule={rule} index={i} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </section>
     );
 };
 
 const QuickLinks = () => {
     const quickLinks = [
         {
-            title: "Seznam bodovaných míst",
-            description: "Kompletní seznam všech bodovaných míst",
+            title: "Seznam míst",
+            description: "Kam vyrazit?",
             icon: <MapPin className="h-5 w-5" />,
-            color: "bg-blue-100 text-blue-600",
-            action: "Zobrazit seznam"
+            color: "text-blue-600 bg-blue-50",
+            arrowColor: "text-blue-300 group-hover:text-blue-600"
         },
         {
             title: "Průběžné pořadí",
-            description: "Aktuální pořadí soutěžících",
+            description: "Jak si vedeme?",
             icon: <Award className="h-5 w-5" />,
-            color: "bg-green-100 text-green-600",
-            action: "Zobrazit pořadí"
+            color: "text-emerald-600 bg-emerald-50",
+            arrowColor: "text-emerald-300 group-hover:text-emerald-600"
         },
         {
             title: "Fotogalerie",
-            description: "Fotky z předchozích ročníků",
+            description: "Inspirace",
             icon: <Camera className="h-5 w-5" />,
-            color: "bg-purple-100 text-purple-600",
-            action: "Prohlížet"
+            color: "text-purple-600 bg-purple-50",
+            arrowColor: "text-purple-300 group-hover:text-purple-600"
         }
     ];
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickLinks.map((link, index) => (
-                <motion.div
-                    key={link.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + index * 0.1 }}
+        <div className="grid md:grid-cols-3 gap-6">
+            {quickLinks.map((link, i) => (
+                <motion.button
+                    key={i}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative flex items-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200 transition-all duration-300"
                 >
-                    <IOSCard
-                        title={link.title}
-                        subtitle={link.description}
-                        icon={link.icon}
-                        iconBackground={link.color.split(' ')[0]}
-                        iconColor={link.color.split(' ')[1]}
-                        className="cursor-pointer hover:shadow-xl transition-all duration-200"
-                    >
-                        <div className="flex items-center justify-between">
-                            <IOSButton variant="outline" size="sm" className="gap-2">
-                                {link.action}
-                                <ExternalLink className="h-4 w-4" />
-                            </IOSButton>
-                        </div>
-                    </IOSCard>
-                </motion.div>
+                    <div className={cn("p-4 rounded-2xl mr-5 transition-colors", link.color)}>
+                        {link.icon}
+                    </div>
+                    <div className="text-left flex-1">
+                        <h3 className="font-bold text-gray-900 text-lg">{link.title}</h3>
+                        <p className="text-gray-500 text-sm">{link.description}</p>
+                    </div>
+                    <ChevronRight className={cn("h-6 w-6 transition-colors", link.arrowColor)} />
+                </motion.button>
             ))}
         </div>
     );
 };
 
-const ContactInfo = () => {
-    const handleContact = () => {
-        window.location.href = 'mailto:info@strakataturistika.cz?subject=Dotaz k pravidlům Strakaté turistiky';
-    };
-
+export function PravidlaClient() {
     const handleDownloadRules = () => {
-        // Create a text file with the rules content
         const rulesContent = `PRAVIDLA STRAKATÉ TURISTIKY 2024/2025
 
 ZÁKLADNÍ PRAVIDLA SOUTĚŽE:
@@ -377,115 +346,104 @@ Kontakt: info@strakataturistika.cz`;
     };
 
     return (
-        <IOSCard
-            title="Potřebujete pomoct?"
-            subtitle="Kontaktujte nás pro další informace"
-            icon={<Info className="h-6 w-6" />}
-            iconBackground="bg-amber-100"
-            iconColor="text-amber-600"
-        >
-            <div className="space-y-4">
-                <p className="text-gray-600">
-                    Máte dotazy k pravidlům soutěže nebo potřebujete pomoct s nahráváním fotek? 
-                    Neváhejte nás kontaktovat na info@strakataturistika.cz
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <IOSButton 
-                        variant="primary" 
-                        className="gap-2"
-                        onClick={handleContact}
-                    >
-                        <FileText className="h-4 w-4" />
-                        Kontaktovat
-                    </IOSButton>
-                    <IOSButton 
-                        variant="outline" 
-                        className="gap-2"
-                        onClick={handleDownloadRules}
-                    >
-                        <Download className="h-4 w-4" />
-                        Stáhnout pravidla
-                    </IOSButton>
-                </div>
-      </div>
-        </IOSCard>
-    );
-};
+        <div className="min-h-screen bg-gray-50/50 pb-32 overflow-hidden selection:bg-blue-100 selection:text-blue-900">
 
-export function PravidlaClient() {
-    return (
-        <div className="max-w-6xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
-            {/* Header */}
-            <motion.div 
-                className="text-center space-y-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-            >
-                <div className="flex items-center justify-center gap-3">
-                    <IOSCircleIcon variant="blue" size="lg">
-                        <BookOpen className="h-8 w-8" />
-                    </IOSCircleIcon>
-                </div>
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Pravidla Strakaté turistiky</h1>
-                    <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">
-                        Seznamte se s pravidly soutěže Strakatá turistika pro členy Spolku českého strakatého psa.
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                {/* Hero Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="pt-24 pb-16 md:pt-32 md:pb-24 text-center max-w-4xl mx-auto"
+                >
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-gray-100 mb-8 animate-fade-in-up">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        <span className="text-sm font-semibold text-gray-600">Sezóna 2025 / 2026</span>
+                    </div>
+
+                    <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-gray-900 tracking-tighter mb-8 leading-[0.9]">
+                        Pravidla
+                        <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                            Strakaté turistiky
+                        </span>
+                    </h1>
+
+                    <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+                        Vše, co potřebuješ vědět. Přehledně, jasně a s láskou k pohybu.
                     </p>
+                </motion.div>
+
+                {/* Main Content Sections */}
+                <div className="space-y-12">
+                    {RULES_DATA.map((section, index) => (
+                        <Section key={section.id} data={section} index={index} />
+                    ))}
                 </div>
-            </motion.div>
 
-            {/* Quick Links */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.6 }}
-            >
-                <IOSSection title="Rychlé odkazy">
+                {/* Footer Actions */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    className="mt-32 space-y-16"
+                >
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Rychlá navigace</h2>
+                        <p className="text-gray-500">Kam dál?</p>
+                    </div>
+
                     <QuickLinks />
-                </IOSSection>
-            </motion.div>
 
-            {/* Rules Sections */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-                className="space-y-8"
-            >
-                {RULES_SECTIONS.map((section, sectionIndex) => (
-                    <motion.div
-                        key={section.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 + sectionIndex * 0.1, duration: 0.6 }}
-                    >
-                        <IOSSection 
-                            title={section.title}
-                            subtitle={`${section.rules.length} pravidel`}
-                        >
-                            <div className="space-y-4">
-                                {section.rules.map((rule, ruleIndex) => (
-                                    <RuleCard 
-                                        key={rule.title} 
-                                        rule={rule} 
-                                        index={ruleIndex} 
-                                    />
-                                ))}
+                    {/* Support Card */}
+                    <div className="mt-20">
+                        <div className="relative rounded-[3rem] overflow-hidden bg-gray-900 text-white p-8 md:p-16 text-center">
+                            {/* Background gradients */}
+                            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+                                <div className="absolute -top-[50%] -left-[20%] w-[80%] h-[80%] rounded-full bg-blue-600/30 blur-[120px]" />
+                                <div className="absolute -bottom-[50%] -right-[20%] w-[80%] h-[80%] rounded-full bg-purple-600/30 blur-[120px]" />
                             </div>
-                        </IOSSection>
-                    </motion.div>
-                ))}
-            </motion.div>
 
-            {/* Contact Info */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.6 }}
-            >
-                <ContactInfo />
-            </motion.div>
+                            <div className="relative z-10 max-w-2xl mx-auto space-y-8">
+                                <div className="inline-flex p-4 rounded-full bg-white/10 backdrop-blur-md mb-4">
+                                    <Info className="h-8 w-8 text-blue-300" />
+                                </div>
+                                <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+                                    Něco není jasné?
+                                </h2>
+                                <p className="text-xl text-gray-300 leading-relaxed">
+                                    Jsme tu pro vás. Napište nám nebo si stáhněte kompletní pravidla v PDF pro offline čtení.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                                    <IOSButton
+                                        variant="primary"
+                                        size="lg"
+                                        className="h-14 px-8 text-lg rounded-2xl bg-white text-gray-900 hover:bg-gray-100 border-none"
+                                        onClick={() => window.location.href = 'mailto:info@strakataturistika.cz'}
+                                    >
+                                        <FileText className="mr-2 h-5 w-5" />
+                                        Napsat e-mail
+                                    </IOSButton>
+                                    <IOSButton
+                                        variant="outline"
+                                        size="lg"
+                                        className="h-14 px-8 text-lg rounded-2xl border-white/20 text-white hover:bg-white/10"
+                                        onClick={handleDownloadRules}
+                                    >
+                                        <Download className="mr-2 h-5 w-5" />
+                                        Stáhnout PDF
+                                    </IOSButton>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+
+            </div>
         </div>
     );
-} 
+}

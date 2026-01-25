@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, MapPin, Camera, Calendar, Clock, TrendingUp, Mountain } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MapPin, Camera, Calendar, Clock, TrendingUp, Mountain, Navigation, Info } from 'lucide-react';
 import { IOSButton } from '@/components/ui/ios/button';
 import { IOSCard } from "@/components/ui/ios/card";
 import { IOSTextInput } from '@/components/ui/ios/text-input';
@@ -13,14 +13,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import dynamic from 'next/dynamic';
 import PlacesManager, { Place } from '@/components/soutez/PlacesManager';
+import { motion } from 'framer-motion';
 
 const DynamicGpxEditor = dynamic(
   () => import('@/components/editor/GpxEditor').then(mod => mod.default),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-muted">
-        <div className="animate-pulse">Loading editor...</div>
+      <div className="w-full h-full flex items-center justify-center bg-white/5 rounded-3xl border border-white/10">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <span className="text-sm text-white/50">Načítání mapy...</span>
+        </div>
       </div>
     )
   }
@@ -102,7 +106,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
         const response = await fetch(`/api/visitData/${routeId}`);
         if (!response.ok) throw new Error('Failed to fetch route');
         const data = await response.json();
-        
+
         // Parse route data - can be trackPoints array or legacy format
         let track: { lat: number; lng: number }[] = [];
         if (data.route) {
@@ -118,7 +122,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
             console.warn('Failed to parse route data:', e);
           }
         }
-        
+
         // Fallback to routeLink if route is empty
         if (track.length === 0 && data.routeLink) {
           try {
@@ -127,7 +131,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
             console.warn('Failed to parse routeLink:', e);
           }
         }
-        
+
         setRoute({
           id: data.id,
           routeTitle: data.routeTitle || '',
@@ -142,18 +146,18 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
             difficulty: data.extraPoints?.difficulty || 1
           }
         });
-        
+
         setVisitDate(data.visitDate ? new Date(data.visitDate) : new Date());
         setDogNotAllowed(data.dogNotAllowed === 'true');
         // Load manual distance from extraPoints.distanceKm or extraPoints.distance
         const savedDistance = data.extraPoints?.distanceKm || data.extraPoints?.distance || 0;
         setManualDistance(savedDistance.toString());
-        
+
         // Load places if they exist
         if (data.places && Array.isArray(data.places)) {
           setPlaces(data.places);
         }
-        
+
         // Load photos
         if (data.photos && Array.isArray(data.photos)) {
           setImages(data.photos);
@@ -215,9 +219,9 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save route');
       }
-      
+
       const updatedData = await response.json();
-      
+
       // Store in sessionStorage for finish page
       sessionStorage.setItem('routeData', JSON.stringify({
         routeTitle: updatedData.routeTitle,
@@ -243,7 +247,14 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
   };
 
   if (isLoading) {
-    return <div className="text-white text-center py-8">Načítání...</div>;
+    return (
+      <div className="w-full h-96 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <span className="text-white/60 font-medium">Načítám data trasy...</span>
+        </div>
+      </div>
+    );
   }
 
   if (!route) {
@@ -251,18 +262,27 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
-      <div className="mb-4 sm:mb-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg">Upravit trasu</h2>
-        <p className="text-sm sm:text-base text-white/90">Přidejte detaily a fotky k vaší trase</p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="mb-4 sm:mb-8 border-b border-white/10 pb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 drop-shadow-lg flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-blue-500/20"><Navigation className="h-6 w-6 text-blue-400" /></div>
+          Upravit trasu
+        </h2>
+        <p className="text-sm sm:text-base text-gray-400 pl-[52px]">Přidejte detaily, fotky a zkontrolujte správnost dat.</p>
       </div>
 
       {error && (
-        <Alert variant="destructive" className="bg-red-900/80 backdrop-blur-xl border-red-500/50 text-white">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Chyba</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-4"
+        >
+          <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-red-200">Něco se nepovedlo</h4>
+            <p className="text-sm text-red-200/80">{error}</p>
+          </div>
+        </motion.div>
       )}
 
       {/* Map Card or Screenshot Preview */}
@@ -274,14 +294,14 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           iconBackground="bg-green-900/40"
           iconColor="text-green-300"
           variant="elevated"
-          className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
+          className="bg-black/80 backdrop-blur-xl border border-white/20 text-white"
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="h-56 sm:h-80 md:h-96 lg:h-[32rem] xl:h-[40rem]">
+          <div className="h-64 sm:h-80 md:h-96 lg:h-[28rem] xl:h-[32rem]">
             <DynamicGpxEditor
               initialTrack={downsampleTrack(route.track)}
-              onSave={() => {}}
+              onSave={() => { }}
               readOnly
               hideControls={['add', 'delete', 'undo', 'redo', 'simplify']}
             />
@@ -295,7 +315,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           iconBackground="bg-green-900/40"
           iconColor="text-green-300"
           variant="elevated"
-          className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
+          className="bg-black/80 backdrop-blur-xl border border-white/20 text-white"
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
@@ -303,7 +323,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
         </IOSCard>
       )}
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
         {/* Details Card */}
         <IOSCard
           title="Detaily trasy"
@@ -312,33 +332,51 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           iconBackground="bg-blue-900/40"
           iconColor="text-blue-300"
           variant="elevated"
-          className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
+          className="bg-black/80 backdrop-blur-xl border border-white/20 text-white h-full"
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-6">
             {route.track.length === 0 && (
-              <IOSTextInput
-                label="Vzdálenost (km)"
-                placeholder="Např. 12.5"
-                value={manualDistance}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setManualDistance(e.target.value)}
-                type="number"
-                step="0.1"
-                dark
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-400" />
+                  Vzdálenost (km)
+                </label>
+                <div className="relative">
+                  <IOSTextInput
+                    placeholder="- - . -"
+                    value={manualDistance}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setManualDistance(e.target.value)}
+                    type="number"
+                    step="0.1"
+                    dark
+                    className="pl-4 pr-12 text-lg font-mono tracking-widest"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 font-medium">km</span>
+                </div>
+              </div>
             )}
 
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="text-sm font-medium text-white">Datum absolvování</label>
-              <IOSCalendar
-                selectedDate={visitDate}
-                onDateChange={(date: Date) => setVisitDate(date)}
-              />
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-white flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-orange-400" />
+                Datum absolvování
+              </label>
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <IOSCalendar
+                  selectedDate={visitDate}
+                  onDateChange={(date: Date) => setVisitDate(date)}
+                  className="w-full text-white"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between py-3 px-4 bg-black/40 backdrop-blur-sm rounded-xl border border-white/30">
-              <span className="text-sm font-medium text-white">Zákaz vstupu se psy</span>
+            <div className="flex items-center justify-between py-4 px-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
+              <div className="space-y-1">
+                <span className="text-base font-medium text-white block">Zákaz vstupu se psy</span>
+                <span className="text-xs text-white/50 block">Bylo na trase nějaké omezení pro psy?</span>
+              </div>
               <IOSSwitch
                 checked={dogNotAllowed}
                 onCheckedChange={setDogNotAllowed}
@@ -355,18 +393,30 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           iconBackground="bg-purple-900/40"
           iconColor="text-purple-300"
           variant="elevated"
-          className="bg-black/60 backdrop-blur-xl border border-white/20 text-white"
+          className="bg-black/80 backdrop-blur-xl border border-white/20 text-white h-full"
           titleClassName="text-white"
           subtitleClassName="text-white/70"
         >
-          <EnhancedImageUpload
-            sources={images}
-            onUpload={handleImageUpload}
-            onDelete={handleImageDelete}
-            stackingStyle="grid"
-            aspectRatio="landscape"
-            count={10}
-          />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-3 items-start flex-1">
+                <Info className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-200">Fotky slouží jako důkaz návštěvy a také pro inspiraci ostatním. Vyberte ty nejlepší!</p>
+              </div>
+              <div className="text-xs font-bold px-2 py-1 rounded bg-white/10 text-white/70 border border-white/10 ml-4 shrink-0 h-fit">
+                MAX 10
+              </div>
+            </div>
+
+            <EnhancedImageUpload
+              sources={images}
+              onUpload={handleImageUpload}
+              onDelete={handleImageDelete}
+              stackingStyle="grid"
+              aspectRatio="landscape"
+              count={10}
+            />
+          </div>
         </IOSCard>
       </div>
 
@@ -385,7 +435,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
         <PlacesManager places={places} onChange={setPlaces} dark />
       </IOSCard>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-4 pb-8">
         <IOSButton
           variant="blue"
           size="lg"
@@ -393,7 +443,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           disabled={isSaving}
           loading={isSaving}
           icon={<ArrowRight className="h-5 w-5" />}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto px-10 h-14 text-lg shadow-xl shadow-blue-500/20"
         >
           Pokračovat k dokončení
         </IOSButton>

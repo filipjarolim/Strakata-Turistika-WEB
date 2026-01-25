@@ -24,6 +24,18 @@ export interface VisitDataWithUser {
     image: string | null;
   } | null;
   displayName: string;
+  route: RouteData | null;
+}
+
+export interface RouteData {
+  trackPoints: {
+    latitude: number;
+    longitude: number;
+    timestamp?: number;
+    altitude?: number;
+  }[];
+  totalDistance?: number;
+  duration?: number;
 }
 
 export interface LeaderboardEntry {
@@ -111,7 +123,7 @@ export async function getPaginatedVisitData(
     mongoSort[sortBy] = sortOrder;
 
     const totalCount = await getRawVisitDataCount(mongoFilters);
-    
+
     const visitData = await getRawVisitData(mongoFilters, {
       sort: mongoSort,
       skip: (page - 1) * limit,
@@ -133,7 +145,7 @@ export async function getPaginatedVisitData(
 
   } catch (error) {
     console.error('Error with raw MongoDB query, falling back to Prisma:', error);
-    
+
     // Fallback to Prisma query (original implementation)
     const whereClause: Record<string, unknown> = {
       year: season,
@@ -225,7 +237,7 @@ export async function getLeaderboard(
   searchQuery?: string,
   sortByVisits: boolean = false
 ): Promise<PaginatedResponse<LeaderboardEntry>> {
-  
+
   // Get all approved visits for the season using raw MongoDB query
   const visits = await getRawVisitData({
     seasonYear: season,
@@ -246,7 +258,7 @@ export async function getLeaderboard(
   (processedVisits as unknown as VisitDataWithUser[]).forEach((visit: VisitDataWithUser) => {
     // Use the displayName that was already processed with correct priority
     const groupKey = visit.userId || visit.displayName || 'unknown';
-    
+
     if (!userMap.has(groupKey)) {
       userMap.set(groupKey, {
         userId: visit.userId || groupKey,
@@ -262,7 +274,7 @@ export async function getLeaderboard(
     const entry = userMap.get(groupKey)!;
     entry.totalPoints += visit.points;
     entry.visitsCount += 1;
-    
+
     if (!entry.lastVisitDate || (visit.visitDate && visit.visitDate > entry.lastVisitDate)) {
       entry.lastVisitDate = visit.visitDate || undefined;
     }
@@ -320,7 +332,7 @@ export async function getAvailableSeasons(): Promise<number[]> {
     return await getRawSeasons();
   } catch (error) {
     console.error('Error getting seasons with raw query, falling back to Prisma:', error);
-    
+
     // Fallback to Prisma query
     const seasons = await db.season.findMany({
       select: {

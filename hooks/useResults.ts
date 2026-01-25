@@ -14,26 +14,26 @@ interface ResultsState {
   // Data arrays
   items: VisitDataWithUser[];
   leaders: LeaderboardEntry[];
-  
+
   // Pagination
   page: number;
   limit: number;
   hasMore: boolean;
-  
+
   // Loading states
   isInitialLoading: boolean;
   isLoadingMore: boolean;
-  
+
   // Filters
   selectedSeason: number;
   searchQuery: string;
   sortBy: 'visitDate' | 'points' | 'routeTitle' | 'createdAt';
   sortDescending: boolean;
-  
+
   // UI state
   showLeaderboard: boolean;
   sortLeaderboardByVisits: boolean;
-  
+
   // Error handling
   error: string | null;
 }
@@ -81,12 +81,12 @@ export function useResults(initialSeason: number) {
       console.log('Loading initial visits for season:', season, 'page: 1');
       const response = await fetch(`/api/results/visits/${season}?${params}`);
       if (!response.ok) throw new Error('Failed to fetch visit data');
-      
+
       const result: PaginatedResponse<VisitDataWithUser> = await response.json();
       console.log('Received initial visit data:', result);
-      
+
       // Check for duplicates in API response
-      const apiDuplicates = result.data.filter((item, index, arr) => 
+      const apiDuplicates = result.data.filter((item, index, arr) =>
         arr.findIndex(i => i.id === item.id) !== index
       );
       if (apiDuplicates.length > 0) {
@@ -94,10 +94,10 @@ export function useResults(initialSeason: number) {
       }
 
       // Deduplicate initial data
-      const uniqueItems = result.data.filter((item, index, arr) => 
+      const uniqueItems = result.data.filter((item, index, arr) =>
         arr.findIndex(i => i.id === item.id) === index
       );
-      
+
       console.log('Initial data - before deduplication:', result.data.length, 'items');
       console.log('Initial data - after deduplication:', uniqueItems.length, 'items');
 
@@ -113,8 +113,8 @@ export function useResults(initialSeason: number) {
       currentPageRef.current = 2;
     } catch (error) {
       console.error('Error loading initial data:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isLoadingMore: false,
         error: 'Failed to load initial data'
       }));
@@ -144,12 +144,12 @@ export function useResults(initialSeason: number) {
       console.log('Loading more visits for season:', state.selectedSeason, 'page:', pageToLoad);
       const response = await fetch(`/api/results/visits/${state.selectedSeason}?${params}`);
       if (!response.ok) throw new Error('Failed to fetch more data');
-      
+
       const result: PaginatedResponse<VisitDataWithUser> = await response.json();
       console.log('Received more visit data:', result);
-      
+
       // Check for duplicates in API response
-      const apiDuplicates = result.data.filter((item, index, arr) => 
+      const apiDuplicates = result.data.filter((item, index, arr) =>
         arr.findIndex(i => i.id === item.id) !== index
       );
       if (apiDuplicates.length > 0) {
@@ -158,13 +158,14 @@ export function useResults(initialSeason: number) {
 
       setState(prev => {
         const newItems = [...prev.items, ...result.data];
-        const uniqueItems = newItems.filter((item, index, arr) => 
-          arr.findIndex(i => i.id === item.id) === index
-        );
-        
+        // Deduplicate using Map to keep order but ensure uniqueness by ID
+        const uniqueItemsMap = new Map();
+        newItems.forEach(item => uniqueItemsMap.set(item.id, item));
+        const uniqueItems = Array.from(uniqueItemsMap.values());
+
         console.log('Before deduplication:', newItems.length, 'items');
         console.log('After deduplication:', uniqueItems.length, 'items');
-        
+
         return {
           ...prev,
           items: uniqueItems,
@@ -178,8 +179,8 @@ export function useResults(initialSeason: number) {
       currentPageRef.current = pageToLoad + 1;
     } catch (error) {
       console.error('Error loading more data:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         isLoadingMore: false,
         error: 'Failed to load more data'
       }));
@@ -202,7 +203,7 @@ export function useResults(initialSeason: number) {
       console.log('Loading leaderboard for season:', state.selectedSeason);
       const response = await fetch(`/api/results/leaderboard/${state.selectedSeason}?${params}`);
       if (!response.ok) throw new Error('Failed to fetch leaderboard');
-      
+
       const result: PaginatedResponse<LeaderboardEntry> = await response.json();
       console.log('Received leaderboard data:', result);
       console.log('Leaderboard data length:', result.data.length);
@@ -225,7 +226,7 @@ export function useResults(initialSeason: number) {
   const reloadForCurrentFilters = useCallback(async () => {
     console.log('Reloading for current filters, showLeaderboard:', state.showLeaderboard);
     console.log('Current leaders count before reload:', state.leaders.length);
-    
+
     // Use functional update to get the current state
     setState(prev => {
       console.log('Clearing data - showLeaderboard:', prev.showLeaderboard, 'clearing leaders:', prev.showLeaderboard);
@@ -270,9 +271,9 @@ export function useResults(initialSeason: number) {
   const toggleView = useCallback(async () => {
     const newShowLeaderboard = !state.showLeaderboard;
     console.log('Toggling view to:', newShowLeaderboard ? 'leaderboard' : 'visits');
-    
-    setState(prev => ({ 
-      ...prev, 
+
+    setState(prev => ({
+      ...prev,
       showLeaderboard: newShowLeaderboard,
       // Clear data for the new view
       items: newShowLeaderboard ? prev.items : [],
@@ -281,14 +282,14 @@ export function useResults(initialSeason: number) {
       hasMore: true,
       isInitialLoading: true
     }));
-    
+
     // Load data for the new view
     if (newShowLeaderboard) {
       await loadLeaderboard();
     } else {
       await loadInitialData(state.selectedSeason);
     }
-    
+
     setState(prev => ({ ...prev, isInitialLoading: false }));
   }, [state.showLeaderboard, loadLeaderboard, loadInitialData, state.selectedSeason]);
 
@@ -332,10 +333,10 @@ export function useResults(initialSeason: number) {
 
     // Reset page ref for new season
     currentPageRef.current = 1;
-    
+
     // Load visits data (default view)
     loadInitialData(initialSeason);
-    
+
     setState(prev => ({ ...prev, isInitialLoading: false }));
   }, [initialSeason]); // Re-run when season changes
 

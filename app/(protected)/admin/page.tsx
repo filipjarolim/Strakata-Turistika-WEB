@@ -10,12 +10,12 @@ import React, { useState, useEffect } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCurrentRole } from "@/hooks/use-current-role";
 import Link from "next/link";
-import { 
-    Database, 
-    Settings, 
-    Users, 
-    FileText, 
-    MapPin, 
+import {
+    Database,
+    Settings,
+    Users,
+    FileText,
+    MapPin,
     Clock,
     CheckCircle,
     AlertCircle,
@@ -68,7 +68,7 @@ const mainCollections = [
 // Advanced collections
 const advancedCollections = [
     "Account",
-    "VerificationToken", 
+    "VerificationToken",
     "PasswordResetToken",
     "TwoFactorToken",
     "TwoFactorConfirmation",
@@ -121,7 +121,7 @@ const AdminDashboardPage = () => {
                 setLoading(false);
             }
         };
-        
+
         loadStats();
     }, []);
 
@@ -204,7 +204,7 @@ const AdminDashboardPage = () => {
                     <BarChart3 className="h-5 w-5 text-primary" />
                     <h2 className="text-lg sm:text-xl font-semibold">Hlavní správa</h2>
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {mainCollections.map((collection) => {
                         const IconComponent = collection.icon;
@@ -283,21 +283,19 @@ const AdminDashboardPage = () => {
                                     </div>
                                 </div>
                                 {databaseStats.size.freeSpaceMB !== null && databaseStats.size.totalSpaceMB !== null && (
-                                    <div className={`p-3 rounded-lg border ${
-                                        databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80 
-                                            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900' 
-                                            : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60 
+                                    <div className={`p-3 rounded-lg border ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
+                                            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900'
+                                            : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60
                                                 ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900'
                                                 : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900'
-                                    }`}>
+                                        }`}>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                                             <div>
                                                 <p className="text-xs text-muted-foreground">Volné místo</p>
-                                                <p className={`text-lg font-bold ${
-                                                    databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80 
-                                                        ? 'text-red-600' 
+                                                <p className={`text-lg font-bold ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
+                                                        ? 'text-red-600'
                                                         : 'text-green-600'
-                                                }`}>
+                                                    }`}>
                                                     {databaseStats.size.freeSpaceMB} MB
                                                 </p>
                                             </div>
@@ -315,23 +313,21 @@ const AdminDashboardPage = () => {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-muted-foreground">Vyčerpáno</p>
-                                                <p className={`text-lg font-bold ${
-                                                    databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80 
-                                                        ? 'text-red-600' 
-                                                        : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60 
+                                                <p className={`text-lg font-bold ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
+                                                        ? 'text-red-600'
+                                                        : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60
                                                             ? 'text-yellow-600'
                                                             : 'text-primary'
-                                                }`}>
+                                                    }`}>
                                                     {databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` : 'N/A'}
                                                 </p>
                                             </div>
                                         </div>
                                         {databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60 && (
-                                            <div className={`mb-3 p-2 rounded text-xs ${
-                                                databaseStats.size.percentageUsed > 80 
+                                            <div className={`mb-3 p-2 rounded text-xs ${databaseStats.size.percentageUsed > 80
                                                     ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                                                     : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                                            }`}>
+                                                }`}>
                                                 ⚠️ Varování: Databáze je {databaseStats.size.percentageUsed > 80 ? 'téměř plná' : 'naplněná'}! Zvažte upgrade plánu nebo vyčištění starých dat.
                                             </div>
                                         )}
@@ -339,25 +335,24 @@ const AdminDashboardPage = () => {
                                             <div className="flex items-center justify-between mb-1">
                                                 <p className="text-xs text-muted-foreground">Využití prostoru</p>
                                                 <p className="text-xs font-semibold">
-                                                    {databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` : 
-                                                        databaseStats.size.totalSpaceMB && databaseStats.size.freeSpaceMB 
+                                                    {databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` :
+                                                        databaseStats.size.totalSpaceMB && databaseStats.size.freeSpaceMB
                                                             ? (((databaseStats.size.totalSpaceMB - databaseStats.size.freeSpaceMB) / databaseStats.size.totalSpaceMB) * 100).toFixed(1) + '%'
                                                             : '0%'}
                                                 </p>
                                             </div>
                                             <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2.5">
-                                                <div 
-                                                    className={`h-2.5 rounded-full transition-all ${
-                                                        databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80 
-                                                            ? 'bg-red-600 dark:bg-red-500' 
-                                                            : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60 
+                                                <div
+                                                    className={`h-2.5 rounded-full transition-all ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
+                                                            ? 'bg-red-600 dark:bg-red-500'
+                                                            : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60
                                                                 ? 'bg-yellow-600 dark:bg-yellow-500'
                                                                 : 'bg-blue-600 dark:bg-blue-500'
-                                                    }`}
-                                                    style={{ 
+                                                        }`}
+                                                    style={{
                                                         width: databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` :
-                                                            databaseStats.size.totalSpaceMB && databaseStats.size.freeSpaceMB 
-                                                                ? `${((databaseStats.size.totalSpaceMB - databaseStats.size.freeSpaceMB) / databaseStats.size.totalSpaceMB * 100).toFixed(1)}%` 
+                                                            databaseStats.size.totalSpaceMB && databaseStats.size.freeSpaceMB
+                                                                ? `${((databaseStats.size.totalSpaceMB - databaseStats.size.freeSpaceMB) / databaseStats.size.totalSpaceMB * 100).toFixed(1)}%`
                                                                 : '0%'
                                                     }}
                                                 />
@@ -424,15 +419,15 @@ const AdminDashboardPage = () => {
                         Systémové
                     </Badge>
                 </div>
-                
+
                 <Card>
                     <CardContent className="p-4 sm:p-6">
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                             {advancedCollections.map((collection) => (
                                 <Link key={collection} href={`/admin/${collection}`}>
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
                                         className="w-full h-auto p-3 flex flex-col gap-1 text-xs"
                                     >
                                         <Database className="h-4 w-4" />

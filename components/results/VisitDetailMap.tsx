@@ -1,22 +1,11 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { VisitDataWithUser } from '@/lib/results-utils';
+import { VisitDataWithUser, RouteData } from '@/lib/results-utils';
 import 'leaflet/dist/leaflet.css';
 
 interface VisitDetailMapProps {
-  visit: VisitDataWithUser & { route?: RouteData };
-}
-
-interface RouteData {
-  trackPoints?: Array<{
-    latitude?: number;
-    longitude?: number;
-    lat?: number;
-    lng?: number;
-    [0]?: number;
-    [1]?: number;
-  }>;
+  visit: VisitDataWithUser;
 }
 
 export default function VisitDetailMap({ visit }: VisitDetailMapProps) {
@@ -38,7 +27,7 @@ export default function VisitDetailMap({ visit }: VisitDetailMapProps) {
     }
 
     const route = visit.route as RouteData;
-    
+
     // Load Leaflet dynamically
     import('leaflet').then((L) => {
       if (!mapRef.current) return;
@@ -46,18 +35,18 @@ export default function VisitDetailMap({ visit }: VisitDetailMapProps) {
       // Show placeholder if no route data or track points
       if (!route?.trackPoints || route.trackPoints.length === 0) {
         console.log('VisitDetailMap - No track points found, route:', route);
-        
+
         // Still initialize map with default view
         const map = L.default.map(mapRef.current, {
           center: [49.8175, 15.4730], // Center of Czech Republic
           zoom: 8
         });
-        
+
         L.default.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19
         }).addTo(map);
-        
+
         // Add message marker
         L.default.marker([49.8175, 15.4730], {
           icon: L.default.divIcon({
@@ -67,7 +56,7 @@ export default function VisitDetailMap({ visit }: VisitDetailMapProps) {
             iconAnchor: [100, 20]
           })
         }).addTo(map);
-        
+
         return;
       }
 
@@ -76,7 +65,7 @@ export default function VisitDetailMap({ visit }: VisitDetailMapProps) {
         center: [49.8175, 15.4730], // Center of Czech Republic
         zoom: 8
       });
-      
+
       mapInstanceRef.current = map;
 
       // Add tile layer
@@ -87,19 +76,11 @@ export default function VisitDetailMap({ visit }: VisitDetailMapProps) {
 
       // Parse track points and create polyline
       const trackPoints = Array.isArray(route.trackPoints) ? route.trackPoints : [];
-      
+
       if (trackPoints.length > 0) {
         const latlngs = trackPoints.map((point) => {
-          // Handle different point formats
-          if (point.latitude && point.longitude) {
-            return [point.latitude, point.longitude] as [number, number];
-          } else if (point.lat && point.lng) {
-            return [point.lat, point.lng] as [number, number];
-          } else if (Array.isArray(point) && point.length >= 2) {
-            return [point[0] as number, point[1] as number] as [number, number];
-          }
-          return null;
-        }).filter((item): item is [number, number] => item !== null);
+          return [point.latitude, point.longitude] as [number, number];
+        });
 
         if (latlngs.length > 0) {
           // Add polyline

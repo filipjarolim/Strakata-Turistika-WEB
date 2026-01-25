@@ -1,12 +1,12 @@
 import React from 'react'
-import {RegisterForm} from "@/components/auth/register-form";
-import {currentRole, currentUser} from "@/lib/auth";
+import { RegisterForm } from "@/components/auth/register-form";
+import { currentRole, currentUser } from "@/lib/auth";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import basicInfo from "@/lib/settings/basicInfo";
 import Image from "next/image";
 
 const RegisterPage = async () => {
-     const user = await currentUser()
+    const user = await currentUser()
     const role = await currentRole()
     return (
         <CommonPageTemplate currentUser={user} currentRole={role} className={"px-0 bg-gray-200"}>

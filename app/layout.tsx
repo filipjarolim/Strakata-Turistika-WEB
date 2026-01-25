@@ -1,4 +1,4 @@
-import type {Metadata, Viewport} from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./sf-pro-fonts.css";
 import { ReactNode } from 'react';
@@ -6,26 +6,22 @@ import { SessionProvider } from "next-auth/react"
 import { auth } from "@/auth"
 import basicInfo from "@/lib/settings/basicInfo";
 import localFont from "next/font/local";
-
-
+import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000"
 
-
-
 export const metadata = {
     metadataBase: new URL(defaultUrl),
     title: basicInfo.name,
     description: basicInfo.description,
-
     category: "website",
     generator: "Next.js", // framework used
     icons: [
         { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png' },
-        { rel: 'icon', url: '/icons/icon-192x192.png', type: 'image/png', sizes: '32x32'}
+        { rel: 'icon', url: '/icons/icon-192x192.png', type: 'image/png', sizes: '32x32' }
     ],
     openGraph: {
         title: basicInfo.name,
@@ -35,9 +31,6 @@ export const metadata = {
         locale: 'cs_CZ',
         type: 'website',
     },
-
-
-
 }
 
 export const viewport: Viewport = {
@@ -48,11 +41,10 @@ export const viewport: Viewport = {
     themeColor: '#ffffff',
 }
 
-
 const sfPro = localFont({
-  src: "../assets/fonts/SF-Pro.ttf",
-  variable: "--font-sf-pro",
-  display: "swap",
+    src: "../assets/fonts/SF-Pro.ttf",
+    variable: "--font-sf-pro",
+    display: "swap",
 });
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -62,8 +54,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <html lang="cs" suppressHydrationWarning>
             <body className={`${sfPro.className} ${sfPro.variable}`}>
                 <SessionProvider session={session}>
-                    {children}
-                    <Toaster />
+                    <ThemeProvider
+                        attribute="class"
+                        defaultTheme="system"
+                        enableSystem
+                        disableTransitionOnChange
+                    >
+                        {children}
+                        <Toaster />
+                    </ThemeProvider>
                 </SessionProvider>
             </body>
         </html>

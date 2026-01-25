@@ -53,9 +53,9 @@ const Page = async () => {
                                         <Badge className="mt-1">{role}</Badge>
                                     </div>
                                 </div>
-                                
+
                                 <Separator className="my-4" />
-                                
+
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-1">
                                         <p className="text-sm font-medium text-muted-foreground">E-mail</p>
@@ -113,7 +113,7 @@ const Page = async () => {
                                         </Button>
                                     </Link>
                                 </div>
-                                
+
                                 {!user.isOAuth && (
                                     <div className="flex items-center justify-between p-3 border rounded-lg">
                                         <div className="space-y-0.5">

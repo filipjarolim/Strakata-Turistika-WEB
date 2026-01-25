@@ -11,11 +11,11 @@ import {
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { authprefix } from "@/assets/auth";
-import { 
-    IOSDropdownMenu, 
-    IOSDropdownMenuItem, 
-    IOSDropdownMenuLabel, 
-    IOSDropdownMenuSeparator 
+import {
+    IOSDropdownMenu,
+    IOSDropdownMenuItem,
+    IOSDropdownMenuLabel,
+    IOSDropdownMenuSeparator
 } from "@/components/ui/ios/dropdown-menu";
 import { ExtendedUser } from "@/next-auth";
 import { cn } from "@/lib/utils";
@@ -24,12 +24,12 @@ interface UserButtonProps {
     role?: string;
     textColor?: string;
 }
-    
+
 export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProps) => {
     const user = useCurrentUser();
 
     // Dynamic background styling based on dark/light mode
-    const getButtonBackground = () => "bg-gray-900/10 backdrop-blur-xl border-gray-900/20 hover:bg-gray-900/20 hover:border-gray-900/30";
+    const getButtonBackground = () => "bg-white/40 backdrop-blur-xl border-white/50 hover:bg-white/60 hover:border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]";
 
     // Dynamic avatar ring styling
     const getAvatarRing = () => "ring-2 ring-gray-900/20 group-hover:ring-gray-900/30";
@@ -93,7 +93,7 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                 </div>
             </IOSDropdownMenuLabel>
             <IOSDropdownMenuSeparator />
-            
+
             {/* Default Menu Options */}
             {authprefix.buttons.user.menu.options.map((option) => (
                 <Link href={option.href} key={option.label}>
@@ -107,10 +107,10 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
             ))}
 
             <IOSDropdownMenuSeparator />
-            
+
             {/* My Routes */}
             <Link href="/vysledky/moje">
-                <IOSDropdownMenuItem 
+                <IOSDropdownMenuItem
                     icon={<Map className="h-4 w-4" />}
                     className="px-3 py-2.5"
                 >
@@ -121,7 +121,7 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
             {/* Admin Routes */}
             {role === "ADMIN" && (
                 <Link href="/admin">
-                    <IOSDropdownMenuItem 
+                    <IOSDropdownMenuItem
                         icon={<Shield className="h-4 w-4" />}
                         className="px-3 py-2.5"
                     >
@@ -129,10 +129,10 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                     </IOSDropdownMenuItem>
                 </Link>
             )}
-            
+
             <IOSDropdownMenuSeparator />
             <LogoutButton>
-                <IOSDropdownMenuItem 
+                <IOSDropdownMenuItem
                     icon={<ExitIcon className="h-4 w-4" />}
                     className="px-3 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50"
                 >

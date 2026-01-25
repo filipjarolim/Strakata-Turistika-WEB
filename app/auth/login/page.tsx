@@ -1,6 +1,6 @@
 import React from 'react'
-import {LoginForm} from "@/components/auth/login-form";
-import {currentRole, currentUser} from "@/lib/auth";
+import { LoginForm } from "@/components/auth/login-form";
+import { currentRole, currentUser } from "@/lib/auth";
 import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 import basicInfo from "@/lib/settings/basicInfo";
 

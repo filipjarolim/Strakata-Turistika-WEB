@@ -49,22 +49,22 @@ const navConfig: NavConfigType = [
         icon: Info,
         columns: 1,
         items: [
-            { 
-                title: "Kontakty", 
-                href: "/kontakty", 
-                description: "Kontaktní informace na organizátory a správce.", 
-                icon: AtSign 
+            {
+                title: "Kontakty",
+                href: "/kontakty",
+                description: "Kontaktní informace na organizátory a správce.",
+                icon: AtSign
             },
-            { 
-                title: "Fotogalerie", 
-                href: "/fotogalerie", 
-                description: "Fotografie z různých míst a akcí.", 
-                icon: Image 
+            {
+                title: "Fotogalerie",
+                href: "/fotogalerie",
+                description: "Fotografie z různých míst a akcí.",
+                icon: Image
             },
-            { 
-                title: "Pravidla", 
-                href: "/pravidla", 
-                description: "Pravidla účasti a bodování soutěže.", 
+            {
+                title: "Pravidla",
+                href: "/pravidla",
+                description: "Pravidla účasti a bodování soutěže.",
                 icon: FileText
             }
         ]
@@ -76,24 +76,24 @@ const navConfig: NavConfigType = [
         columns: 2,
         href: "/vysledky",
         items: [
-            { 
-                title: "Přehled výsledků", 
-                href: "/vysledky", 
-                description: "Souhrnný přehled všech výsledků a jejich statistiky.", 
-                icon: List 
+            {
+                title: "Přehled výsledků",
+                href: "/vysledky",
+                description: "Souhrnný přehled všech výsledků a jejich statistiky.",
+                icon: List
             },
-            { 
-                title: "Moje návštěvy", 
-                href: "/vysledky/moje", 
-                description: "Přehled vašich návštěv a dosažených výsledků.", 
+            {
+                title: "Moje návštěvy",
+                href: "/vysledky/moje",
+                description: "Přehled vašich návštěv a dosažených výsledků.",
                 icon: User,
-                badge: "Nové" 
+                badge: "Nové"
             },
-            { 
-                title: "Statistiky", 
-                href: "/vysledky/statistiky", 
-                description: "Podrobné statistiky návštěv a aktivit.", 
-                icon: PieChart 
+            {
+                title: "Statistiky",
+                href: "/vysledky/statistiky",
+                description: "Podrobné statistiky návštěv a aktivit.",
+                icon: PieChart
             }
         ]
     },
@@ -102,7 +102,7 @@ const navConfig: NavConfigType = [
         title: "Soutěžit",
         icon: Award,
         href: "/soutez"
-        },
+    },
 ];
 
 interface NavbarProps {
@@ -112,7 +112,7 @@ interface NavbarProps {
 
 export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:text-black" }: NavbarProps) => {
     const pathname = usePathname();
-    
+
     // Enhanced hover states with proper contrast
     const getHoverStyles = () => ({
         hoverBg: "hover:bg-gray-900/10",
@@ -123,23 +123,24 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
     });
 
     const hoverStyles = getHoverStyles();
-    
+
     return (
         <nav className="w-full flex justify-center h-full" style={{ zIndex: 100 }}>
             <NavigationMenu className="max-w-none w-full justify-center h-full">
                 <NavigationMenuList className="flex flex-nowrap justify-center gap-x-1 whitespace-nowrap mx-auto h-full">
                     {navConfig.map((navItem, index) => {
                         const isActive = navItem.type === "odkaz" && pathname === navItem.href;
-                        
+
                         return navItem.type === "roletka" ? (
                             <NavigationMenuItem key={index} className="cursor-pointer">
                                 <NavigationMenuTrigger
                                     className={cn(
-                                        "text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg",
-                                        "bg-gray-900/10 backdrop-blur-xl font-medium h-full",
-                                        "border border-gray-900/20 hover:border-gray-900/30",
+                                        "text-sm transition-all duration-300 ease-out px-4 py-2 rounded-xl",
+                                        "bg-white/40 backdrop-blur-xl font-semibold h-full",
+                                        "border border-white/50 hover:border-white/80",
                                         textColor,
-                                        "hover:bg-gray-900/20",
+                                        "hover:bg-white/60 hover:scale-[1.03] active:scale-[0.98]",
+                                        "shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
                                         hoverStyles.activeBg,
                                         hoverStyles.focusBg,
                                         hoverStyles.hoverText,
@@ -150,12 +151,12 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                                 >
                                     <div className="flex items-center gap-1.5">
                                         {navItem.icon && (
-                                            <Icon 
-                                                icon={navItem.icon} 
+                                            <Icon
+                                                icon={navItem.icon}
                                                 className={cn(
                                                     "w-4 h-4 transition-opacity duration-200",
                                                     "opacity-70 group-hover:opacity-100"
-                                                )} 
+                                                )}
                                             />
                                         )}
                                         <span>{navItem.title}</span>
@@ -166,15 +167,16 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                                 </NavigationMenuTrigger>
                                 <NavigationMenuContent>
                                     <div className={cn(
-                                        "w-[800px] rounded-xl overflow-hidden shadow-xl border bg-white border-gray-200/60"
+                                        "min-w-[400px] w-max max-w-[calc(100vw-40px)] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/40 bg-white/80 backdrop-blur-2xl",
+                                        "animate-in fade-in zoom-in-95 duration-300"
                                     )}>
-                                        <ul className={cn("grid gap-3 p-6 w-full", `grid-cols-${navItem.columns || 1}`)}>
+                                        <ul className={cn("grid gap-1.5 p-4 w-full", `grid-cols-${navItem.columns || 1}`)}>
                                             {navItem.items?.map((item, i) => (
-                                                <ListItem 
-                                                    key={i} 
-                                                    title={item.title} 
-                                                    href={item.href} 
-                                                    icon={item.icon} 
+                                                <ListItem
+                                                    key={i}
+                                                    title={item.title}
+                                                    href={item.href}
+                                                    icon={item.icon}
                                                     badge={item.badge}
                                                 >
                                                     {item.description}
@@ -189,20 +191,20 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                                 <Link href={navItem.href as string} legacyBehavior passHref>
                                     <NavigationMenuLink
                                         className={cn(
-                                            "flex items-center gap-1.5 text-sm transition-all duration-200 ease-out px-3 py-2 rounded-lg h-full backdrop-blur-xl",
-                                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
-                                            isActive 
-                                                ? "bg-white/30 font-medium text-gray-900 border border-white/40" 
-                                                : cn(textColor, "bg-gray-900/10 hover:bg-gray-900/20 border border-gray-900/20 hover:border-gray-900/30", hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
+                                            "flex items-center gap-1.5 text-sm transition-all duration-300 ease-out px-4 py-2 rounded-xl h-full backdrop-blur-xl font-semibold",
+                                            "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
+                                            isActive
+                                                ? "bg-white/60 text-gray-950 border border-white/80 scale-[1.03]"
+                                                : cn(textColor, "bg-white/40 hover:bg-white/60 border border-white/50 hover:border-white/80 hover:scale-[1.03] active:scale-[0.98]", hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
                                         )}
                                     >
                                         {navItem.icon && (
-                                            <Icon 
-                                                icon={navItem.icon} 
+                                            <Icon
+                                                icon={navItem.icon}
                                                 className={cn(
                                                     "w-4 h-4 transition-opacity duration-200",
                                                     isActive ? "opacity-100" : "opacity-70"
-                                                )} 
+                                                )}
                                             />
                                         )}
                                         <span>{navItem.title}</span>
@@ -229,27 +231,30 @@ const ListItem = React.forwardRef<
                     <a
                         ref={ref}
                         className={cn(
-                            "flex flex-col gap-2 rounded-lg p-3 hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 ease-out",
-                            "border border-transparent hover:border-gray-200/50",
+                            "group flex flex-col gap-2 rounded-xl p-3.5 transition-all duration-300 ease-out",
+                            "hover:bg-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-[1.02]",
+                            "border border-transparent hover:border-white/60",
                             "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
                             className
                         )}
                         {...props}
                     >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             {icon && (
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors duration-200">
-                                    <Icon icon={icon} className="w-4 h-4 text-gray-700" />
+                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100/50 group-hover:bg-white group-hover:shadow-sm transition-all duration-300 border border-transparent group-hover:border-gray-200/50">
+                                    <Icon icon={icon} className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
                                 </div>
                             )}
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-gray-900">{title}</span>
-                                {badge && <StyledBadge type={badge} />}
+                            <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[15px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">{title}</span>
+                                    {badge && <StyledBadge type={badge} />}
+                                </div>
+                                {children && (
+                                    <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-200">{children}</p>
+                                )}
                             </div>
                         </div>
-                        {children && (
-                            <p className="text-xs text-gray-500 line-clamp-2">{children}</p>
-                        )}
                     </a>
                 </Link>
             </NavigationMenuLink>
@@ -263,12 +268,12 @@ const StyledBadge = ({ type, className }: { type: BadgeType; className?: string 
         Aktualizace: { color: "bg-blue-100 text-blue-700", icon: RefreshCw },
         Událost: { color: "bg-amber-100 text-amber-700", icon: Calendar }
     };
-    
+
     return (
-        <Badge 
-            variant="outline" 
+        <Badge
+            variant="outline"
             className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium flex items-center gap-1", 
+                "rounded-full px-2 py-0.5 text-[10px] font-medium flex items-center gap-1",
                 badgeConfig[type].color,
                 className
             )}

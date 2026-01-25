@@ -38,13 +38,13 @@ export default async function AboutPage() {
         >
           <div className="space-y-4">
             <p className="text-gray-700 leading-relaxed">
-              Strakatá Turistika vznikla z lásky k českým strakatým psům a k přírodě. 
-              Naším cílem je propojit komunitu majitelů těchto úžasných psů a pomoci jim 
+              Strakatá Turistika vznikla z lásky k českým strakatým psům a k přírodě.
+              Naším cílem je propojit komunitu majitelů těchto úžasných psů a pomoci jim
               objevovat nejkrásnější místa České republiky společně se svými čtyřnohými parťáky.
             </p>
             <p className="text-gray-700 leading-relaxed">
-              Věříme, že nejlepší dobrodružství se prožívají s věrným společníkem po boku. 
-              Proto jsme vytvořili platformu, která umožňuje sdílet trasy, fotografie a zážitky 
+              Věříme, že nejlepší dobrodružství se prožívají s věrným společníkem po boku.
+              Proto jsme vytvořili platformu, která umožňuje sdílet trasy, fotografie a zážitky
               z výletů po celé republice.
             </p>
           </div>
@@ -62,7 +62,7 @@ export default async function AboutPage() {
               className="text-center"
             >
               <p className="text-gray-600">
-                Český strakatý pes je naše vášeň. Chceme podporovat tuto úžasnou rasu 
+                Český strakatý pes je naše vášeň. Chceme podporovat tuto úžasnou rasu
                 a pomáhat majitelům najít to nejlepší pro své psy.
               </p>
             </IOSCard>
@@ -76,7 +76,7 @@ export default async function AboutPage() {
               className="text-center"
             >
               <p className="text-gray-600">
-                Česká republika je plná krásných míst čekajících na objevení. 
+                Česká republika je plná krásných míst čekajících na objevení.
                 Pomáháme najít ta nejlepší místa pro výlety se psy.
               </p>
             </IOSCard>
@@ -90,7 +90,7 @@ export default async function AboutPage() {
               className="text-center"
             >
               <p className="text-gray-600">
-                Spojujeme majitele strakatých psů z celé republiky a vytváříme 
+                Spojujeme majitele strakatých psů z celé republiky a vytváříme
                 silnou komunitu založenou na vzájemné podpoře.
               </p>
             </IOSCard>
@@ -108,7 +108,7 @@ export default async function AboutPage() {
               variant="outlined"
             >
               <p className="text-gray-600">
-                Vytvářejte a sdílejte trasy vhodné pro psy. Najděte inspiraci 
+                Vytvářejte a sdílejte trasy vhodné pro psy. Najděte inspiraci
                 pro svůj další výlet nebo se nechte vést zkušenějšími turisty.
               </p>
             </IOSCard>
@@ -121,7 +121,7 @@ export default async function AboutPage() {
               variant="outlined"
             >
               <p className="text-gray-600">
-                Zachyťte nejkrásnější momenty z vašich výletů a sdílejte je 
+                Zachyťte nejkrásnější momenty z vašich výletů a sdílejte je
                 s ostatními milovníky strakatých psů.
               </p>
             </IOSCard>
@@ -134,7 +134,7 @@ export default async function AboutPage() {
               variant="outlined"
             >
               <p className="text-gray-600">
-                Získávejte body za navštívená místa a soutěžte s ostatními 
+                Získávejte body za navštívená místa a soutěžte s ostatními
                 o umístění v žebříčcích nejaktivnějších turistů.
               </p>
             </IOSCard>
@@ -147,7 +147,7 @@ export default async function AboutPage() {
               variant="outlined"
             >
               <p className="text-gray-600">
-                Procházejte interaktivní mapu míst vhodných pro výlety se psy 
+                Procházejte interaktivní mapu míst vhodných pro výlety se psy
                 a objevujte nová dobrodružství ve vašem okolí.
               </p>
             </IOSCard>
@@ -170,7 +170,7 @@ export default async function AboutPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Odpovědnost k přírodě</h4>
                 <p className="text-gray-600 text-sm">
-                  Podporujeme odpovědnou turistiku. Vždy respektujeme přírodu, 
+                  Podporujeme odpovědnou turistiku. Vždy respektujeme přírodu,
                   chráněná území a práva ostatních návštěvníků.
                 </p>
               </div>
@@ -183,7 +183,7 @@ export default async function AboutPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Bezpečnost psů</h4>
                 <p className="text-gray-600 text-sm">
-                  Bezpečnost našich čtyřnohých parťáků je prioritou. Upozorňujeme 
+                  Bezpečnost našich čtyřnohých parťáků je prioritou. Upozorňujeme
                   na rizika a poskytujeme informace pro bezpečné výlety.
                 </p>
               </div>
@@ -196,7 +196,7 @@ export default async function AboutPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Podpora komunity</h4>
                 <p className="text-gray-600 text-sm">
-                  Věříme v sílu komunity. Podporujeme vzájemnou pomoc, 
+                  Věříme v sílu komunity. Podporujeme vzájemnou pomoc,
                   sdílení zkušeností a přátelské prostředí pro všechny.
                 </p>
               </div>
@@ -214,7 +214,7 @@ export default async function AboutPage() {
         >
           <div className="space-y-4">
             <p className="text-gray-700">
-              Máte otázky, návrhy nebo se chcete zapojit do rozvoje projektu? 
+              Máte otázky, návrhy nebo se chcete zapojit do rozvoje projektu?
               Rádi se s vámi spojíme!
             </p>
             <div className="bg-blue-50/50 backdrop-blur-xl p-4 rounded-2xl border border-blue-200/50">

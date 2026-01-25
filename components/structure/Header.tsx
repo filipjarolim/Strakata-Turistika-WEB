@@ -29,15 +29,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Removed dynamic background detection to keep header consistently light
 
 const Header = ({
-                    user,
-                    role,
-                    mode = "fixed",
-                    showGap = true
-                }: {
+    user,
+    role,
+    mode = "fixed",
+    showGap = true,
+    theme
+}: {
     user?: ExtendedUser | null;
     role?: string;
     mode?: "fixed" | "static" | "auto-hide";
     showGap?: boolean;
+    theme?: "light" | "dark";
 }) => {
     const headerRef = useRef<HTMLElement | null>(null);
     const [headerHeight, setHeaderHeight] = useState<number>(0);
@@ -63,7 +65,7 @@ const Header = ({
 
         const handleScroll = () => {
             const currentScrollY = window.scrollY;
-            
+
             if (mode === "auto-hide") {
                 // Always show header when near the top of the page (within 100px)
                 if (currentScrollY < 100) {
@@ -77,7 +79,7 @@ const Header = ({
                 }
                 setLastScrollY(currentScrollY);
             }
-            
+
             setIsScrolled(currentScrollY > 20);
         };
 
@@ -86,7 +88,7 @@ const Header = ({
         if (mode !== "static") {
             window.addEventListener("scroll", handleScroll);
         }
-        
+
         return () => {
             window.removeEventListener("resize", updateHeaderHeight);
             if (mode !== "static") {
@@ -102,6 +104,19 @@ const Header = ({
 
     // Dynamic header styling based on background analysis
     const getHeaderStyles = () => {
+        if (theme === "dark") {
+            // Dark theme (for News page or Dark Mode)
+            return {
+                background: isScrolled ? 'rgba(10, 10, 10, 0.8)' : 'transparent',
+                backdropFilter: isScrolled ? 'blur(20px)' : 'none',
+                WebkitBackdropFilter: isScrolled ? 'blur(20px)' : 'none',
+                borderBottom: isScrolled ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                boxShadow: isScrolled ? '0 4px 30px rgba(0, 0, 0, 0.5)' : 'none',
+                color: 'white'
+            };
+        }
+
+        // Default Light theme logic
         if (isMobile) {
             return {
                 background: 'transparent',
@@ -113,18 +128,18 @@ const Header = ({
         }
         if (isScrolled) {
             return {
-                background: 'rgba(255, 255, 255, 0.50)',
-                backdropFilter: 'blur(32px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(32px) saturate(180%)',
-                border: '1px solid rgba(255, 255, 255, 0.18)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.02)'
+                background: 'rgba(255, 255, 255, 0.85)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(0, 0, 0, 0.05)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
             };
         }
         return {
-            background: 'rgba(255, 255, 255, 0.40)',
+            background: 'rgba(255, 255, 255, 0.30)',
             backdropFilter: 'blur(28px) saturate(160%)',
             WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
             boxShadow: 'none'
         };
     };
@@ -142,7 +157,7 @@ const Header = ({
                     "transition-all duration-300 ease-out",
                     mode === "auto-hide" && !isVisible && "-translate-y-[100%]"
                 )}
-                style={{ 
+                style={{
                     zIndex: 50,
                     ...getHeaderStyles(),
                     ...(mode === "auto-hide" && !isVisible && { boxShadow: "none" })
@@ -150,34 +165,32 @@ const Header = ({
             >
                 <Link
                     href="/"
-                    className="flex flex-row items-center justify-start col-span-2 md:col-span-2 lg:col-span-2 relative"
+                    className="flex flex-row items-center justify-start col-span-2 md:col-span-2 lg:col-span-2 relative z-50 h-full"
                 >
-                    {/* Title blob (mobile only) */}
-                    <span className="md:hidden absolute -top-1 -left-1 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
-                    <span 
+                    <span
                         className={cn(
-                            "text-[16px] sm:text-[18px] md:text-[22px] font-bold tracking-tight transition-colors duration-200 text-gray-700",
+                            "text-lg sm:text-xl md:text-2xl font-bold tracking-tight transition-colors duration-200 truncate",
+                            theme === "dark" ? "text-white" : "text-gray-900",
                             "drop-shadow-sm"
                         )}
                     >
-                        <span className="hidden sm:inline">Strakatá Turistika</span>
-                        <span className="sm:hidden">ST</span>
+                        Strakatá Turistika
                     </span>
                 </Link>
-                
+
                 {/* Desktop Navigation */}
                 <div className="col-span-0 md:col-span-8 lg:col-span-8 hidden w-full md:flex flex-row items-center justify-center">
-                    <Navbar textColor={textColor} textColorHover={textColorHover} />
+                    <Navbar textColor={theme === "dark" ? "text-white" : textColor} textColorHover={theme === "dark" ? "hover:text-gray-200" : textColorHover} />
                 </div>
-                
+
                 {/* Authentication buttons */}
                 <div className="flex flex-row justify-end col-span-1 md:col-span-2 lg:col-span-2 items-center">
                     <div className="hidden sm:flex flex-row items-center justify-end gap-x-1 sm:gap-x-2 w-full">
                         {!user ? (
                             <div className="flex flex-row items-center justify-end gap-x-1 sm:gap-x-2">
-                                <Button 
-                                    variant="secondary" 
-                                    size="sm" 
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
                                     className={cn(
                                         "rounded-full border font-semibold text-xs sm:text-sm px-2 sm:px-3 transition-all duration-200",
                                         "hover:scale-105",
@@ -188,9 +201,9 @@ const Header = ({
                                     <span className="hidden sm:inline">Přihlásit se</span>
                                     <span className="sm:hidden">Login</span>
                                 </Button>
-                                <Button 
-                                    variant="secondary" 
-                                    size="sm" 
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
                                     className={cn(
                                         "rounded-full border font-semibold text-xs sm:text-sm px-2 sm:px-3 transition-all duration-200",
                                         "hover:scale-105",
@@ -206,43 +219,44 @@ const Header = ({
                             <UserButton role={role} textColor={textColor} />
                         )}
                     </div>
-                    
+
                     {/* Mobile menu button */}
-                    <div className="sm:hidden flex items-center">
+                    <div className="sm:hidden flex items-center justify-center">
                         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                             <SheetTrigger asChild>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className={cn(
-                                        "relative overflow-visible p-1 h-9 w-9 rounded-full transition-all duration-200",
-                                        "hover:scale-105",
+                                        "relative flex items-center justify-center p-0 h-10 w-10 rounded-full transition-all duration-200",
                                         "hover:bg-gray-900/10 text-gray-900"
                                     )}
                                     aria-label="Menu"
                                 >
                                     {/* Hamburger blob (mobile only) */}
-                                    <span className="md:hidden absolute -top-1 -right-1 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
+                                    <span className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
                                     <AnimatePresence mode="wait" initial={false}>
                                         {isMobileMenuOpen ? (
                                             <motion.div
                                                 key="close"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
+                                                initial={{ opacity: 0, rotate: -90 }}
+                                                animate={{ opacity: 1, rotate: 0 }}
+                                                exit={{ opacity: 0, rotate: 90 }}
                                                 transition={{ duration: 0.2 }}
+                                                className="flex items-center justify-center"
                                             >
-                                                <X className="h-5 w-5" />
+                                                <X className="h-6 w-6" />
                                             </motion.div>
                                         ) : (
                                             <motion.div
                                                 key="menu"
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
+                                                initial={{ opacity: 0, rotate: 90 }}
+                                                animate={{ opacity: 1, rotate: 0 }}
+                                                exit={{ opacity: 0, rotate: -90 }}
                                                 transition={{ duration: 0.2 }}
+                                                className="flex items-center justify-center"
                                             >
-                                                <Menu className="h-5 w-5" />
+                                                <Menu className="h-6 w-6" />
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
@@ -269,11 +283,11 @@ const Header = ({
                                             <span className="font-semibold">Strakatá Turistika</span>
                                         </Link>
                                     </div>
-                                    
+
                                     <div className="flex-1 overflow-y-auto py-4 px-5">
                                         <nav className="space-y-4">
-                                            <Link 
-                                                href="/" 
+                                            <Link
+                                                href="/"
                                                 className={cn(
                                                     "block py-2 px-3 rounded-md transition-colors",
                                                     pathname === "/" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
@@ -285,31 +299,31 @@ const Header = ({
                                             <div>
                                                 <h3 className="font-medium mb-2 px-3">Informace</h3>
                                                 <div className="space-y-2 pl-2">
-                                                    <Link 
-                                                        href="/kontakty" 
+                                                    <Link
+                                                        href="/kontakty"
                                                         className={cn(
-                                                            "block py-1.5 px-3 rounded-md transition-colors text-sm",
-                                                            pathname === "/kontakty" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
+                                                            pathname === "/kontakty" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                                                         )}
                                                         onClick={() => setIsMobileMenuOpen(false)}
                                                     >
                                                         Kontakty
                                                     </Link>
-                                                    <Link 
-                                                        href="/fotogalerie" 
+                                                    <Link
+                                                        href="/fotogalerie"
                                                         className={cn(
-                                                            "block py-1.5 px-3 rounded-md transition-colors text-sm",
-                                                            pathname === "/fotogalerie" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
+                                                            pathname === "/fotogalerie" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                                                         )}
                                                         onClick={() => setIsMobileMenuOpen(false)}
                                                     >
                                                         Fotogalerie
                                                     </Link>
-                                                    <Link 
-                                                        href="/pravidla" 
+                                                    <Link
+                                                        href="/pravidla"
                                                         className={cn(
-                                                            "block py-1.5 px-3 rounded-md transition-colors text-sm",
-                                                            pathname === "/pravidla" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
+                                                            pathname === "/pravidla" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                                                         )}
                                                         onClick={() => setIsMobileMenuOpen(false)}
                                                     >
@@ -320,31 +334,31 @@ const Header = ({
                                             <div>
                                                 <h3 className="font-medium mb-2 px-3">Výsledky</h3>
                                                 <div className="space-y-2 pl-2">
-                                                    <Link 
-                                                        href="/vysledky" 
+                                                    <Link
+                                                        href="/vysledky"
                                                         className={cn(
-                                                            "block py-1.5 px-3 rounded-md transition-colors text-sm",
-                                                            pathname === "/vysledky" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
+                                                            pathname === "/vysledky" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                                                         )}
                                                         onClick={() => setIsMobileMenuOpen(false)}
                                                     >
                                                         Přehled výsledků
                                                     </Link>
-                                                    <Link 
-                                                        href="/vysledky/moje" 
+                                                    <Link
+                                                        href="/vysledky/moje"
                                                         className={cn(
-                                                            "block py-1.5 px-3 rounded-md transition-colors text-sm",
-                                                            pathname === "/vysledky/moje" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
+                                                            pathname === "/vysledky/moje" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                                                         )}
                                                         onClick={() => setIsMobileMenuOpen(false)}
                                                     >
                                                         Moje návštěvy
                                                     </Link>
-                                                    <Link 
-                                                        href="/vysledky/statistiky" 
+                                                    <Link
+                                                        href="/vysledky/statistiky"
                                                         className={cn(
-                                                            "block py-1.5 px-3 rounded-md transition-colors text-sm",
-                                                            pathname === "/vysledky/statistiky" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
+                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
+                                                            pathname === "/vysledky/statistiky" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                                                         )}
                                                         onClick={() => setIsMobileMenuOpen(false)}
                                                     >
@@ -352,19 +366,19 @@ const Header = ({
                                                     </Link>
                                                 </div>
                                             </div>
-                                            <Link 
-                                                href="/soutez" 
+                                            <Link
+                                                href="/soutez"
                                                 className={cn(
                                                     "block py-2 px-3 rounded-md transition-colors",
                                                     pathname === "/soutez" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
                                                 )}
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                             >
-                                            Soutěžit
-                                        </Link>
+                                                Soutěžit
+                                            </Link>
                                         </nav>
                                     </div>
-                                    
+
                                     <div className="p-4 border-t">
                                         {!user ? (
                                             <div className="flex flex-col gap-3">
@@ -389,7 +403,7 @@ const Header = ({
                 </div>
             </header>
 
-            {mode !== "static" && showGap && <div style={{height: `${headerHeight}px`}}></div>}
+            {mode !== "static" && showGap && <div style={{ height: `${headerHeight}px` }}></div>}
         </>
     );
 };

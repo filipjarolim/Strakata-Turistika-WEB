@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-    Send, 
+import {
+    Send,
     ChevronRight,
     CheckCircle,
     AlertCircle,
@@ -57,7 +57,7 @@ const FAQ_ITEMS = [
 const ContactForm = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    
+
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -67,11 +67,11 @@ const ContactForm = () => {
             message: ""
         }
     });
-    
+
     const onSubmit = async (data: FormValues) => {
         setIsSubmitting(true);
         setSubmitStatus('idle');
-        
+
         try {
             const response = await fetch('/api/contact', {
                 method: 'POST',
@@ -80,7 +80,7 @@ const ContactForm = () => {
                 },
                 body: JSON.stringify(data),
             });
-            
+
             if (response.ok) {
                 setSubmitStatus('success');
                 form.reset();
@@ -94,7 +94,7 @@ const ContactForm = () => {
             setIsSubmitting(false);
         }
     };
-    
+
     return (
         <IOSCard
             title="Kontaktní formulář"
@@ -127,7 +127,7 @@ const ContactForm = () => {
                         />
                     </div>
                 </div>
-                
+
                 <div>
                     <IOSTextInput
                         label="Předmět"
@@ -138,7 +138,7 @@ const ContactForm = () => {
                         error={form.formState.errors.subject?.message}
                     />
                 </div>
-                
+
                 <div>
                     <IOSTextarea
                         value={form.watch("message")}
@@ -150,7 +150,7 @@ const ContactForm = () => {
                         <p className="text-red-500 text-sm mt-1">{form.formState.errors.message.message}</p>
                     )}
                 </div>
-                
+
                 <AnimatePresence>
                     {submitStatus === 'success' && (
                         <motion.div
@@ -163,7 +163,7 @@ const ContactForm = () => {
                             <span className="text-green-800 font-medium">Zpráva byla úspěšně odeslána!</span>
                         </motion.div>
                     )}
-                    
+
                     {submitStatus === 'error' && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -176,7 +176,7 @@ const ContactForm = () => {
                         </motion.div>
                     )}
                 </AnimatePresence>
-                
+
                 <IOSButton
                     type="submit"
                     className="w-full h-12"
@@ -192,7 +192,7 @@ const ContactForm = () => {
 
 const FaqSection = () => {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-    
+
     return (
         <IOSSection title="Často kladené otázky">
             <div className="space-y-4">
@@ -229,11 +229,11 @@ const FaqSection = () => {
                                         </AnimatePresence>
                                     </div>
                                 </div>
-                                <ChevronRight 
+                                <ChevronRight
                                     className={cn(
                                         "h-5 w-5 text-gray-400 transition-transform duration-200 mt-1",
                                         openFaq === index && "rotate-90"
-                                    )} 
+                                    )}
                                 />
                             </div>
                         </IOSCard>
@@ -248,7 +248,7 @@ export const ContactClient = () => {
     return (
         <div className="max-w-6xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
             {/* Header */}
-            <motion.div 
+            <motion.div
                 className="text-center space-y-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -266,7 +266,7 @@ export const ContactClient = () => {
                     </p>
                 </div>
             </motion.div>
-            
+
             {/* Main Content - Contact Form */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -278,7 +278,7 @@ export const ContactClient = () => {
             </motion.div>
 
             {/* FAQ Section */}
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.6 }}

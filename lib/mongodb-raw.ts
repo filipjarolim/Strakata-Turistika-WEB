@@ -17,27 +17,27 @@ async function getMongoClient() {
     await client.connect();
     db = client.db();
   }
-  
+
   // Ensure db is available even if client exists but db is null
   if (!db && client) {
     db = client.db();
   }
-  
+
   if (!db) {
     throw new Error('Failed to get database connection');
   }
-  
+
   return { client, db };
 }
 
 export async function getRawVisitData(filters: Record<string, unknown>, options: Record<string, unknown> = {}) {
   const { db } = await getMongoClient();
-  
+
   const pipeline = [
     { $match: filters },
     {
       $lookup: {
-        from: 'User',
+        from: 'users',
         localField: 'userId',
         foreignField: '_id',
         as: 'user'
@@ -95,53 +95,37 @@ export async function getRawVisitData(filters: Record<string, unknown>, options:
     ...(options.limit ? [{ $limit: options.limit }] : [])
   ];
 
-  return await db.collection('VisitData').aggregate(pipeline).toArray();
+  return await db.collection('visits').aggregate(pipeline).toArray();
 }
 
 export async function getRawVisitDataCount(filters: Record<string, unknown>) {
   const { db } = await getMongoClient();
-  return await db.collection('VisitData').countDocuments(filters);
+  return await db.collection('visits').countDocuments(filters);
 }
 
 export async function getRawSeasons() {
   const { db } = await getMongoClient();
-  
+
+  // Optimized: Query visits directly instead of joining seasons
   const pipeline = [
     {
-      $lookup: {
-        from: 'VisitData',
-        localField: '_id',
-        foreignField: 'seasonId',
-        as: 'visitData'
+      $match: { state: 'APPROVED' }
+    },
+    {
+      $group: {
+        _id: { $ifNull: ['$year', '$seasonYear'] }
       }
     },
     {
-      $addFields: {
-        approvedVisits: {
-          $size: {
-            $filter: {
-              input: '$visitData',
-              cond: { $eq: ['$$this.state', 'APPROVED'] }
-            }
-          }
-        }
-      }
-    },
-    {
-      $match: {
-        approvedVisits: { $gt: 0 }
-      }
-    },
-    {
-      $sort: { year: -1 }
-    },
-    {
-      $project: { year: 1 }
+      $sort: { _id: -1 }
     }
   ];
 
-  const seasons = await db.collection('Season').aggregate(pipeline).toArray();
-  return seasons.map((s) => (s as { year: number }).year);
+  const results = await db.collection('visits').aggregate(pipeline).toArray();
+  // Filter out nulls and return existing years
+  return results
+    .map(r => r._id)
+    .filter(y => typeof y === 'number');
 }
 
 // Close connection when needed

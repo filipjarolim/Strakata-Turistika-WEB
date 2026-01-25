@@ -30,7 +30,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
         location: '',
         category: 'mountains'
     });
-    
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const categories = [
@@ -44,11 +44,11 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFiles = Array.from(event.target.files || []);
         const imageFiles = selectedFiles.filter(file => file.type.startsWith('image/'));
-        
+
         if (imageFiles.length > 0) {
             setFiles(prev => [...prev, ...imageFiles]);
-    }
-  };
+        }
+    };
 
     const removeFile = (index: number) => {
         setFiles(prev => prev.filter((_, i) => i !== index));
@@ -56,7 +56,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (files.length === 0) return;
 
         setUploading(true);
@@ -65,26 +65,26 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
 
         try {
             const formDataToSend = new FormData();
-            
+
             files.forEach((file, index) => {
                 formDataToSend.append('files', file);
             });
-            
+
             formDataToSend.append('title', formData.title);
             formDataToSend.append('description', formData.description);
             formDataToSend.append('location', formData.location);
             formDataToSend.append('category', formData.category);
 
             const response = await fetch('/api/gallery/upload', {
-        method: 'POST',
+                method: 'POST',
                 body: formDataToSend,
-      });
+            });
 
             if (response.ok) {
                 setUploadStatus('success');
                 setUploadProgress(100);
 
-      // Reset form
+                // Reset form
                 setFiles([]);
                 setFormData({
                     title: '',
@@ -92,11 +92,11 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                     location: '',
                     category: 'mountains'
                 });
-                
+
                 if (onUploadSuccess) {
                     onUploadSuccess();
                 }
-                
+
                 // Close modal after success
                 setTimeout(() => {
                     setIsOpen(false);
@@ -106,12 +106,12 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
             } else {
                 throw new Error('Upload failed');
             }
-    } catch (error) {
-      console.error('Upload error:', error);
+        } catch (error) {
+            console.error('Upload error:', error);
             setUploadStatus('error');
-    } finally {
+        } finally {
             setUploading(false);
-    }
+        }
     };
 
     const FilePreview = ({ file, index }: { file: File; index: number }) => {
@@ -139,7 +139,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                             height={300}
                         />
                     )}
-                    
+
                     {/* Overlay */}
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                         <IOSButton
@@ -152,13 +152,13 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                         </IOSButton>
                     </div>
                 </div>
-                
+
                 <p className="text-xs text-gray-500 mt-1 truncate">{file.name}</p>
             </motion.div>
         );
-  };
+    };
 
-  return (
+    return (
         <>
             <IOSButton
                 onClick={() => setIsOpen(true)}
@@ -218,7 +218,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 {files.length} souborů vybráno
                                             </span>
                                         </div>
-                                        
+
                                         {files.length === 0 ? (
                                             <div
                                                 className="border-2 border-dashed border-gray-200 rounded-3xl p-8 text-center cursor-pointer hover:border-blue-300 transition-colors"
@@ -244,15 +244,15 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 ))}
                                             </div>
                                         )}
-                                        
+
                                         <input
                                             ref={fileInputRef}
-              type="file"
+                                            type="file"
                                             multiple
-              accept="image/*"
+                                            accept="image/*"
                                             onChange={handleFileSelect}
                                             className="hidden"
-            />
+                                        />
                                     </div>
 
                                     {/* Form Fields */}
@@ -264,8 +264,8 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 value={formData.title}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                                                 required
-                />
-              </div>
+                                            />
+                                        </div>
                                         <div>
                                             <IOSTextInput
                                                 label="Lokalita"
@@ -273,9 +273,9 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 value={formData.location}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                                                 required
-            />
-          </div>
-            </div>
+                                            />
+                                        </div>
+                                    </div>
 
                                     <div>
                                         <IOSTextarea
@@ -284,7 +284,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                             placeholder="Popis fotky..."
                                             required
                                         />
-        </div>
+                                    </div>
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -297,8 +297,8 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                     variant={formData.category === cat.value ? "primary" : "outline"}
                                                     size="sm"
                                                     onClick={() => setFormData(prev => ({ ...prev, category: cat.value }))}
-            className="gap-2"
-          >
+                                                    className="gap-2"
+                                                >
                                                     <span>{cat.icon}</span>
                                                     {cat.label}
                                                 </IOSButton>
@@ -344,7 +344,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                                 <span className="text-green-800 font-medium">Fotky byly úspěšně nahrány!</span>
                                             </motion.div>
                                         )}
-                                        
+
                                         {uploadStatus === 'error' && (
                                             <motion.div
                                                 initial={{ opacity: 0, y: 10 }}
@@ -363,7 +363,7 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                             {/* Footer */}
                             <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100">
                                 {!uploading && (
-              <>
+                                    <>
                                         <IOSButton
                                             variant="outline"
                                             onClick={() => setIsOpen(false)}
@@ -379,13 +379,13 @@ export const UploadForm = ({ onUploadSuccess }: UploadFormProps) => {
                                         >
                                             {uploading ? 'Nahrávání...' : 'Nahrát fotky'}
                                         </IOSButton>
-              </>
-            )}
-        </div>
+                                    </>
+                                )}
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
         </>
-  );
+    );
 };

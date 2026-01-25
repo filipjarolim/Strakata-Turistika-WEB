@@ -3,7 +3,7 @@
 import React from "react";
 import Header from "@/components/structure/Header";
 import Footer from "@/components/structure/Footer";
-import {cn} from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import Image from "next/image"
 import FooterDog from "@/assets/img/footerdog.png";
 import { ExtendedUser } from "@/next-auth";
@@ -20,7 +20,8 @@ const CommonPageTemplate = ({
     style,
     headerMode = "fixed",
     showHeaderGap = true,
-    mobileLayout = false
+    mobileLayout = false,
+    headerTheme
 }: {
     children: React.ReactNode;
     className?: string;
@@ -31,14 +32,23 @@ const CommonPageTemplate = ({
     headerMode?: "fixed" | "static" | "auto-hide";
     showHeaderGap?: boolean;
     mobileLayout?: boolean;
+    headerTheme?: "light" | "dark";
 }) => {
     // Default bugreport to true if not explicitly set
     const showBugReport = contents?.bugreport !== false;
-    
+
     return (
         <>
             <main className={cn("min-h-screen w-full flex flex-col px-4", className)} style={style}>
-                {(contents?.complete || contents?.header) && <Header user={currentUser} role={currentRole} mode={headerMode} showGap={showHeaderGap} />}
+                {(contents?.complete || contents?.header) && (
+                    <Header
+                        user={currentUser}
+                        role={currentRole}
+                        mode={headerMode}
+                        showGap={showHeaderGap}
+                        theme={headerTheme} // Pass theme prop here
+                    />
+                )}
                 <div className="flex-grow w-full h-full">
                     {mobileLayout ? (
                         <div className="h-screen max-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
@@ -63,15 +73,15 @@ const CommonPageTemplate = ({
                 {(contents?.complete || contents?.footer) && <Footer user={currentUser} role={currentRole} />}
             </main>
 
-            {showBugReport && <BugReportPanel currentUser={currentUser} currentRole={currentRole} />}
+            {/* {showBugReport && <BugReportPanel currentUser={currentUser} currentRole={currentRole} />} */}
 
 
 
             {(contents?.complete || contents?.footer) && (
                 <div className="relative hidden sm:block" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>
-                    <Image 
-                        src={FooterDog} 
-                        alt="Strakatá turistika" 
+                    <Image
+                        src={FooterDog}
+                        alt="Strakatá turistika"
                         className="w-full mt-[-110px] pointer-events-none"
                     />
                 </div>

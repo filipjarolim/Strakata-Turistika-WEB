@@ -1,56 +1,96 @@
-import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
-import News from "@/components/blocks/News";
 import { currentUser, currentRole } from "@/lib/auth";
-import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
-import { Newspaper, Plus, Settings } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Header from "@/components/structure/Header";
+import Footer from "@/components/structure/Footer";
+import News from "@/components/blocks/News";
+import { FeaturedNews } from "@/components/blocks/FeaturedNews";
+import { NewsService } from "@/lib/news-service";
+import Image from "next/image";
+import { Bell } from "lucide-react";
 
 export default async function AktualityPage() {
     const user = await currentUser();
     const role = await currentRole();
 
+    // Fetch latest news for featured section (SSR)
+    let featuredNews: any[] = [];
+    try {
+        const res = await NewsService.getNews({ limit: 5, publishedOnly: true });
+        featuredNews = res.data;
+    } catch (e) {
+        console.error("Failed to load featured news", e);
+    }
+
     return (
-        <CommonPageTemplate 
-            contents={{header: true}}
-            headerMode="auto-hide"
-            currentUser={user}
-            currentRole={role}
-        >
-            <div className="w-full">
-                {/* Header Section */}
-                <div className="p-3 sm:p-4 md:p-6">
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4 max-w-7xl mx-auto">
-                        <div className="flex items-center gap-3">
-                            <IOSCircleIcon variant="blue" size="lg" className="shadow-lg">
-                                <Newspaper className="w-8 h-8" />
-                            </IOSCircleIcon>
-                            <div>
-                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">Aktuality</h1>
-                                <p className="text-sm sm:text-base text-muted-foreground mt-1">Sledujte nejnovější zprávy a události</p>
-                            </div>
+        <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30">
+            {/* Header - consistently dark via theme prop */}
+            <Header
+                user={user}
+                role={role}
+                mode="fixed"
+                theme="dark"
+                showGap={false}
+            />
+
+            {/* Background */}
+            <div className="fixed inset-0 w-full h-full -z-10">
+                <Image
+                    src="/images/news-bg.png"
+                    alt="News Background"
+                    fill
+                    className="object-cover opacity-60 pointer-events-none select-none"
+                    priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/90 pointer-events-none" />
+            </div>
+
+            <main className="relative z-10 pt-28 pb-20 px-4 sm:px-8 lg:px-16 container mx-auto space-y-16">
+                {/* Hero Section */}
+                <div className="space-y-8">
+                    <div className="flex flex-col items-center sm:items-start space-y-6 text-center sm:text-left">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 backdrop-blur-sm">
+                            <Bell className="w-4 h-4 text-blue-300" />
+                            <span className="text-blue-100 text-xs font-semibold uppercase tracking-wider">Strakatá Turistika</span>
                         </div>
-                        
-                        {/* Admin Actions */}
-                        {role === "ADMIN" && (
-                            <div className="flex gap-2 w-full sm:w-auto">
-                                <Link href="/admin/News">
-                                    <Button variant="outline" className="flex items-center gap-2 flex-1 sm:flex-none" size="sm">
-                                        <Settings className="h-4 w-4" />
-                                        <span className="hidden sm:inline">Správa</span>
-                                        <span className="sm:hidden">Admin</span>
-                                    </Button>
-                                </Link>
-                            </div>
-                        )}
+
+                        <h1 className="text-5xl sm:text-7xl font-black text-white leading-tight drop-shadow-2xl tracking-tight">
+                            Aktuality & <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                                Novinky
+                            </span>
+                        </h1>
                     </div>
+
+                    {/* Featured Carousel */}
+                    {featuredNews.length > 0 && (
+                        <div className="w-full mt-10">
+                            <FeaturedNews items={featuredNews} />
+                        </div>
+                    )}
                 </div>
 
-                {/* News Content - Full Width */}
+                {/* Main News Feed */}
                 <div className="w-full">
-                    <News standalone />
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="h-px bg-white/20 flex-1" />
+                        <h2 className="text-2xl font-bold text-gray-200">Všechny příspěvky</h2>
+                        <div className="h-px bg-white/20 flex-1" />
+                    </div>
+
+                    {/* 
+                        We render News component. 
+                        It handles fetching all news (with pagination and search). 
+                        We hide header/add button logic inside it if needed, or customize via props.
+                    */}
+                    <News
+                        showHeader={false}
+                        showAddButton={true}
+                        variant="dark"
+                        className="!max-w-none"
+                    />
                 </div>
-            </div>
-        </CommonPageTemplate>
+            </main>
+
+            <Footer user={user} role={role} />
+        </div>
     );
 }

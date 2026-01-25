@@ -1,6 +1,6 @@
 "use client"
 import React from 'react'
-import {CardWrapper} from "@/components/auth/card-wrapper";
+import { CardWrapper } from "@/components/auth/card-wrapper";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -15,11 +15,11 @@ import {
     FormItem,
     FormMessage,
 } from "@/components/ui/form";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
-import {FormError} from "@/components/forms/form-error";
-import {FormSuccess} from "@/components/forms/form-success";
-import {register} from "@/actions/auth/register";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/forms/form-error";
+import { FormSuccess } from "@/components/forms/form-success";
+import { register } from "@/actions/auth/register";
 import { Separator } from "@/components/ui/separator";
 import { GoogleLoginButton } from "@/components/auth/google-login-button";
 
@@ -65,7 +65,7 @@ export const RegisterForm = () => {
                         <FormField
                             control={form.control}
                             name={"email"}
-                            render={({field}) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>
@@ -83,7 +83,7 @@ export const RegisterForm = () => {
                         <FormField
                             control={form.control}
                             name={"name"}
-                            render={({field}) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Jméno</FormLabel>
                                     <FormControl>
@@ -100,7 +100,7 @@ export const RegisterForm = () => {
                         <FormField
                             control={form.control}
                             name={"password"}
-                            render={({field}) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Heslo</FormLabel>
                                     <FormControl>
@@ -123,14 +123,14 @@ export const RegisterForm = () => {
                     </Button>
                 </form>
             </Form>
-            
+
             <div className="mt-6 space-y-4">
                 <div className="flex items-center space-x-2">
                     <Separator className="flex-1" />
                     <span className="text-xs text-muted-foreground">NEBO</span>
                     <Separator className="flex-1" />
                 </div>
-                
+
                 <GoogleLoginButton disabled={isPending}>
                     Pokračovat s Google
                 </GoogleLoginButton>

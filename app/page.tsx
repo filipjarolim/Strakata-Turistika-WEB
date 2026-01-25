@@ -4,7 +4,7 @@ import CommonPageTemplate from "@/components/structure/CommonPageTemplate";
 
 
 import basicInfo from "@/lib/settings/basicInfo";
-import {Separator} from "@/components/ui/separator";
+import { Separator } from "@/components/ui/separator";
 import React from "react";
 
 
@@ -56,7 +56,7 @@ const Home = async () => {
     const role = await currentRole()
 
     return (
-        <CommonPageTemplate contents={{complete: true}} currentUser={user} currentRole={role} showHeaderGap={false} className='p-0'>
+        <CommonPageTemplate contents={{ complete: true }} currentUser={user} currentRole={role} showHeaderGap={false} className='p-0'>
             {/* Hero Section with Background Image */}
             <div className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] overflow-visible">
                 {/* Background Image */}
@@ -71,14 +71,14 @@ const Home = async () => {
                     {/* Dark linear gradient overlay from left to right */}
                     <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent rounded-b-[2rem]"></div>
                 </div>
-                
+
                 {/* Original Hero Section Content */}
                 <div className="relative z-10 animate-fadeIn">
                     <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[50vh] sm:h-[60vh] md:h-[70vh] px-3 sm:px-4 md:px-8"}>
                         <div className={"p-3 sm:p-4 md:p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
-                             <h1 className="text-[48px] lg:text-[72px] xl:text-[96px] font-semibold whitespace-normal break-words text-white">
-                                   {basicInfo.name}
-                             </h1>   
+                            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold whitespace-normal break-words text-white tracking-tight leading-none mb-2">
+                                {basicInfo.name}
+                            </h1>
                             <div className="text-3xl lg:text-4xl xl:text-6xl font-semibold mb-4 text-white w-[90%]">
                                 aneb pozn&aacute;v&aacute;me
                                 {" "}
@@ -111,81 +111,86 @@ const Home = async () => {
                                 </Link>
                             </div>
                         </div>
-                        <div className="text-2xl sm:text-3xl md:text-5xl text-center font-semibold mt-2 sm:mt-4 px-2 text-white md:hidden">
-                            <div className="mb-2 sm:mb-3">
-                                <span className="text-xl sm:text-3xl font-semibold">{basicInfo.name}</span>
-                            </div>
-                            <div className="leading-relaxed text-lg sm:text-xl font-medium">
-                                aneb poznáváme Česko s českým strakatým psem.
-                            </div>
-                        </div>
-                        <div className={"flex md:hidden flex-row items-center justify-center py-3 sm:py-4 w-full px-2"}>
-                            <Link href="/soutez">
-                                <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white hover:text-white border-white/50 bg-white/20 backdrop-blur-xl hover:bg-white/30 text-sm sm:text-base px-4 sm:px-6"}>
+                        <div className="flex flex-col items-center justify-center text-center mt-6 px-4 md:hidden z-20">
+                            <h1 className="text-5xl font-black text-white tracking-tighter drop-shadow-2xl mb-2">
+                                {basicInfo.name}
+                            </h1>
+                            <p className="text-lg font-medium text-white/90 max-w-[280px] leading-snug drop-shadow-md mb-6">
+                                Objevujte Česko se svým čtyřnohým parťákem.
+                            </p>
+
+                            <Link href="/soutez" className="w-full max-w-xs">
+                                <button className="w-full bg-white text-black font-bold text-lg py-4 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all duration-300">
                                     Prozkoumat
-                                </IOSButton>
+                                </button>
                             </Link>
                         </div>
                     </div>
                 </div>
 
-                {/* Stats Section - Inside Hero Container */}
-                <div className="absolute bottom-0 left-0 right-0 z-20 px-3 sm:px-4 md:px-8 pb-3 sm:pb-4 md:pb-8" style={{ transform: 'translateY(55%)' }}>
+                {/* Stats Section - Desktop Overlay / Mobile Separate */}
+                <div className="hidden md:block absolute bottom-0 left-0 right-0 z-20 px-8 translate-y-1/2">
                     <div className="max-w-6xl mx-auto">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                            <div className="text-center">
-                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
-                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">147</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Unikátních uživatelů</div>
-                                </div>
-                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
-                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">147</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Unikátních uživatelů</div>
-                                    <div className="mt-1 sm:mt-2">
-                                        <Users className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                        <div className="grid grid-cols-4 gap-6">
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 mb-1">147</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Unikátních uživatelů</div>
+                                <div className="mt-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mx-auto text-blue-600">
+                                        <Users className="w-4 h-4" />
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-center">
-                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
-                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">25,083</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Navštívených míst</div>
-                                </div>
-                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
-                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">25,083</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Navštívených míst</div>
-                                    <div className="mt-1 sm:mt-2">
-                                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 mb-1">25,083</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Navštívených míst</div>
+                                <div className="mt-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mx-auto text-green-600">
+                                        <MapPin className="w-4 h-4" />
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-center">
-                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
-                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">5</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Sezón</div>
-                                </div>
-                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
-                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">5</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Sezón</div>
-                                    <div className="mt-1 sm:mt-2">
-                                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 mb-1">5</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Proběhlých sezón</div>
+                                <div className="mt-3">
+                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mx-auto text-purple-600">
+                                        <Calendar className="w-4 h-4" />
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-center">
-                                <div className="md:hidden w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/80 backdrop-blur-xl shadow-xl flex flex-col items-center justify-center mx-auto">
-                                    <div className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-none">28,268</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight mt-1">Celkem bodů</div>
-                                </div>
-                                <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 md:p-4 shadow-lg">
-                                    <div className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900 mb-1">28,268</div>
-                                    <div className="text-[10px] sm:text-xs text-gray-600 leading-tight">Celkem bodů</div>
-                                    <div className="mt-1 sm:mt-2">
-                                        <Trophy className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400 mx-auto" />
+                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 mb-1">28,268</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Celkem bodů</div>
+                                <div className="mt-3">
+                                    <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center mx-auto text-yellow-600">
+                                        <Trophy className="w-4 h-4" />
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile Stats Section - Below Hero */}
+            <div className="md:hidden px-4 -mt-8 relative z-30">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900">147</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase mt-1">Uživatelů</span>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900">25k</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase mt-1">Míst</span>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900">5</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase mt-1">Sezón</span>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900">28k</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase mt-1">Bodů</span>
                     </div>
                 </div>
             </div>
@@ -194,7 +199,7 @@ const Home = async () => {
             <div className="px-3 sm:px-4 md:px-8 py-6 sm:py-8 md:py-16 bg-gray-50 mt-6 sm:mt-8">
                 <News showHeader={false} showAddButton={false} />
             </div>
-            
+
             {/* Benefits Section */}
             <div className="px-3 sm:px-4 md:px-8 py-12 sm:py-16 bg-white">
                 <div className="max-w-6xl mx-auto">
@@ -214,24 +219,24 @@ const Home = async () => {
                     </div>
                 </div>
             </div>
-            
 
-            
+
+
             <Separator className="my-8" />
-            
-            
 
 
 
 
 
-            
 
 
 
-            
 
-            
+
+
+
+
+
 
         </CommonPageTemplate>
     );

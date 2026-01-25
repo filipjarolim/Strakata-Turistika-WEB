@@ -1,6 +1,6 @@
 "use client"
 import React from 'react'
-import {CardWrapper} from "@/components/auth/card-wrapper";
+import { CardWrapper } from "@/components/auth/card-wrapper";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -15,10 +15,10 @@ import {
     FormItem,
     FormMessage,
 } from "@/components/ui/form";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
-import {FormError} from "@/components/forms/form-error";
-import {FormSuccess} from "@/components/forms/form-success";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/forms/form-error";
+import { FormSuccess } from "@/components/forms/form-success";
 import { reset } from '@/actions/auth/reset';
 
 export const ResetForm = () => {
@@ -63,7 +63,7 @@ export const ResetForm = () => {
                         <FormField
                             control={form.control}
                             name={"email"}
-                            render={({field}) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>

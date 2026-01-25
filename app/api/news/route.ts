@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { NewsService, CreateNewsData } from "@/lib/news-service";
-import { 
-    createSuccessResponse, 
-    createErrorResponse, 
+import {
+    createSuccessResponse,
+    createErrorResponse,
     handleApiError,
     extractRequestBody,
     validateRequiredFields
@@ -11,11 +11,18 @@ import {
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        
+
         // Parse query parameters
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '20');
         const search = searchParams.get('search') || undefined;
+        const tag = searchParams.get('tag') || undefined;
+        const authorId = searchParams.get('authorId') || undefined;
+        // For public API, default to publishedOnly=true unless user explicitly asks for false (and maybe check admin role? logic handled in service or here)
+        // For now, let's allow 'published' param.
+        const publishedParam = searchParams.get('published');
+        const publishedOnly = publishedParam === 'false' ? false : true;
+
         const sortBy = searchParams.get('sortBy') as 'createdAt' | 'title' || 'createdAt';
         const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' || 'desc';
 
@@ -28,6 +35,9 @@ export async function GET(request: NextRequest) {
             page,
             limit,
             search,
+            tag,
+            authorId,
+            publishedOnly,
             sortBy,
             sortOrder
         });
@@ -46,15 +56,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const body = await extractRequestBody<CreateNewsData>(request);
-        
+
         // Validate required fields
         const validationErrors = validateRequiredFields(body as unknown as Record<string, unknown>, ['title']);
         if (validationErrors.length > 0) {
             return createErrorResponse("VALIDATION_ERROR", 400, "Validation failed", { errors: validationErrors });
         }
 
+        // Note: NewsService.createNews handles the specific logic for new fields (slug, etc.)
+
         const news = await NewsService.createNews(body);
-        
+
         return createSuccessResponse(
             news,
             201,
