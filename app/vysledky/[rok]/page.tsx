@@ -29,7 +29,7 @@ export default function SeasonResultsPage({ params }: { params: Promise<{ rok: s
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30 font-sans transition-colors duration-300">
-            <Header user={user} role={role} mode="fixed" theme="system" showGap={false} />
+            <Header user={user} role={role} mode="fixed" theme="dark" showGap={false} />
 
             {/* Background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">

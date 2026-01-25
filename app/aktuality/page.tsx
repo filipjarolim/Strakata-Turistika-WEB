@@ -3,7 +3,7 @@ import Header from "@/components/structure/Header";
 import Footer from "@/components/structure/Footer";
 import News from "@/components/blocks/News";
 import { FeaturedNews } from "@/components/blocks/FeaturedNews";
-import { NewsService } from "@/lib/news-service";
+import { NewsService, NewsItem } from "@/lib/news-service";
 import Image from "next/image";
 import { Bell } from "lucide-react";
 
@@ -12,7 +12,7 @@ export default async function AktualityPage() {
     const role = await currentRole();
 
     // Fetch latest news for featured section (SSR)
-    let featuredNews: any[] = [];
+    let featuredNews: NewsItem[] = [];
     try {
         const res = await NewsService.getNews({ limit: 5, publishedOnly: true });
         featuredNews = res.data;

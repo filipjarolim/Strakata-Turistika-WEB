@@ -65,7 +65,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
   const [editingPlaceId, setEditingPlaceId] = useState<string | null>(null);
   const [placeTypes, setPlaceTypes] = useState<PlaceTypeConfig[]>([]);
   const [isLoadingTypes, setIsLoadingTypes] = useState(true);
-  
+
   // Load place types from API
   useEffect(() => {
     const loadPlaceTypes = async () => {
@@ -98,7 +98,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
         setIsLoadingTypes(false);
       }
     };
-    
+
     loadPlaceTypes();
   }, []);
 
@@ -130,14 +130,14 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
     const formData = new FormData();
     formData.append("file", file);
     formData.append("title", title);
-    
+
     const res = await fetch("/api/upload", {
       method: "POST",
       body: formData,
     });
-    
+
     if (!res.ok) throw new Error("Upload failed");
-    
+
     const data = await res.json();
     const place = places.find(p => p.id === placeId);
     if (!place) return;
@@ -169,17 +169,17 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
   const getPlaceTypeIcon = (type: PlaceType) => {
     const config = placeTypes.find(pt => pt.name === type);
     if (!config) return <MapPin className="h-5 w-5 text-gray-500" />;
-    
+
     const IconComponent = ICON_MAP[config.icon] || MapPin;
     return <IconComponent className={cn("h-5 w-5", config.color)} />;
   };
-  
+
   const handleUpdatePhotoDescription = (placeId: string, photoId: string, description: string) => {
     const place = places.find(p => p.id === placeId);
     if (!place) return;
-    
+
     handleUpdatePlace(placeId, {
-      photos: place.photos.map(photo => 
+      photos: place.photos.map(photo =>
         photo.id === photoId ? { ...photo, description } : photo
       ),
     });
@@ -227,12 +227,12 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                       label="Název místa"
                       placeholder="např. Sněžka"
                       value={place.name}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         handleUpdatePlace(place.id, { name: e.target.value })
                       }
                       dark={dark}
                     />
-                    
+
                     <div className="space-y-1.5">
                       <label className={cn(
                         "text-sm font-medium",
@@ -296,7 +296,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                       aspectRatio="landscape"
                       count={5}
                     />
-                    
+
                     {/* Photo descriptions */}
                     {place.photos.length > 0 && (
                       <div className="space-y-2 mt-3">
@@ -309,8 +309,9 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                         {place.photos.map((photo, photoIdx) => (
                           <div key={photo.id} className="flex items-start gap-2">
                             <div className="flex-shrink-0 w-12 h-12 rounded overflow-hidden border border-white/10">
-                              <img 
-                                src={photo.url} 
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={photo.url}
                                 alt={`Foto ${photoIdx + 1}`}
                                 className="w-full h-full object-cover"
                               />
@@ -318,7 +319,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                             <IOSTextInput
                               placeholder={`Popis fotky ${photoIdx + 1}`}
                               value={photo.description || ''}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 handleUpdatePhotoDescription(place.id, photo.id, e.target.value)
                               }
                               dark={dark}

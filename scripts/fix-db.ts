@@ -1,10 +1,10 @@
 
 import { PrismaClient } from '@prisma/client';
-import slugify from './lib/slugify-local.js';
+import slugify from '../lib/slugify-local';
 
 const prisma = new PrismaClient();
 
-function simpleSlugify(text) {
+function simpleSlugify(text: string) {
     if (!text) return 'untitled';
     return text.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-');
 }

@@ -72,11 +72,12 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
   if (!visit) return null;
 
   // Merge data: prefer full detail if available
-  const displayVisit = fullVisitData || visit;
-  const photos = (displayVisit as any).photos || [];
+  const displayVisit = (fullVisitData || visit) as FullVisitData;
+  const photos = displayVisit.photos || [];
   const route = displayVisit.route;
   const hasRoute = route && route.trackPoints && route.trackPoints.length > 0;
-  const extraPoints = displayVisit.extraPoints as any || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extraPoints: any = displayVisit.extraPoints || {};
 
   // Hero Logic
   const renderHero = () => {
@@ -84,6 +85,7 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
     if (photos.length > 0) {
       return (
         <div className="relative w-full h-56 sm:h-80 bg-gray-100 dark:bg-white/5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photos[0].url}
             alt="Hero"
@@ -171,7 +173,7 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'info' | 'map' | 'photos')}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-300",
                   activeTab === tab.id
@@ -212,14 +214,14 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
                   </div>
 
                   {/* Description */}
-                  {(displayVisit as any).routeDescription && (
+                  {(displayVisit.routeDescription) && (
                     <div className="space-y-3">
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <div className="w-1 h-6 bg-blue-500 rounded-full" />
                         Popis trasy
                       </h3>
                       <div className="p-5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 text-gray-700 dark:text-gray-300 leading-relaxed text-sm whitespace-pre-wrap">
-                        {(displayVisit as any).routeDescription}
+                        {displayVisit.routeDescription}
                       </div>
                     </div>
                   )}
@@ -276,8 +278,9 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
                   exit={{ opacity: 0 }}
                   className="grid grid-cols-2 sm:grid-cols-3 gap-4"
                 >
-                  {photos.length > 0 ? photos.map((photo: any, i: number) => (
+                  {photos.length > 0 ? photos.map((photo, i) => (
                     <div key={i} className="aspect-square relative rounded-xl overflow-hidden group cursor-pointer border border-gray-200 dark:border-white/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photo.url} alt="Gallery" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <ExternalLink className="w-6 h-6 text-white" />
@@ -299,7 +302,13 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
 }
 
 // Helpers
-const StatBox = ({ label, value, icon: Icon }: any) => (
+interface StatBoxProps {
+  label: string;
+  value: string | number;
+  icon: React.ElementType;
+}
+
+const StatBox = ({ label, value, icon: Icon }: StatBoxProps) => (
   <div className="p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 flex flex-col gap-1">
     <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wider font-bold">
       <Icon className="w-3 h-3" />

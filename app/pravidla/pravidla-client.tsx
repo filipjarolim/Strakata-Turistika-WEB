@@ -117,7 +117,14 @@ const RULES_DATA = [
 
 // --- Components ---
 
-const RuleCard = ({ rule, index }: { rule: any, index: number }) => {
+interface RuleItem {
+    title: string;
+    content: string;
+    important: boolean;
+    icon: React.ReactNode;
+}
+
+const RuleCard = ({ rule, index }: { rule: RuleItem, index: number }) => {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}

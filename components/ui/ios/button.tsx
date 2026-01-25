@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 export interface IOSButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'outline' | 'blue' | 'primary';
+  variant?: 'default' | 'outline' | 'blue' | 'primary' | 'ghost';
   size?: 'default' | 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   icon?: React.ReactNode;
@@ -25,6 +25,7 @@ export const IOSButton = React.forwardRef<HTMLButtonElement, IOSButtonProps>(
           variant === 'outline' && "border border-gray-200/50 bg-white/80 backdrop-blur-xl hover:bg-gray-50/90 hover:text-gray-900 shadow-lg shadow-black/5",
           variant === 'blue' && "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30",
           variant === 'primary' && "bg-blue-500 text-white hover:bg-blue-600 shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:shadow-blue-500/30",
+          variant === 'ghost' && "bg-transparent hover:bg-black/5 text-gray-700 dark:text-white dark:hover:bg-white/10 shadow-none hover:shadow-none",
           // Sizes - Responsive design
           size === 'default' && "h-11 px-5 py-2.5 text-sm sm:h-12 sm:px-6 sm:text-base",
           size === 'sm' && "h-9 px-3.5 text-xs sm:h-10 sm:px-4 sm:text-sm",

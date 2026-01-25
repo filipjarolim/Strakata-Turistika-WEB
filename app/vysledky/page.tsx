@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Search, Calendar, Trophy, ArrowRight } from "lucide-react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCurrentRole } from "@/hooks/use-current-role";
@@ -77,14 +77,14 @@ export default function SeasonsPage() {
         }
     };
 
-    const itemVariant = {
+    const itemVariant: Variants = {
         hidden: { opacity: 0, y: 30 },
         show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 50, damping: 20 } }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30 font-sans transition-colors duration-300">
-            <Header user={user} role={role} mode="fixed" theme="system" showGap={false} />
+            <Header user={user} role={role} mode="fixed" theme="dark" showGap={false} />
 
             {/* Background Elements */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
@@ -186,7 +186,7 @@ export default function SeasonsPage() {
                                     <Search className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Žádné výsledky</h3>
-                                <p className="text-gray-500 dark:text-gray-400">Pro zadaný rok "{searchQuery}" jsme nic nenašli.</p>
+                                <p className="text-gray-500 dark:text-gray-400">Pro zadaný rok &quot;{searchQuery}&quot; jsme nic nenašli.</p>
                             </div>
                         )}
                     </motion.div>

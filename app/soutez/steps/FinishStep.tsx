@@ -400,12 +400,14 @@ export default function FinishStep({ routeId, onComplete, user }: FinishStepProp
                     {place.photos && place.photos.length > 0 && (
                       <div className="flex -space-x-2 overflow-hidden py-1">
                         {place.photos.slice(0, 3).map((photo, i) => (
-                          <img
-                            key={i}
-                            src={photo.url}
-                            alt=""
-                            className="inline-block h-6 w-6 rounded-full ring-2 ring-black object-cover"
-                          />
+                          <React.Fragment key={i}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={photo.url}
+                              alt=""
+                              className="inline-block h-6 w-6 rounded-full ring-2 ring-black object-cover"
+                            />
+                          </React.Fragment>
                         ))}
                       </div>
                     )}

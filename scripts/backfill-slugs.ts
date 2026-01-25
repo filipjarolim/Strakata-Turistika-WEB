@@ -1,12 +1,12 @@
 
 import { PrismaClient } from '@prisma/client';
-import slugify from './lib/slugify-local.js'; // Importing local slugify (assuming .js for node execution or ts-node)
+import slugify from '../lib/slugify-local';
 // Since we are running this with node/ts-node, we might need to adjust import.
 // Let's use a self-contained script to avoid import issues.
 
 const prisma = new PrismaClient();
 
-function simpleSlugify(text) {
+function simpleSlugify(text: string) {
     return text
         .toString()
         .normalize('NFD')

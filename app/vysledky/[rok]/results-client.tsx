@@ -27,11 +27,22 @@ import { VisitDetailSheet } from "@/components/results/VisitDetailSheet";
 import { VisitCard } from "@/components/results/VisitCard";
 import { cn } from "@/lib/utils";
 
+import { TileBackground } from "@/components/results/TileBackground";
+import { RoutePreviewSVG } from "@/components/results/RoutePreviewSVG";
+
 // COMPONENTS
 // We define some local components for the new design to keep it self-contained
 // or we can move them out later.
 
-const GlassButton = ({ active, children, onClick, icon: Icon, className }: any) => (
+interface GlassButtonProps {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+  icon?: React.ElementType;
+  className?: string;
+}
+
+const GlassButton = ({ active, children, onClick, icon: Icon, className }: GlassButtonProps) => (
   <button
     onClick={onClick}
     className={cn(

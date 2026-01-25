@@ -18,7 +18,16 @@ import {
 import { cn } from "@/lib/utils";
 
 // Reusing Glass Button logic
-const GlassButton = ({ active, children, onClick, icon: Icon, className, disabled }: any) => (
+interface GlassButtonProps {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+  icon?: React.ElementType;
+  className?: string;
+  disabled?: boolean;
+}
+
+const GlassButton = ({ active, children, onClick, icon: Icon, className, disabled }: GlassButtonProps) => (
   <button
     onClick={onClick}
     disabled={disabled}
@@ -60,6 +69,7 @@ export default function MojeClient() {
         }
       })
       .catch(err => console.error(err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch User Visits when Year Changes

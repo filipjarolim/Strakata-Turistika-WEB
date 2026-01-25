@@ -14,19 +14,10 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-// Define the shape of NewsItem as per our API response
-interface NewsItem {
-    id: string;
-    title: string;
-    slug: string;
-    content?: string;
-    summary?: string;
-    published: boolean;
-    tags?: string[];
-    createdAt: Date | string;
-    images?: ImageSource[];
-    author?: { name: string | null; image: string | null };
-}
+import { NewsService, NewsItem } from "@/lib/news-service";
+
+// NewsItem is imported now
+
 
 interface NewsProps {
     showHeader?: boolean;
@@ -104,7 +95,7 @@ export default function News({ showHeader = true, showAddButton = true, variant 
     // Initial Load & Search Effect
     useEffect(() => {
         fetchNews(1, true, search);
-    }, [search]); // Re-fetch when search changes (debounced in Filter component)
+    }, [search, fetchNews]); // Re-fetch when search changes (debounced in Filter component)
 
     const handleLoadMore = () => {
         if (!isLoadingMore && hasMore) {
@@ -298,7 +289,7 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                         <EnhancedImageUpload
                             sources={formData.images}
                             onUpload={handleImageUpload}
-                            onDelete={(pid) => setFormData(p => ({ ...p, images: p.images.filter(i => i.public_id !== pid) }))}
+                            onDelete={async (pid) => setFormData(p => ({ ...p, images: p.images.filter(i => i.public_id !== pid) }))}
                             count={1} // For now limit to 1 main image for simplicity of card, or update card to slideshow
                         />
                         <div className="flex justify-end gap-2">

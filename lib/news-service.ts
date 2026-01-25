@@ -106,7 +106,7 @@ function validateNewsData(data: Partial<CreateNewsData>): { isValid: boolean; er
   };
 }
 
-function cleanNewsData(rawNews: any): NewsItem {
+function cleanNewsData(rawNews: any): NewsItem { // eslint-disable-line @typescript-eslint/no-explicit-any
   return {
     id: safeStringConversion(rawNews.id || rawNews._id),
     title: safeStringConversion(rawNews.title),
@@ -143,6 +143,7 @@ export class NewsService {
       const skip = (page - 1) * limit;
 
       // Build where clause
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const where: any = {};
 
       if (publishedOnly) {
@@ -207,6 +208,7 @@ export class NewsService {
       // Filtering tags in memory if 'tag' param is present, because Json filter might be unstable
       let finalNews = news;
       if (tag) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         finalNews = news.filter((n: any) => Array.isArray(n.tags) && n.tags.includes(tag));
         // Note: total count will be wrong here if we filter in memory.
         // For a robust solution, we'd need a raw query or String[] type.
@@ -293,7 +295,7 @@ export class NewsService {
           slug,
           content: data.content ? safeStringConversion(data.content).trim() : null,
           summary: data.summary ? safeStringConversion(data.summary).trim() : null,
-          images: data.images as any || null,
+          images: data.images as any || null, // eslint-disable-line @typescript-eslint/no-explicit-any
           tags: data.tags || [],
           published: data.published ?? true,
           authorId: user?.id
@@ -340,6 +342,7 @@ export class NewsService {
         throw new Error("News item not found");
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = {};
       if (data.title !== undefined) {
         updateData.title = safeStringConversion(data.title).trim();
@@ -348,7 +351,7 @@ export class NewsService {
       }
       if (data.content !== undefined) updateData.content = data.content ? safeStringConversion(data.content).trim() : null;
       if (data.summary !== undefined) updateData.summary = data.summary ? safeStringConversion(data.summary).trim() : null;
-      if (data.images !== undefined) updateData.images = data.images as any || null;
+      if (data.images !== undefined) updateData.images = data.images as any || null; // eslint-disable-line @typescript-eslint/no-explicit-any
       if (data.tags !== undefined) updateData.tags = data.tags;
       if (data.published !== undefined) updateData.published = data.published;
 

@@ -15,7 +15,7 @@ import { cs } from "date-fns/locale";
 // For now, let's redefine NewsItem shape for component usage to avoid import errors if strictly server file.
 
 interface NewsCardProps {
-    item: any; // Using any temporarily to avoid type issues, will refine
+    item: NewsItem;
     variant?: "light" | "dark";
     priority?: boolean;
 }

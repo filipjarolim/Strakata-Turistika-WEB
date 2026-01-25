@@ -241,8 +241,7 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
                                         <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
                                             <Image
                                                 src={img.url}
-                                                alt={img.title || video.title || ""}
-                                                // oops, correction
+                                                alt={img.title || ""}
                                                 fill
                                                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                                             />
