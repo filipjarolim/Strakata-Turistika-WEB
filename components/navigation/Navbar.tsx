@@ -231,7 +231,7 @@ const ListItem = React.forwardRef<
             <NavigationMenuLink asChild>
                 <Link
                     href={props.href ?? "#"}
-                    ref={ref as any}
+                    ref={ref}
                     className={cn(
                         "group flex flex-col gap-2 rounded-xl p-3.5 transition-all duration-300 ease-out",
                         "hover:bg-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-[1.02]",
