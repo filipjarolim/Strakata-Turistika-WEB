@@ -7,7 +7,7 @@
     "dev": "next dev --turbopack",
     "dev:clean": "next dev --turbopack",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
+    "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate && node scripts/clean-prisma.js",
     "prisma:generate": "prisma generate && node scripts/clean-prisma.js"
