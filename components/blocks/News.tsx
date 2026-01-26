@@ -69,8 +69,22 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             // Include non-published for admins? Maybe later. For now public API usually shows published.
             // If we want admin view, we'd add logic here.
 
-            const res = await fetch(`/api/news?${params.toString()}`);
-            if (!res.ok) throw new Error("Failed to fetch");
+            const url = `/api/news?${params.toString()}`;
+            console.log("[NewsClient] Fetching:", url);
+            const res = await fetch(url);
+
+            if (!res.ok) {
+                let errorMsg = "Failed to fetch";
+                try {
+                    const errorData = await res.json();
+                    errorMsg = errorData.error || errorData.message || "Failed to fetch";
+                } catch (e) {
+                    const text = await res.text();
+                    console.error("[NewsClient] Failed to parse error json:", text);
+                }
+                console.error("[NewsClient] Error response:", res.status, errorMsg);
+                throw new Error(errorMsg);
+            }
 
             const response = await res.json();
 

@@ -2,52 +2,47 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     experimental: {
-        optimizePackageImports: ["lucide-react"],
-        turbo: {
-            rules: {
-                '*.node': {
-                    loaders: ['file-loader'],
-                    as: '*.js'
-                }
-            }
-        }
+        optimizePackageImports: ["lucide-react"]
     },
-    serverExternalPackages: ['@prisma/client', 'prisma'],
-        images: {
-        remotePatterns: [
-            {
-                protocol: "https",
-                hostname: "res.cloudinary.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "tile.openstreetmap.org",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "server.arcgisonline.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "lh3.googleusercontent.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "play.google.com",
-                port: "",
-                pathname: "/**",
-            },
 
-        ],
-    },
+    serverExternalPackages: ['@prisma/client', 'prisma'],
+
+    images: {
+    remotePatterns: [
+        {
+            protocol: "https",
+            hostname: "res.cloudinary.com",
+            port: "",
+            pathname: "/**",
+        },
+        {
+            protocol: "https",
+            hostname: "tile.openstreetmap.org",
+            port: "",
+            pathname: "/**",
+        },
+        {
+            protocol: "https",
+            hostname: "server.arcgisonline.com",
+            port: "",
+            pathname: "/**",
+        },
+        {
+            protocol: "https",
+            hostname: "lh3.googleusercontent.com",
+            port: "",
+            pathname: "/**",
+        },
+        {
+            protocol: "https",
+            hostname: "play.google.com",
+            port: "",
+            pathname: "/**",
+        },
+
+    ],
+},
+
     async headers() {
         return [
 
@@ -121,6 +116,7 @@ const nextConfig: NextConfig = {
             ] : []),
         ];
     },
+
     webpack: (config, { dev, isServer }) => {
         if (!dev && !isServer) {
             config.resolve.fallback = {
@@ -164,6 +160,14 @@ const nextConfig: NextConfig = {
         return config;
     },
 
+    turbopack: {
+        rules: {
+            '*.node': {
+                loaders: ['file-loader'],
+                as: '*.js'
+            }
+        }
+    }
 };
 
 export default nextConfig;

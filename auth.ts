@@ -84,6 +84,12 @@ export const {
         },
 
         async session({ token, session }) {
+            console.log("[AUTH_DEBUG] Session callback:", {
+                hasToken: !!token,
+                hasSessionUser: !!session?.user,
+                tokenSub: token.sub
+            });
+
             if (token.sub && session.user) {
                 session.user.id = token.sub;
             }
@@ -107,11 +113,15 @@ export const {
         },
 
         async jwt({ token }) {
+            // console.log("[AUTH_DEBUG] JWT callback start:", { tokenSub: token.sub });
             if (!token.sub) return token;
 
             const existingUser = await getUserById(token.sub);
 
-            if (!existingUser) return token;
+            if (!existingUser) {
+                console.log("[AUTH_DEBUG] JWT: User not found for token.sub:", token.sub);
+                return token;
+            }
 
             const existingAccount = await getAccountByUserId(existingUser.id);
 

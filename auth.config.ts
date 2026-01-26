@@ -5,7 +5,7 @@ import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 
 import { LoginSchema } from "@/schemas"
-import {getUserByEmail} from "@/data/user";
+import { getUserByEmail } from "@/data/user";
 
 export default {
     providers: [
@@ -26,27 +26,37 @@ export default {
 
         Credentials(
             {
-            async authorize(credentials) {
-                const validatedFields = LoginSchema.safeParse(credentials)
+                async authorize(credentials) {
+                    console.log("[AUTH_DEBUG] Authorize called");
+                    const validatedFields = LoginSchema.safeParse(credentials)
 
-                if (validatedFields.success) {
-                    const {email, password} = validatedFields.data
+                    if (validatedFields.success) {
+                        const { email, password } = validatedFields.data
+                        console.log("[AUTH_DEBUG] Validated credentials for email:", email);
 
-                    const user = await getUserByEmail(email)
-                    if (!user || !user.password) return null
+                        const user = await getUserByEmail(email)
+                        if (!user || !user.password) {
+                            console.log("[AUTH_DEBUG] User not found or no password for email:", email);
+                            return null
+                        }
 
-                    //      CODING THE PASSWORD --- IMPORTANT
-                    // Dynamic import for Edge Runtime compatibility
-                    const bcrypt = (await import("bcryptjs")).default
+                        //      CODING THE PASSWORD --- IMPORTANT
+                        // Dynamic import for Edge Runtime compatibility
+                        const bcrypt = (await import("bcryptjs")).default
 
-                    const passwordsMatch = await bcrypt.compare(password, user.password)
+                        const passwordsMatch = await bcrypt.compare(password, user.password)
 
-                    if (passwordsMatch) return user
+                        if (passwordsMatch) {
+                            console.log("[AUTH_DEBUG] Password match successful for user:", user.id);
+                            return user
+                        }
+                        console.log("[AUTH_DEBUG] Password match failed for user:", user.id);
+                    } else {
+                        console.log("[AUTH_DEBUG] Validation failed:", validatedFields.error);
+                    }
 
+                    return null
                 }
-
-                return null
-            }
-        })
+            })
     ],
 } satisfies NextAuthConfig

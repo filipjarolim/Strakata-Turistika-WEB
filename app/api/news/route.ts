@@ -10,6 +10,7 @@ import {
 
 export async function GET(request: NextRequest) {
     try {
+        console.log("[API_DEBUG] GET /api/news called", request.url);
         const { searchParams } = new URL(request.url);
 
         // Parse query parameters
@@ -26,8 +27,11 @@ export async function GET(request: NextRequest) {
         const sortBy = searchParams.get('sortBy') as 'createdAt' | 'title' || 'createdAt';
         const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' || 'desc';
 
+        console.log("[API_DEBUG] /api/news params:", { page, limit, search, tag, authorId, publishedOnly });
+
         // Validate parameters
         if (page < 1 || limit < 1 || limit > 100) {
+            console.warn("[API_DEBUG] /api/news invalid parameters");
             return createErrorResponse("INVALID_PARAMETERS", 400, "Invalid pagination parameters");
         }
 
@@ -42,13 +46,23 @@ export async function GET(request: NextRequest) {
             sortOrder
         });
 
-        return createSuccessResponse(
+        console.log("[API_DEBUG] /api/news success, items:", result.data.length);
+
+        const response = createSuccessResponse(
             result.data,
             200,
             "News fetched successfully",
             result.pagination
         );
+
+        // Add CORS headers just in case
+        response.headers.set('Access-Control-Allow-Origin', '*');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        return response;
     } catch (error) {
+        console.error("[API_DEBUG] /api/news fatal error:", error);
         return handleApiError(error, "GET /api/news");
     }
 }
