@@ -25,7 +25,7 @@ export default function MojeVysledkyPage() {
 
     return (
         <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white selection:bg-blue-500/30 font-sans transition-colors duration-300">
-            <Header user={user} role={role} mode="fixed" theme="dark" showGap={false} />
+            <Header user={user} role={role} mode="fixed" showGap={false} />
 
             {/* Background */}
             <div className="fixed inset-0 z-0 pointer-events-none">

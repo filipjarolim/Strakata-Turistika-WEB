@@ -26,7 +26,7 @@ import { ExtendedUser } from "@/next-auth";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-// Removed dynamic background detection to keep header consistently light
+import { useTheme } from "next-themes";
 
 const Header = ({
     user,
@@ -41,6 +41,13 @@ const Header = ({
     showGap?: boolean;
     theme?: "light" | "dark";
 }) => {
+    const { resolvedTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    // Determine effective theme: explicit prop > resolved system theme > default 'light'
+    // We wait for mount to ensure resolvedTheme is accurate and avoid hydration mismatch
+    const effectiveTheme = (mounted ? (theme || resolvedTheme) : (theme || 'light')) as "light" | "dark";
+
     const headerRef = useRef<HTMLElement | null>(null);
     const [headerHeight, setHeaderHeight] = useState<number>(0);
     const [isScrolled, setIsScrolled] = useState<boolean>(false);
@@ -53,6 +60,10 @@ const Header = ({
     // Fixed light styling (no background detection)
     const textColor = "text-gray-900";
     const textColorHover = "hover:text-gray-700";
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const updateHeaderHeight = () => {
         if (headerRef.current) {
@@ -104,7 +115,7 @@ const Header = ({
 
     // Dynamic header styling based on background analysis
     const getHeaderStyles = () => {
-        if (theme === "dark") {
+        if (effectiveTheme === "dark") {
             // Dark theme (for News page or Dark Mode)
             return {
                 background: isScrolled ? 'rgba(10, 10, 10, 0.8)' : 'transparent',
@@ -170,7 +181,7 @@ const Header = ({
                     <span
                         className={cn(
                             "text-lg sm:text-xl md:text-2xl font-bold tracking-tight transition-colors duration-200 truncate",
-                            theme === "dark" ? "text-white" : "text-gray-900",
+                            effectiveTheme === "dark" ? "text-white" : "text-gray-900",
                             "drop-shadow-sm"
                         )}
                     >
@@ -180,7 +191,7 @@ const Header = ({
 
                 {/* Desktop Navigation */}
                 <div className="col-span-0 md:col-span-8 lg:col-span-8 hidden w-full md:flex flex-row items-center justify-center">
-                    <Navbar textColor={theme === "dark" ? "text-white" : textColor} textColorHover={theme === "dark" ? "hover:text-gray-200" : textColorHover} />
+                    <Navbar textColor={effectiveTheme === "dark" ? "text-white" : textColor} textColorHover={effectiveTheme === "dark" ? "hover:text-gray-200" : textColorHover} />
                 </div>
 
                 {/* Authentication buttons */}

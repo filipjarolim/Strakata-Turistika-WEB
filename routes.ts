@@ -28,7 +28,9 @@ export const publicApiRoutes = [
     "/api/rules",
     "/api/contact",
     "/api/gallery",
-    "/api/health"
+    "/api/health",
+    "/api/seasons",
+    "/api/results/*"
 ]
 /*
     * An array of public routes that do not require authentication
