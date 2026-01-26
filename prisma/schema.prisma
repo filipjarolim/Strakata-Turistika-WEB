@@ -42,6 +42,8 @@ model User {
   twoFactorConfirmation TwoFactorConfirmation?
   visitData             VisitData[]            @relation("UserVisitData")
   news                  News[]                 @relation("UserNews")
+  isExemptFromDistanceLimit Boolean            @default(false)
+  createdRoutes         CustomRoute[]          @relation("UserCreatedRoutes")
 
   @@map("users")
 }
@@ -139,7 +141,7 @@ model VisitData {
   routeTitle    String?
   routeDescription String?
   dogName       String?
-  points        Int
+  points        Float     // Changed to Float
   visitedPlaces String
   dogNotAllowed String?
   routeLink     String?
@@ -161,7 +163,39 @@ model VisitData {
   userId   String?
   user     User?   @relation("UserVisitData", fields: [userId], references: [id], onDelete: Cascade)
 
+  // Relation to CustomRoute
+  customRouteId String?
+  customRoute   CustomRoute? @relation(fields: [customRouteId], references: [id])
+
   @@map("visits")
+}
+
+model MonthlyTheme {
+  id        String   @id @default(cuid()) @map("_id")
+  year      Int
+  month     Int
+  keywords  String[] // Array of 3 strings
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, month])
+  @@map("monthly_themes")
+}
+
+model CustomRoute {
+  id          String     @id @default(cuid()) @map("_id")
+  title       String
+  description String?
+  link        String
+  parts       Json?      // Required categories checklist
+  creatorId   String
+  creator     User       @relation("UserCreatedRoutes", fields: [creatorId], references: [id])
+  status      VisitState @default(PENDING_REVIEW)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  visits      VisitData[] // Track who walked this route
+
+  @@map("custom_routes")
 }
 
 model Rules {
@@ -216,4 +250,17 @@ model FormField {
   updatedAt   DateTime @updatedAt
 
   @@map("form_fields")
+}
+
+model FormConfig {
+  id          String   @id @default(cuid()) @map("_id")
+  slug        String   @unique
+  name        String
+  description String?
+  definition  Json     // { steps: [{id, title, fields: [...]}] }
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("form_configs")
 }

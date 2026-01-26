@@ -1,29 +1,25 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Database, 
+import {
+  Search,
   ArrowUpDown,
   Loader2,
   AlertCircle,
   Edit,
   Trash2,
   MapPin,
-  Image as ImageIcon,
   Calendar,
   Award,
   FileText,
-  XCircle,
   Check,
   X,
   Expand,
@@ -35,7 +31,7 @@ import {
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { useAdmin } from '@/hooks/useAdmin';
-import { LoadingSkeleton, LoadingSpinner, EmptyState, ErrorState } from '@/components/results/LoadingSkeleton';
+import { LoadingSkeleton, EmptyState, LoadingSpinner } from '@/components/results/LoadingSkeleton';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -53,10 +49,10 @@ import {
 // Dynamically import GpxEditor to avoid SSR issues
 const DynamicGpxEditor = dynamic(
   () => import('@/components/editor/GpxEditor'),
-  { 
+  {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-white/5">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     )
@@ -77,31 +73,31 @@ interface Season {
 export default function AdminClient() {
   const params = useParams();
   const collection = params.collection as string;
-  
+
   const { state, actions } = useAdmin(collection);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  
+
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  
+
   // Photo viewer state
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title?: string } | null>(null);
-  
+
   // Seasons data
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
-  
+
   // Action states
   const [processingAction, setProcessingAction] = useState<string | null>(null);
-  
+
   // Expandable map state
   const [expandedMap, setExpandedMap] = useState<Set<string>>(new Set());
-  
+
   // Copy to clipboard state
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -111,12 +107,12 @@ export default function AdminClient() {
 
     try {
       let parsed = route;
-      
+
       // Parse string to object/array
       if (typeof route === 'string') {
         const trimmed = route.trim();
-        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || 
-            (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+          (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
           parsed = JSON.parse(route);
         } else {
           return null;
@@ -179,16 +175,6 @@ export default function AdminClient() {
       }
     };
   }, [state.hasMore, state.isLoadingMore, actions]);
-
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log('AdminClient state update:', {
-      collection: state.collection,
-      recordsCount: state.records.length,
-      isLoading: state.isInitialLoading,
-      error: state.error
-    });
-  }, [state.collection, state.records.length, state.isInitialLoading, state.error]);
 
   // Clear selection when collection changes
   useEffect(() => {
@@ -334,7 +320,7 @@ export default function AdminClient() {
   // Render individual record item
   const renderRecordItem = (record: AdminRecord) => {
     const keys = Object.keys(record).filter(key => key !== 'id');
-    
+
     // Special rendering for News
     if (collection === 'News') {
       const title = record.title ? String(record.title) : null;
@@ -343,7 +329,7 @@ export default function AdminClient() {
       const images = record.images ? record.images : null;
       const recordState = typeof record.state === 'string' ? record.state : null;
       const isSelected = selectedIds.has(record.id);
-      
+
       const handleCardClick = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
         if (
@@ -355,16 +341,17 @@ export default function AdminClient() {
         }
         window.location.href = `/admin/${collection}/${record.id}`;
       };
-      
+
       return (
         <motion.div
           key={record.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={handleCardClick}
-          className={`border rounded-lg p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer ${
-            isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
-          }`}
+          className={`border rounded-2xl p-3 sm:p-4 transition-all cursor-pointer ${isSelected
+            ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
+            : 'bg-white/60 dark:bg-black/20 backdrop-blur-md border-gray-200/50 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/5'
+            }`}
         >
           <div className="flex flex-col gap-3">
             {/* Header with checkbox, ID and actions */}
@@ -373,8 +360,9 @@ export default function AdminClient() {
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+                  className="border-gray-300 dark:border-white/20 data-[state=checked]:bg-blue-600"
                 />
-                <Badge variant="outline" className="text-xs font-mono">
+                <Badge variant="outline" className="text-xs font-mono border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400">
                   {String(record.id).slice(0, 8)}...
                 </Badge>
               </div>
@@ -384,7 +372,7 @@ export default function AdminClient() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                      className="h-8 w-8 p-0 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-500/20"
                       onClick={(e) => handleApprove(record.id, e)}
                       disabled={processingAction === record.id}
                       title="Schválit"
@@ -398,7 +386,7 @@ export default function AdminClient() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20"
                       onClick={(e) => handleReject(record.id, e)}
                       disabled={processingAction === record.id}
                       title="Zamítnout"
@@ -408,7 +396,7 @@ export default function AdminClient() {
                   </>
                 )}
                 <Link href={`/admin/${collection}/${record.id}`}>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10">
                     <Edit className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -418,19 +406,19 @@ export default function AdminClient() {
             {/* News specific fields */}
             <div className="space-y-2">
               {title && (
-                <h3 className="font-semibold text-base sm:text-lg line-clamp-2">
+                <h3 className="font-bold text-base sm:text-lg line-clamp-2 text-gray-900 dark:text-white">
                   {title}
                 </h3>
               )}
-              
+
               {content && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
                   <span className="line-clamp-3">{content.replace(/<[^>]*>/g, '')}</span>
                 </div>
               )}
 
               {createdAt && (
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-gray-500">
                   {(() => {
                     try {
                       const date = new Date(createdAt);
@@ -446,7 +434,7 @@ export default function AdminClient() {
               )}
 
               {images && Array.isArray(images) && images.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 border-0">
                   {images.length} obrázk{images.length === 1 ? 'ů' : 'y'}
                 </Badge>
               )}
@@ -455,7 +443,7 @@ export default function AdminClient() {
         </motion.div>
       );
     }
-    
+
     // Special rendering for VisitData
     if (collection === 'VisitData') {
       const recordState = typeof record.state === 'string' ? record.state : null;
@@ -465,7 +453,7 @@ export default function AdminClient() {
       const year = record.year ? String(record.year) : null;
       const dogNotAllowed = record.dogNotAllowed === true || record.dogNotAllowed === 'true';
       // Handle visitedPlaces - could be string, array, or object
-      const visitedPlaces = record.visitedPlaces 
+      const visitedPlaces = record.visitedPlaces
         ? (typeof record.visitedPlaces === 'object' || Array.isArray(record.visitedPlaces))
           ? record.visitedPlaces
           : String(record.visitedPlaces)
@@ -482,7 +470,7 @@ export default function AdminClient() {
       const dogName = record.dogName ? String(record.dogName) : null;
       const userId = record.userId ? String(record.userId) : null;
       const isSelected = selectedIds.has(record.id);
-      
+
       // Parse route data for map
       const routeData = normalizeRouteData(route);
 
@@ -490,28 +478,24 @@ export default function AdminClient() {
       let visitedPlacesArray: string[] | null = null;
       if (visitedPlaces) {
         try {
-          // Check if it's already an array
+          // Check if it's an array
           if (Array.isArray(visitedPlaces)) {
             visitedPlacesArray = visitedPlaces;
           } else if (typeof visitedPlaces === 'string') {
             try {
-              // Check if it's a valid JSON string (starts with [ or {)
               const trimmed = visitedPlaces.trim();
-              if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || 
-                  (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+              if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+                (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
                 const parsed = JSON.parse(visitedPlaces);
                 if (Array.isArray(parsed)) {
                   visitedPlacesArray = parsed;
                 } else {
-                  // Comma-separated string
                   visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean);
                 }
               } else {
-                // Invalid JSON string (like "[object Object]") or regular string
                 visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean);
               }
             } catch {
-              // Comma-separated string
               visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean);
             }
           }
@@ -519,7 +503,7 @@ export default function AdminClient() {
           console.error('Failed to parse visited places:', e);
         }
       }
-      
+
       const toggleMapExpand = (e: React.MouseEvent) => {
         e.stopPropagation();
         setExpandedMap(prev => {
@@ -534,9 +518,8 @@ export default function AdminClient() {
       };
 
       const isMapExpanded = expandedMap.has(record.id);
-      
+
       const handleCardClick = (e: React.MouseEvent) => {
-        // Don't navigate if clicking on interactive elements
         const target = e.target as HTMLElement;
         if (
           target.closest('input[type="checkbox"]') ||
@@ -545,7 +528,6 @@ export default function AdminClient() {
         ) {
           return;
         }
-        // Navigate to detail page
         window.location.href = `/admin/${collection}/${record.id}`;
       };
 
@@ -555,29 +537,30 @@ export default function AdminClient() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={handleCardClick}
-          className={`border rounded-lg overflow-hidden hover:shadow-lg transition-all cursor-pointer ${
-            isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
-          }`}
+          className={`border rounded-2xl overflow-hidden transition-all cursor-pointer ${isSelected
+            ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
+            : 'bg-white/60 dark:bg-black/20 backdrop-blur-md border-gray-200/50 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/5'
+            }`}
         >
           <div className="flex flex-col gap-0">
             {/* Map Preview - Full Width with Expand */}
             {routeData && routeData.length > 0 && (
-              <div className="relative w-full bg-gray-100" style={{ height: isMapExpanded ? '400px' : '200px' }}>
+              <div className="relative w-full bg-gray-100 dark:bg-black/40 border-b border-gray-200 dark:border-white/10" style={{ height: isMapExpanded ? '400px' : '200px' }}>
                 <DynamicGpxEditor
-                  onSave={() => {}}
+                  onSave={() => { }}
                   initialTrack={routeData}
                   readOnly={true}
                   hideControls={['editMode', 'undo', 'redo', 'add', 'delete', 'simplify', 'fullscreen']}
                 />
                 <button
                   onClick={toggleMapExpand}
-                  className="absolute top-2 right-2 z-10 bg-white/90 hover:bg-white border border-gray-300 rounded-lg p-2 shadow-sm transition-all"
+                  className="absolute top-2 right-2 z-10 bg-white/80 dark:bg-black/50 hover:bg-white dark:hover:bg-black/70 border border-gray-200 dark:border-white/20 rounded-lg p-2 backdrop-blur-sm transition-all text-gray-700 dark:text-white"
                   title={isMapExpanded ? "Zmenšit" : "Zvětšit"}
                 >
                   {isMapExpanded ? (
-                    <Minimize2 className="h-4 w-4 text-gray-700" />
+                    <Minimize2 className="h-4 w-4" />
                   ) : (
-                    <Expand className="h-4 w-4 text-gray-700" />
+                    <Expand className="h-4 w-4" />
                   )}
                 </button>
               </div>
@@ -591,70 +574,70 @@ export default function AdminClient() {
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+                    className="border-gray-300 dark:border-white/20 data-[state=checked]:bg-blue-600"
                   />
-                <Badge variant="outline" className="text-xs font-mono">
-                  {String(record.id).slice(0, 8)}...
-                </Badge>
-                {recordState && (
-                  <Badge 
-                    variant={
-                      recordState === 'APPROVED' ? 'default' :
-                      recordState === 'PENDING_REVIEW' ? 'secondary' :
-                      recordState === 'REJECTED' ? 'destructive' : 'outline'
-                    }
-                    className="text-xs"
-                  >
-                    {recordState === 'APPROVED' ? 'Schváleno' :
-                     recordState === 'PENDING_REVIEW' ? 'Čeká' :
-                     recordState === 'REJECTED' ? 'Zamítnuto' : recordState}
+                  <Badge variant="outline" className="text-xs font-mono border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400">
+                    {String(record.id).slice(0, 8)}...
                   </Badge>
-                )}
-              </div>
-              <div className="flex gap-1">
-                {recordState === 'PENDING_REVIEW' && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                      onClick={(e) => handleApprove(record.id, e)}
-                      disabled={processingAction === record.id}
-                      title="Schválit"
+                  {recordState && (
+                    <Badge
+                      variant="outline"
+                      className={`text-xs border-0 ${recordState === 'APPROVED' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400' :
+                        recordState === 'PENDING_REVIEW' ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' :
+                          recordState === 'REJECTED' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400'
+                        }`}
                     >
-                      {processingAction === record.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
+                      {recordState === 'APPROVED' ? 'Schváleno' :
+                        recordState === 'PENDING_REVIEW' ? 'Čeká' :
+                          recordState === 'REJECTED' ? 'Zamítnuto' : recordState}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  {recordState === 'PENDING_REVIEW' && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-500/20"
+                        onClick={(e) => handleApprove(record.id, e)}
+                        disabled={processingAction === record.id}
+                        title="Schválit"
+                      >
+                        {processingAction === record.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20"
+                        onClick={(e) => handleReject(record.id, e)}
+                        disabled={processingAction === record.id}
+                        title="Zamítnout"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  <Link href={`/admin/${collection}/${record.id}`}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10">
+                      <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={(e) => handleReject(record.id, e)}
-                      disabled={processingAction === record.id}
-                      title="Zamítnout"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-                <Link href={`/admin/${collection}/${record.id}`}>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </Link>
+                  </Link>
+                </div>
               </div>
-            </div>
 
-            {/* Title */}
+              {/* Title */}
               {routeTitle && (
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-base sm:text-lg line-clamp-2">
+                  <h3 className="font-bold text-base sm:text-lg line-clamp-2 text-gray-900 dark:text-white">
                     {routeTitle}
                   </h3>
                   {(dogName || userId) && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
                       {dogName && (
                         <span className="flex items-center gap-1">
                           🐕 {dogName}
@@ -662,9 +645,9 @@ export default function AdminClient() {
                       )}
                       {userId && (
                         <div className="flex items-center gap-1">
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs font-mono cursor-pointer hover:bg-gray-100 group flex items-center gap-1"
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-mono cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 group flex items-center gap-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               window.location.href = `/admin/User/${userId}`;
@@ -676,11 +659,11 @@ export default function AdminClient() {
                           </Badge>
                           <button
                             onClick={(e) => handleCopyId(String(userId), e)}
-                            className="p-1 hover:bg-gray-200 rounded transition-colors"
+                            className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded transition-colors text-gray-500 dark:text-gray-400"
                             title="Kopírovat ID"
                           >
                             {copiedId === String(userId) ? (
-                              <Check className="h-3 w-3 text-green-600" />
+                              <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
                             ) : (
                               <Copy className="h-3 w-3" />
                             )}
@@ -694,38 +677,62 @@ export default function AdminClient() {
 
               {/* Description */}
               {routeDescription && (
-                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <p className="line-clamp-2">{routeDescription}</p>
                 </div>
               )}
-              
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {points !== null && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg">
-                    <Award className="h-5 w-5 text-yellow-600" />
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newPoints = prompt("Zadejte nový počet bodů:", String(points));
+                      if (newPoints !== null && !isNaN(parseFloat(newPoints))) {
+                        setProcessingAction(record.id);
+                        fetch(`/api/admin/VisitData/${record.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ points: parseFloat(newPoints) })
+                        })
+                          .then(res => {
+                            if (!res.ok) throw new Error('Failed to update points');
+                            actions.reloadForCurrentFilters();
+                          })
+                          .catch(err => {
+                            console.error(err);
+                            alert("Nepodařilo se upravit body.");
+                          })
+                          .finally(() => setProcessingAction(null));
+                      }
+                    }}
+                    className="flex items-center gap-2 p-2 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-500/10 dark:to-amber-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-lg cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-500/20 transition-colors"
+                    title="Klikněte pro úpravu bodů"
+                  >
+                    <Award className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
                     <div>
-                      <div className="text-xs text-yellow-600 font-medium">Body</div>
-                      <div className="text-sm font-bold text-yellow-700">{points}</div>
+                      <div className="text-xs text-yellow-600 dark:text-yellow-500 font-medium">Body (Upravit)</div>
+                      <div className="text-sm font-bold text-yellow-700 dark:text-yellow-400">{points}</div>
                     </div>
                   </div>
                 )}
                 {year && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-                    <Calendar className="h-5 w-5 text-blue-600" />
+                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg">
+                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-500" />
                     <div>
-                      <div className="text-xs text-blue-600 font-medium">Sezóna</div>
-                      <div className="text-sm font-bold text-blue-700">{year}</div>
+                      <div className="text-xs text-blue-600 dark:text-blue-500 font-medium">Sezóna</div>
+                      <div className="text-sm font-bold text-blue-700 dark:text-blue-400">{year}</div>
                     </div>
                   </div>
                 )}
                 {visitDate && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-                    <Calendar className="h-5 w-5 text-green-600" />
+                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-500/10 dark:to-emerald-500/10 border border-green-200 dark:border-green-500/20 rounded-lg">
+                    <Calendar className="h-5 w-5 text-green-600 dark:text-green-500" />
                     <div>
-                      <div className="text-xs text-green-600 font-medium">Datum návštěvy</div>
-                      <div className="text-xs font-bold text-green-700">
+                      <div className="text-xs text-green-600 dark:text-green-500 font-medium">Datum návštěvy</div>
+                      <div className="text-xs font-bold text-green-700 dark:text-green-400">
                         {(() => {
                           try {
                             const date = new Date(visitDate);
@@ -742,11 +749,11 @@ export default function AdminClient() {
                   </div>
                 )}
                 {dogNotAllowed && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-lg">
-                    <X className="h-5 w-5 text-red-600" />
+                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-500/10 dark:to-rose-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
+                    <X className="h-5 w-5 text-red-600 dark:text-red-500" />
                     <div>
-                      <div className="text-xs text-red-600 font-medium">Psi</div>
-                      <div className="text-sm font-bold text-red-700">Zakázáni</div>
+                      <div className="text-xs text-red-600 dark:text-red-500 font-medium">Psi</div>
+                      <div className="text-sm font-bold text-red-700 dark:text-red-400">Zakázáni</div>
                     </div>
                   </div>
                 )}
@@ -754,70 +761,24 @@ export default function AdminClient() {
 
               {/* Visited Places */}
               {visitedPlacesArray && visitedPlacesArray.length > 0 && (
-                <div className="space-y-2 p-3 bg-purple-50/50 border border-purple-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-purple-700">
+                <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-purple-600 dark:text-purple-400">
                     <MapPin className="h-4 w-4" />
                     <span>Návštěv míst ({visitedPlacesArray.length})</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {visitedPlacesArray.slice(0, 8).map((place, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs bg-white border-purple-200 text-purple-700 hover:bg-purple-50">
+                      <Badge key={idx} variant="outline" className="text-xs bg-white dark:bg-black/40 border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/20">
                         {place}
                       </Badge>
                     ))}
                     {visitedPlacesArray.length > 8 && (
-                      <Badge variant="outline" className="text-xs bg-purple-100 border-purple-300 text-purple-700">
+                      <Badge variant="outline" className="text-xs bg-purple-100 dark:bg-purple-500/20 border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300">
                         +{visitedPlacesArray.length - 8} dalších
                       </Badge>
                     )}
                   </div>
                 </div>
-              )}
-
-              {/* Photos */}
-              {photos && photos.length > 0 && (
-                <div className="space-y-2 p-3 bg-pink-50/50 border border-pink-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-pink-700">
-                    <ImageIcon className="h-4 w-4" />
-                    <span>Fotografie ({photos.length})</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {photos.slice(0, 8).map((photo: { url?: string; title?: string }, idx: number) => {
-                      if (!photo.url) return null;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedPhoto({ url: photo.url || '', title: photo.title })}
-                          className="aspect-square rounded-lg overflow-hidden bg-gray-100 relative hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer"
-                        >
-                          <Image
-                            src={photo.url}
-                            alt={photo.title || `Photo ${idx + 1}`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 33vw, 25vw"
-                          />
-                        </button>
-                      );
-                    })}
-                    {photos.length > 8 && (
-                      <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center text-sm text-muted-foreground">
-                        +{photos.length - 8}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Rejection Reason */}
-              {recordState === 'REJECTED' && rejectionReason && (
-                <Alert variant="destructive">
-                  <XCircle className="h-4 w-4" />
-                  <AlertTitle>Důvod zamítnutí</AlertTitle>
-                  <AlertDescription className="text-sm">
-                    {rejectionReason}
-                  </AlertDescription>
-                </Alert>
               )}
             </div>
           </div>
@@ -825,147 +786,8 @@ export default function AdminClient() {
       );
     }
 
-    // Default rendering for other collections
-    const isSelected = selectedIds.has(record.id);
-    
-    const handleCardClick = (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.closest('input[type="checkbox"]') ||
-        target.closest('button') ||
-        target.closest('a[href]')
-      ) {
-        return;
-      }
-      window.location.href = `/admin/${collection}/${record.id}`;
-    };
-    
-    return (
-      <motion.div
-        key={record.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        onClick={handleCardClick}
-        className={`border rounded-lg p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer ${
-          isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50' : ''
-        }`}
-      >
-        <div className="flex flex-col gap-3">
-          {/* Header with checkbox, ID and actions */}
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
-              />
-              <Badge variant="outline" className="text-xs font-mono">
-                {String(record.id).length > 12 ? `${String(record.id).slice(0, 12)}...` : String(record.id)}
-              </Badge>
-            </div>
-            <div className="flex gap-1">
-              <Link href={`/admin/${collection}/${record.id}`}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Record data */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {keys.slice(0, 6).map((key) => {
-              const value = record[key];
-              let displayValue: React.ReactNode = null;
-              
-              // Format different value types
-              if (value === null || value === undefined) {
-                displayValue = <span className="text-gray-400 italic">null</span>;
-              } else if (key === 'route') {
-                // Special handling for route - show as map
-                const routeData = normalizeRouteData(value);
-                
-                if (routeData && routeData.length > 0) {
-                  displayValue = (
-                    <div className="w-full h-32 rounded-lg overflow-hidden border border-gray-200">
-                      <DynamicGpxEditor
-                        onSave={() => {}}
-                        initialTrack={routeData}
-                        readOnly={true}
-                        hideControls={['editMode', 'undo', 'redo', 'add', 'delete', 'simplify', 'fullscreen', 'zoom']}
-                      />
-                    </div>
-                  );
-                } else {
-                  displayValue = <span className="text-gray-400 text-xs">Bez trasy</span>;
-                }
-              } else if (key === 'state' && typeof value === 'string') {
-                // Special handling for state values
-                const stateVariant = 
-                  value === 'APPROVED' ? 'default' :
-                  value === 'PENDING_REVIEW' ? 'secondary' :
-                  value === 'REJECTED' ? 'destructive' :
-                  value === 'DRAFT' ? 'outline' : 'secondary';
-                
-                const stateLabel = 
-                  value === 'APPROVED' ? '✅ Schváleno' :
-                  value === 'PENDING_REVIEW' ? '🕒 Čeká' :
-                  value === 'REJECTED' ? '❌ Zamítnuto' :
-                  value === 'DRAFT' ? '📝 Koncept' : value;
-
-                displayValue = (
-                  <Badge variant={stateVariant} className="text-xs">
-                    {stateLabel}
-                  </Badge>
-                );
-              } else if (typeof value === 'object') {
-                displayValue = (
-                  <span className="font-mono text-xs bg-gray-100 p-1 rounded">
-                    {JSON.stringify(value)}
-                  </span>
-                );
-              } else if (typeof value === 'boolean') {
-                displayValue = (
-                  <Badge variant={value ? "default" : "secondary"}>
-                    {value ? "Ano" : "Ne"}
-                  </Badge>
-                );
-              } else if (key.includes('Date') || key.includes('At')) {
-                try {
-                  const date = new Date(String(value));
-                  if (!isNaN(date.getTime())) {
-                    displayValue = format(date, "d. MMM yyyy", { locale: cs });
-                  } else {
-                    displayValue = String(value);
-                  }
-                } catch (e) {
-                  displayValue = String(value);
-                }
-              } else {
-                displayValue = String(value);
-              }
-
-              return (
-                <div key={key} className="space-y-1">
-                  <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                    {key}
-                  </div>
-                  <div className="text-sm line-clamp-2">
-                    {displayValue}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Show more indicator if there are more fields */}
-          {keys.length > 6 && (
-            <div className="text-xs text-gray-500">
-              +{keys.length - 6} dalších polí
-            </div>
-          )}
-        </div>
-      </motion.div>
-    );
+    // Default fallback rendering... (You can add standard format here if needed)
+    return null;
   };
 
   return (
@@ -974,25 +796,25 @@ export default function AdminClient() {
       <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl font-bold truncate">
-              {collection === 'VisitData' ? 'Návštěvy' : 
-               collection === 'User' ? 'Uživatelé' :
-               collection === 'News' ? 'Aktuality' : collection}
+            <h1 className="text-lg sm:text-xl font-bold truncate text-gray-900 dark:text-white">
+              {collection === 'VisitData' ? 'Návštěvy' :
+                collection === 'User' ? 'Uživatelé' :
+                  collection === 'News' ? 'Aktuality' : collection}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               {collection === 'VisitData' ? 'Správa turistických návštěv' :
-               collection === 'User' ? 'Správa uživatelských účtů' :
-               collection === 'News' ? 'Správa novinek a článků' : 
-               `Správa záznamů kolekce ${collection}`}
+                collection === 'User' ? 'Správa uživatelských účtů' :
+                  collection === 'News' ? 'Správa novinek a článků' :
+                    `Správa záznamů kolekce ${collection}`}
             </p>
           </div>
-          
+
           <div className="flex gap-2">
             {selectedIds.size > 0 && (
               <Button
                 variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-red-100 dark:bg-red-600/20 text-red-600 dark:text-red-500 hover:bg-red-200 dark:hover:bg-red-600/30 border border-red-200 dark:border-red-500/20"
                 size="sm"
                 disabled={isDeleting}
               >
@@ -1005,14 +827,14 @@ export default function AdminClient() {
 
         {/* Select All */}
         {state.records.length > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <div className="flex items-center gap-2 p-2 bg-white/60 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 rounded-lg">
             <Checkbox
               checked={allSelected}
               onCheckedChange={handleSelectAll}
-              className={someSelected ? 'data-[state=checked]:bg-blue-500' : ''}
+              className={`border-gray-300 dark:border-white/20 data-[state=checked]:bg-blue-600 ${someSelected ? 'data-[state=checked]:bg-blue-500' : ''}`}
             />
-            <span className="text-sm text-muted-foreground">
-              {selectedIds.size > 0 
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {selectedIds.size > 0
                 ? `Vybráno: ${selectedIds.size} z ${state.records.length}`
                 : 'Vybrat vše'}
             </span>
@@ -1028,7 +850,7 @@ export default function AdminClient() {
                 placeholder="Hledat..."
                 value={state.searchQuery}
                 onChange={(e) => actions.onSearchChanged(e.target.value)}
-                className="pl-10 transition-all duration-200 focus:scale-[1.01] focus:shadow-sm focus:border-blue-500"
+                className="pl-10 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all duration-200 focus:scale-[1.01] focus:shadow-sm focus:border-blue-500 focus:bg-white dark:focus:bg-white/10"
               />
             </div>
             <Button
@@ -1038,20 +860,20 @@ export default function AdminClient() {
                 actions.changeSort('id', !currentDesc);
               }}
               size="sm"
-              className="min-w-[120px]"
+              className="min-w-[120px] bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
             >
               <ArrowUpDown className="h-4 w-4 mr-2" />
               {state.sortDescending ? '↓ Novější' : '↑ Starší'}
             </Button>
           </div>
-          
+
           {/* Filters for VisitData */}
           {collection === 'VisitData' && (
             <div className="flex flex-wrap gap-2">
               <select
                 value={state.stateFilter}
                 onChange={(e) => actions.changeStateFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-3 py-2 border border-gray-200 dark:border-white/10 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-black/40 text-gray-700 dark:text-gray-300"
               >
                 <option value="">Všechny stavy</option>
                 <option value="PENDING_REVIEW">🕒 Čeká</option>
@@ -1059,11 +881,11 @@ export default function AdminClient() {
                 <option value="REJECTED">❌ Zamítnuto</option>
                 <option value="DRAFT">📝 Koncept</option>
               </select>
-              
+
               <select
                 value={state.seasonFilter}
                 onChange={(e) => actions.changeSeasonFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-3 py-2 border border-gray-200 dark:border-white/10 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-black/40 text-gray-700 dark:text-gray-300"
                 disabled={loadingSeasons}
               >
                 <option value="">Všechny sezóny</option>
@@ -1080,8 +902,8 @@ export default function AdminClient() {
 
       {/* Error State */}
       {state.error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant="destructive" className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-200">
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
           <AlertTitle>Chyba</AlertTitle>
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
@@ -1089,13 +911,13 @@ export default function AdminClient() {
 
       {/* Loading State */}
       {state.isInitialLoading ? (
-        <LoadingSkeleton 
-          count={5} 
-          type="visit" 
+        <LoadingSkeleton
+          count={5}
+          type="visit"
         />
       ) : (
-        <ScrollArea ref={scrollRef} className="h-[400px] sm:h-[500px] md:h-[600px]">
-          <div className="space-y-2 sm:space-y-3">
+        <ScrollArea ref={scrollRef} className="h-[400px] sm:h-[500px] md:h-[600px] rounded-xl border border-gray-200/50 dark:border-white/10 bg-white/40 dark:bg-black/20">
+          <div className="space-y-2 sm:space-y-3 p-4">
             <AnimatePresence>
               {state.records.map(renderRecordItem)}
             </AnimatePresence>
@@ -1106,7 +928,7 @@ export default function AdminClient() {
                 {state.isLoadingMore ? (
                   <LoadingSpinner size="sm" text="Načítání..." />
                 ) : (
-                  <Button variant="outline" onClick={actions.loadNextPage} size="sm">
+                  <Button variant="outline" onClick={actions.loadNextPage} size="sm" className="bg-white/60 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-white/10">
                     Načíst více
                   </Button>
                 )}
@@ -1115,25 +937,27 @@ export default function AdminClient() {
 
             {/* Empty State */}
             {!state.isInitialLoading && state.records.length === 0 && (
-              <EmptyState
-                title="Žádné záznamy k zobrazení"
-                description={
-                  state.searchQuery 
+              <div className="flex flex-col items-center justify-center p-8 text-center bg-transparent">
+                <div className="p-4 rounded-full bg-gray-100 dark:bg-white/5 mb-4">
+                  <Search className="h-8 w-8 text-gray-400 dark:text-gray-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-300">Žádné záznamy k zobrazení</h3>
+                <p className="text-sm text-gray-500 mt-2 max-w-sm">
+                  {state.searchQuery
                     ? 'Pro váš vyhledávací dotaz nebyly nalezeny žádné záznamy.'
-                    : `Kolekce ${collection} neobsahuje žádné záznamy.`
-                }
-                action={
-                  state.searchQuery && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => actions.onSearchChanged('')}
-                      size="sm"
-                    >
-                      Vymazat vyhledávání
-                    </Button>
-                  )
-                }
-              />
+                    : `Kolekce ${collection} neobsahuje žádné záznamy.`}
+                </p>
+                {state.searchQuery && (
+                  <Button
+                    variant="outline"
+                    onClick={() => actions.onSearchChanged('')}
+                    size="sm"
+                    className="mt-4 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white"
+                  >
+                    Vymazat vyhledávání
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </ScrollArea>
@@ -1141,20 +965,20 @@ export default function AdminClient() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-black/90 dark:border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle>Opravdu chcete smazat?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-gray-900 dark:text-white">Opravdu chcete smazat?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500 dark:text-gray-400">
               Chystáte se trvale smazat {selectedIds.size} {selectedIds.size === 1 ? 'záznam' : selectedIds.size < 5 ? 'záznamy' : 'záznamů'} z databáze.
               Tuto akci nelze vrátit zpět.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Zrušit</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting} className="bg-white dark:bg-transparent border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white">Zrušit</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isDeleting ? (
                 <>
@@ -1174,12 +998,12 @@ export default function AdminClient() {
 
       {/* Photo Viewer Dialog */}
       <AlertDialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
-        <AlertDialogContent className="max-w-4xl">
+        <AlertDialogContent className="max-w-4xl bg-white dark:bg-black/95 dark:border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle>{selectedPhoto?.title || 'Fotografie'}</AlertDialogTitle>
+            <AlertDialogTitle className="text-gray-900 dark:text-white">{selectedPhoto?.title || 'Fotografie'}</AlertDialogTitle>
           </AlertDialogHeader>
           {selectedPhoto && (
-            <div className="relative w-full aspect-video">
+            <div className="relative w-full aspect-video bg-gray-100 dark:bg-black/50 rounded-lg overflow-hidden">
               <Image
                 src={selectedPhoto.url}
                 alt={selectedPhoto.title || 'Photo'}
@@ -1190,7 +1014,7 @@ export default function AdminClient() {
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedPhoto(null)}>Zavřít</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setSelectedPhoto(null)} className="dark:bg-white/10 border-0 dark:text-white dark:hover:bg-white/20">Zavřít</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

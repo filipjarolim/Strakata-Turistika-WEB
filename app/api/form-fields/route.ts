@@ -6,9 +6,9 @@ import { db } from "@/lib/db";
 export async function GET() {
     try {
         const role = await currentRole();
-        
+
         // Admin sees all fields (including inactive), users only see active fields
-        const where = role === UserRole.ADMIN 
+        const where = role === UserRole.ADMIN
             ? {}
             : { active: true };
 
@@ -27,7 +27,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }

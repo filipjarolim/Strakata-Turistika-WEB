@@ -57,6 +57,9 @@ export interface ScoringResult {
   distanceKm: number;
   distancePoints: number;
   placePoints: number;
+  themeBonus?: number;
+  startEndDistance?: number;
+  distancePenalty?: boolean;
   peaks: number;
   towers: number;
   trees: number;
@@ -140,7 +143,9 @@ export function calculateDuration(
 export function calculatePoints(
   route: RouteData,
   places: Place[],
-  config: ScoringConfig
+  config: ScoringConfig,
+  isExemptFromDistanceLimit: boolean = false,
+  monthlyThemeKeywords: string[] = []
 ): ScoringResult {
   // Calculate distance in km
   let distanceMeters = route.totalDistance ?? 0;
@@ -164,6 +169,32 @@ export function calculatePoints(
     others: places.filter((p) => p.type === 'OTHER').length,
   };
 
+  // Check 3km distance limit (Start vs End)
+  let distancePenalty = false;
+  let startEndDistance = 0;
+
+  if (route.trackPoints && route.trackPoints.length >= 2) {
+    const start = route.trackPoints[0];
+    const end = route.trackPoints[route.trackPoints.length - 1];
+    startEndDistance = calculateDistance(start.latitude, start.longitude, end.latitude, end.longitude);
+
+    // If distance between start and end > 3km, it's not a loop
+    if (startEndDistance > 3000 && !isExemptFromDistanceLimit) {
+      distancePenalty = true;
+    }
+  }
+
+  // Calculate bonus points for Monthly Theme
+  let themeBonus = 0;
+  if (monthlyThemeKeywords && monthlyThemeKeywords.length > 0) {
+    const placesText = places.map(p => p.description || "").join(" ").toLowerCase();
+    // Check if any keyword matches
+    const matchesTheme = monthlyThemeKeywords.some(keyword => placesText.includes(keyword.toLowerCase()));
+    if (matchesTheme) {
+      themeBonus = 5; // Fixed 5 points bonus for theme matching
+    }
+  }
+
   // Calculate distance points
   let distancePoints = 0;
   if (distanceKm >= config.minDistanceKm) {
@@ -182,11 +213,16 @@ export function calculatePoints(
   if (config.requireAtLeastOnePlace) {
     // Only award points if at least one place is visited
     if (places.length > 0) {
-      totalPoints = distancePoints + placePoints;
+      totalPoints = distancePoints + placePoints + themeBonus;
     }
   } else {
     // Award points even without places
-    totalPoints = distancePoints + placePoints;
+    totalPoints = distancePoints + placePoints + themeBonus;
+  }
+
+  // Apply penalty
+  if (distancePenalty) {
+    totalPoints = 0;
   }
 
   // Round down to 1 decimal place
@@ -197,9 +233,12 @@ export function calculatePoints(
   return {
     scoringModel: 'configurable_v1',
     config,
-    distanceKm: Math.round(distanceKm * 1000) / 1000, // 3 decimal places
+    distanceKm: Math.round(distanceKm * 1000) / 1000,
     distancePoints,
     placePoints,
+    themeBonus,
+    startEndDistance: Math.round(startEndDistance),
+    distancePenalty,
     peaks: placeTypeCounts.peaks,
     towers: placeTypeCounts.towers,
     trees: placeTypeCounts.trees,

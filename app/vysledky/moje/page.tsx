@@ -16,10 +16,8 @@ export default function MojeVysledkyPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!user) {
-            router.push('/prihlaseni?callbackUrl=/vysledky/moje');
-        }
-    }, [user, router]);
+        router.replace('/auth/profil');
+    }, [router]);
 
     if (!user) return null;
 

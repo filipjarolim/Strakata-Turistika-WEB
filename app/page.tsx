@@ -76,19 +76,19 @@ const Home = async () => {
                 <div className="relative z-10 animate-fadeIn">
                     <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[50vh] sm:h-[60vh] md:h-[70vh] px-3 sm:px-4 md:px-8"}>
                         <div className={"p-3 sm:p-4 md:p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
-                            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold whitespace-normal break-words text-white tracking-tight leading-none mb-2">
+                            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold whitespace-normal break-words text-white tracking-tight leading-none mb-2 drop-shadow-lg">
                                 {basicInfo.name}
                             </h1>
-                            <div className="text-3xl lg:text-4xl xl:text-6xl font-semibold mb-4 text-white w-[90%]">
+                            <div className="text-3xl lg:text-4xl xl:text-6xl font-semibold mb-6 text-white w-[90%] drop-shadow-md">
                                 aneb pozn&aacute;v&aacute;me
                                 {" "}
                                 <IOSBadge
                                     label="Česko"
                                     icon={PinEmoji}
                                     specialStyle={{ iconSize: 120 }}
-                                    bgColor="bg-red-200/80"
-                                    borderColor="border-red-400/70"
-                                    textColor="text-red-900/80"
+                                    bgColor="bg-red-200"
+                                    borderColor="border-red-400"
+                                    textColor="text-red-900"
                                 />
                                 {" "}
                                 s česk&yacute;m strakat&yacute;m
@@ -97,33 +97,42 @@ const Home = async () => {
                                     label="psem"
                                     icon={DogEmoji}
                                     specialStyle={{ iconSize: 120 }}
-                                    bgColor="bg-amber-200/80"
-                                    borderColor="border-amber-400/70"
-                                    textColor="text-amber-900/80"
+                                    bgColor="bg-amber-200"
+                                    borderColor="border-amber-400"
+                                    textColor="text-amber-900"
                                 />
                                 .
                             </div>
-                            <div className={"flex gap-x-2 flex-row items-center justify-start py-4 w-full"}>
+                            <div className={"flex gap-x-4 flex-row items-center justify-start py-8 mt-4 w-full"}>
                                 <Link href="/soutez">
-                                    <IOSButton variant="outline" className={"rounded-full hover:scale-105 transition-all duration-300 ease-out text-white hover:text-white border-white/50 bg-white/20 backdrop-blur-xl hover:bg-white/30"}>
-                                        Prozkoumat
+                                    <IOSButton variant="primary" className={"h-12 px-8 text-lg font-bold rounded-full hover:scale-105 transition-all duration-300 shadow-xl shadow-blue-900/20"}>
+                                        Soutěžit
+                                    </IOSButton>
+                                </Link>
+                                <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" target="_blank" rel="noopener noreferrer">
+                                    <IOSButton variant="secondary" className={"h-12 px-6 text-base font-semibold rounded-full hover:scale-105 transition-all duration-300 bg-white/20 text-white border-white/40 hover:bg-white/30 backdrop-blur-md"}>
+                                        Stáhnout aplikaci
                                     </IOSButton>
                                 </Link>
                             </div>
                         </div>
                         <div className="flex flex-col items-center justify-center text-center mt-6 px-4 md:hidden z-20">
-                            <h1 className="text-5xl font-black text-white tracking-tighter drop-shadow-2xl mb-2">
+                            <h1 className="text-5xl font-black text-white tracking-tighter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] mb-4">
                                 {basicInfo.name}
                             </h1>
-                            <p className="text-lg font-medium text-white/90 max-w-[280px] leading-snug drop-shadow-md mb-6">
-                                Objevujte Česko se svým čtyřnohým parťákem.
-                            </p>
 
-                            <Link href="/soutez" className="w-full max-w-xs">
-                                <button className="w-full bg-white text-black font-bold text-lg py-4 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all duration-300">
-                                    Prozkoumat
-                                </button>
-                            </Link>
+                            <div className="flex flex-col w-full max-w-xs gap-3">
+                                <Link href="/soutez" className="w-full">
+                                    <button className="w-full bg-white text-black font-bold text-lg py-3.5 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all duration-300">
+                                        Soutěžit
+                                    </button>
+                                </Link>
+                                <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" className="w-full" target="_blank" rel="noopener noreferrer">
+                                    <button className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-lg py-3.5 rounded-2xl shadow-lg hover:bg-white/30 active:scale-95 transition-all duration-300">
+                                        Stáhnout aplikaci
+                                    </button>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -223,6 +232,7 @@ const Home = async () => {
 
 
             <Separator className="my-8" />
+
 
 
 

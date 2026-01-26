@@ -1,74 +1,78 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { currentRole } from '@/lib/auth';
-import { UserRole, VisitState } from '@prisma/client';
-
-interface RouteRequest {
-  routeTitle: string;
-  routeDescription: string;
-  routeLink: string;
-  visitDate: Date;
-  points: number;
-  visitedPlaces: string;
-  dogNotAllowed: string;
-  year: number;
-  state: VisitState;
-  extraPoints: {
-    description: string;
-    distance: number;
-    totalAscent: number;
-    elapsedTime: number;
-    averageSpeed: number;
-  };
-}
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { currentRole } from "@/lib/auth";
+import { UserRole } from "@prisma/client";
 
 export async function GET() {
   try {
     const role = await currentRole();
     if (role !== UserRole.ADMIN) {
-      return new NextResponse('Unauthorized', { status: 403 });
+      return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    // Fetch only routes that need review (PENDING_REVIEW state)
-    const routes = await db.visitData.findMany({
+    const routes = await db.customRoute.findMany({
       where: {
-        state: VisitState.PENDING_REVIEW
+        status: 'PENDING_REVIEW'
+      },
+      include: {
+        creator: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
-      },
-      select: {
-        id: true,
-        routeTitle: true,
-        routeDescription: true,
-        visitDate: true,
-        year: true,
-        routeLink: true,
-        state: true,
-        extraPoints: true,
-        createdAt: true
       }
     });
 
     return NextResponse.json(routes);
   } catch (error) {
-    console.error('[GET_ADMIN_ROUTES_ERROR]', error);
-    return NextResponse.json(
-      { message: 'Failed to fetch routes.' },
-      { status: 500 }
-    );
+    console.error("[ROUTES_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function PATCH(req: Request) {
   try {
-    const body: RouteRequest = await req.json();
-    // ... existing code ...
+    const role = await currentRole();
+    if (role !== UserRole.ADMIN) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    const body = await req.json();
+    const { id, action } = body;
+
+    if (!id || !['approve', 'reject'].includes(action)) {
+      return new NextResponse("Invalid data", { status: 400 });
+    }
+
+    const status = action === 'approve' ? 'APPROVED' : 'REJECTED';
+
+    const route = await db.customRoute.update({
+      where: { id },
+      data: { status }
+    });
+
+    // Grant points to creator if approved
+    if (status === 'APPROVED') {
+      await db.visitData.create({
+        data: {
+          userId: route.creatorId,
+          points: 2.0, // 2 points for creation
+          visitedPlaces: "Vytvoření Strakaté trasy: " + route.title,
+          state: 'APPROVED',
+          year: new Date().getFullYear(),
+          extraPoints: { type: 'ROUTE_CREATION_BONUS' },
+          extraData: { routeId: route.id }
+        }
+      });
+    }
+
+    return NextResponse.json(route);
   } catch (error) {
-    console.error('[POST_ADMIN_ROUTES_ERROR]', error);
-    return NextResponse.json(
-      { message: 'Failed to create route.' },
-      { status: 500 }
-    );
+    console.error("[ROUTES_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
-} 
+}

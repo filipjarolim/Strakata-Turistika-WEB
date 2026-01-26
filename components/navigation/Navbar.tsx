@@ -84,7 +84,7 @@ const navConfig: NavConfigType = [
             },
             {
                 title: "Moje návštěvy",
-                href: "/vysledky/moje",
+                href: "/auth/profil",
                 description: "Přehled vašich návštěv a dosažených výsledků.",
                 icon: User,
                 badge: "Nové"

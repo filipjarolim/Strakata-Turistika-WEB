@@ -42,22 +42,22 @@ export async function PUT(
     if (body.routeLink) {
       trackPoints = JSON.parse(body.routeLink);
     } else if (existingRecord.route) {
-      const routeData = typeof existingRecord.route === 'string' 
-        ? JSON.parse(existingRecord.route) 
+      const routeData = typeof existingRecord.route === 'string'
+        ? JSON.parse(existingRecord.route)
         : existingRecord.route;
       if (routeData.trackPoints) {
         trackPoints = routeData.trackPoints;
       }
     }
-    
+
     // Get places from body or existing record
     const places: Place[] = body.places || existingRecord.places || [];
-    
+
     // Legacy compatibility: auto-fill visitedPlaces from places names
-    const visitedPlaces = places.length > 0 
+    const visitedPlaces = places.length > 0
       ? places.map((p: Place) => p.name || String(p)).filter(Boolean).join(', ')
       : body.visitedPlaces || existingRecord.visitedPlaces || '';
-    
+
     // Get scoring config
     let scoringConfig: ScoringConfig;
     try {
@@ -111,6 +111,7 @@ export async function PUT(
         ...(body.visitDate && { year: new Date(body.visitDate).getFullYear() }),
         ...(body.photos !== undefined && { photos: body.photos as unknown as Prisma.InputJsonValue }),
         ...(body.places !== undefined && { places: places as unknown as Prisma.InputJsonValue }),
+        ...(body.extraData !== undefined && { extraData: body.extraData as unknown as Prisma.InputJsonValue }),
         ...(body.state && { state: body.state as VisitState }),
         ...(scoringResult && {
           points: Math.floor(scoringResult.totalPoints),

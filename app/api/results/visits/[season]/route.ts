@@ -7,11 +7,11 @@ type tParams = Promise<{ season: string }>;
 export async function GET(request: Request, { params }: { params: tParams }) {
   const { season } = await params;
   const url = new URL(request.url);
-  
+
   // Parse query parameters
   const page = parseInt(url.searchParams.get('page') || '1');
   const limit = parseInt(url.searchParams.get('limit') || '50');
-  const state = url.searchParams.get('state') as 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' || 'APPROVED';
+  const state = (url.searchParams.get('state') as 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'ALL') || 'APPROVED';
   const userId = url.searchParams.get('userId') || undefined;
   const searchQuery = url.searchParams.get('search') || undefined;
   const sortBy = (url.searchParams.get('sortBy') as 'visitDate' | 'points' | 'routeTitle' | 'createdAt') || 'visitDate';

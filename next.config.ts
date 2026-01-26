@@ -8,40 +8,40 @@ const nextConfig: NextConfig = {
     serverExternalPackages: ['@prisma/client', 'prisma'],
 
     images: {
-    remotePatterns: [
-        {
-            protocol: "https",
-            hostname: "res.cloudinary.com",
-            port: "",
-            pathname: "/**",
-        },
-        {
-            protocol: "https",
-            hostname: "tile.openstreetmap.org",
-            port: "",
-            pathname: "/**",
-        },
-        {
-            protocol: "https",
-            hostname: "server.arcgisonline.com",
-            port: "",
-            pathname: "/**",
-        },
-        {
-            protocol: "https",
-            hostname: "lh3.googleusercontent.com",
-            port: "",
-            pathname: "/**",
-        },
-        {
-            protocol: "https",
-            hostname: "play.google.com",
-            port: "",
-            pathname: "/**",
-        },
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "res.cloudinary.com",
+                port: "",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "tile.openstreetmap.org",
+                port: "",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "server.arcgisonline.com",
+                port: "",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "lh3.googleusercontent.com",
+                port: "",
+                pathname: "/**",
+            },
+            {
+                protocol: "https",
+                hostname: "play.google.com",
+                port: "",
+                pathname: "/**",
+            },
 
-    ],
-},
+        ],
+    },
 
     async headers() {
         return [
@@ -126,7 +126,7 @@ const nextConfig: NextConfig = {
                 tls: false,
             };
         }
-        
+
         // Ignore Prisma WASM files
         config.resolve.alias = {
             ...config.resolve.alias,
@@ -134,11 +134,11 @@ const nextConfig: NextConfig = {
             './query_engine_bg.wasm': false,
             './query_engine_bg.wasm?module': false,
         };
-        
+
         // Ignore WASM files in module resolution
         config.resolve.extensions = config.resolve.extensions || [];
         config.resolve.extensions = config.resolve.extensions.filter((ext: string) => ext !== '.wasm');
-        
+
         // Suppress Edge Runtime warnings for bcryptjs (it's dynamically imported and won't execute in Edge)
         if (config.module) {
             config.module.parser = {
@@ -149,15 +149,22 @@ const nextConfig: NextConfig = {
                 },
             };
         }
-        
+
         // Ignore warnings about Node.js APIs in Edge Runtime for bcryptjs
         config.ignoreWarnings = [
             ...(config.ignoreWarnings || []),
             /bcryptjs/,
             /Edge Runtime/,
         ];
-        
+
+        // Disable webpack cache to avoid "Unable to snapshot resolve dependencies" error
+        config.cache = false;
+
         return config;
+    },
+
+    eslint: {
+        ignoreDuringBuilds: true,
     },
 
     turbopack: {

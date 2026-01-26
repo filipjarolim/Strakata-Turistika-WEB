@@ -74,6 +74,28 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
                             </li>
                         </ul>
                     </div>
+
+                    {/* App Download */}
+                    <div className="space-y-3 sm:space-y-4">
+                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Aplikace</h4>
+                        <ul className="space-y-2 text-sm">
+                            <li>
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=com.strakataturistika.app"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-2"
+                                >
+                                    Google Play
+                                </a>
+                            </li>
+                            <li>
+                                <span className="text-gray-400 dark:text-gray-600 cursor-not-allowed flex items-center gap-2">
+                                    App Store (již brzy)
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 {/* Bottom Bar */}

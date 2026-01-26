@@ -9,7 +9,7 @@ export async function PUT(
 ) {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
@@ -55,7 +55,7 @@ export async function DELETE(
 ) {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }

@@ -30,7 +30,7 @@ const IOS_MAP_CONTROLS_STYLE = {
   barBorderRadius: 'rounded-2xl',
   barShadow: 'shadow-xl',
   barBorder: 'border border-black/40',
-  barBg: 'bg-black/50 backdrop-blur-xl',
+  barBg: 'bg-black/70 backdrop-blur-xl',
 };
 
 const GPX_EDITOR_MAP_STYLE = {
@@ -131,18 +131,18 @@ function IOSMapControls({
         </TooltipTrigger>
         <TooltipContent side="top" className="z-[3000]">
           {label === 'Close' ? 'Zavřít' :
-           label === 'Enlarge' ? 'Zvětšit' :
-           label === 'Edit' ? 'Upravit' :
-           label === 'View' ? 'Zobrazit' :
-           label === 'Undo' ? 'Zpět' :
-           label === 'Redo' ? 'Vpřed' :
-           label === 'Add' ? 'Přidat' :
-           label === 'Delete' ? 'Smazat' :
-           label === 'Simplify' ? 'Zjednodušit' :
-           label === 'Show' ? 'Zobrazit body' :
-           label === 'Hide' ? 'Skrýt body' :
-           label === 'Zoom' ? 'Přiblížit' :
-           label}
+            label === 'Enlarge' ? 'Zvětšit' :
+              label === 'Edit' ? 'Upravit' :
+                label === 'View' ? 'Zobrazit' :
+                  label === 'Undo' ? 'Zpět' :
+                    label === 'Redo' ? 'Vpřed' :
+                      label === 'Add' ? 'Přidat' :
+                        label === 'Delete' ? 'Smazat' :
+                          label === 'Simplify' ? 'Zjednodušit' :
+                            label === 'Show' ? 'Zobrazit body' :
+                              label === 'Hide' ? 'Skrýt body' :
+                                label === 'Zoom' ? 'Přiblížit' :
+                                  label}
         </TooltipContent>
       </Tooltip>
     );
@@ -189,12 +189,12 @@ function IOSMapControls({
         {/* Stats: right-aligned */}
         <div className="flex flex-col items-end text-xs sm:text-sm px-2 select-none">
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Vzdálenost:</span>
-            <span className="font-medium">{routeStats.distance.toFixed(2)} km</span>
+            <span className="text-gray-300">Vzdálenost:</span>
+            <span className="font-medium text-white">{routeStats.distance.toFixed(2)} km</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Body:</span>
-            <span className="font-medium">{routeStats.numPoints}</span>
+            <span className="text-gray-300">Body:</span>
+            <span className="font-medium text-white">{routeStats.numPoints}</span>
           </div>
         </div>
       </div>
@@ -222,24 +222,24 @@ function FitBoundsOnPoints({ points }: { points: { lat: number; lng: number }[] 
 // Optimize point downsampling with better algorithm
 function evenlyDownsamplePointsWithIndex(points: TrackPoint[], maxPoints: number): { point: TrackPoint; originalIdx: number }[] {
   if (points.length <= maxPoints) return points.map((p, i) => ({ point: p, originalIdx: i }));
-  
+
   // Use Douglas-Peucker algorithm for better downsampling
   const simplified = simplify(points.map(p => ({ x: p.lat, y: p.lng })), 0.0001, true);
-  
+
   // Map back to original points and indices
   const result: { point: TrackPoint; originalIdx: number }[] = [];
   const used = new Set<number>();
-  
+
   // Always include first and last points
   result.push({ point: points[0], originalIdx: 0 });
   used.add(0);
-  
+
   // Add simplified points
   for (const p of simplified) {
     // Find closest original point
     let minDist = Infinity;
     let closestIdx = -1;
-    
+
     for (let i = 0; i < points.length; i++) {
       if (used.has(i)) continue;
       const dist = Math.pow(points[i].lat - p.x, 2) + Math.pow(points[i].lng - p.y, 2);
@@ -248,18 +248,18 @@ function evenlyDownsamplePointsWithIndex(points: TrackPoint[], maxPoints: number
         closestIdx = i;
       }
     }
-    
+
     if (closestIdx !== -1) {
       result.push({ point: points[closestIdx], originalIdx: closestIdx });
       used.add(closestIdx);
     }
   }
-  
+
   // Always include last point
   if (!used.has(points.length - 1)) {
     result.push({ point: points[points.length - 1], originalIdx: points.length - 1 });
   }
-  
+
   return result;
 }
 
@@ -342,18 +342,18 @@ function calculateDistance(point1: TrackPoint, point2: TrackPoint): number {
   const R = 6371; // Earth's radius in km
   const dLat = (point2.lat - point1.lat) * Math.PI / 180;
   const dLon = (point2.lng - point1.lng) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 function calculateElevationGain(points: TrackPoint[]): number {
   let totalGain = 0;
   for (let i = 1; i < points.length; i++) {
-    const ele1 = points[i-1].ele || 0;
+    const ele1 = points[i - 1].ele || 0;
     const ele2 = points[i].ele || 0;
     const diff = ele2 - ele1;
     if (diff > 0) {
@@ -365,14 +365,14 @@ function calculateElevationGain(points: TrackPoint[]): number {
 
 function calculateRouteStats(points: TrackPoint[]): { distance: number; elevationGain: number; numPoints: number } {
   if (points.length < 2) return { distance: 0, elevationGain: 0, numPoints: 0 };
-  
+
   let totalDistance = 0;
   for (let i = 1; i < points.length; i++) {
-    totalDistance += calculateDistance(points[i-1], points[i]);
+    totalDistance += calculateDistance(points[i - 1], points[i]);
   }
-  
+
   const elevationGain = calculateElevationGain(points);
-  
+
   return {
     distance: totalDistance,
     elevationGain,
@@ -569,7 +569,7 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
   // Simplify track using simplify-js
   const simplifyTrack = () => {
     if (points.length < 3) return;
-    
+
     if (isSimplified) {
       // Restore original points
       setPoints(originalPoints);
@@ -635,7 +635,7 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
   // Optimize marker rendering with virtualization
   const renderMarkers = React.useCallback(() => {
     if (hidePoints) return null;
-    
+
     return displayPoints.map((point, index) => {
       const isSelected = index === selectedPoint;
       const isSegmentEnd = selectedSegment && (index === selectedSegment[0] || index === selectedSegment[1]);
@@ -749,7 +749,7 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
               url={`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=a5w3EO45npvzNFzD6VoD`}
               eventHandlers={canEdit ? { click: handleMapClick } : undefined}
             />
-           
+
             {/* Only fit bounds on initial load or explicit zoom, not on every change */}
             {/* <FitBoundsOnPoints points={displayPoints} /> */}
             <Polyline
@@ -791,10 +791,10 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
               return (
                 <MemoizedPolyline
                   positions={trimmed.map(toLeafletCoords)}
-                  pathOptions={{ 
-                    color: GPX_EDITOR_MAP_STYLE.markerSelectedColor, 
-                    weight: GPX_EDITOR_MAP_STYLE.polylineWeight + 2, 
-                    opacity: 0.9, 
+                  pathOptions={{
+                    color: GPX_EDITOR_MAP_STYLE.markerSelectedColor,
+                    weight: GPX_EDITOR_MAP_STYLE.polylineWeight + 2,
+                    opacity: 0.9,
                     lineCap: 'round',
                     zIndex: 400 // Lower than points (1000)
                   }}
@@ -856,10 +856,10 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
               />
             </div>
             <div className="absolute top-2 right-2 z-[1100] bg-white/80 rounded-lg px-3 py-1 text-xs text-gray-700 shadow select-none pointer-events-auto">
-  &copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a>, 
-  &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors,
-  <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
-</div>
+              &copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a>,
+              &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors,
+              <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>
+            </div>
 
           </MapContainer>
         </div>

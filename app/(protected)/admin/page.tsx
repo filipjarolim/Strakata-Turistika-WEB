@@ -1,7 +1,6 @@
 'use client';
 
 import { RoleGate } from "@/components/auth/role-gate";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@prisma/client";
@@ -22,8 +21,11 @@ import {
     BarChart3,
     ChevronRight,
     Sliders,
-    Bug
+    Bug,
+    Trophy
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AdminPageTemplate } from "@/components/admin/AdminPageTemplate";
 
 // Main collections for admin dashboard
 const mainCollections = [
@@ -32,36 +34,40 @@ const mainCollections = [
         title: "Návštěvy",
         description: "Správa turistických návštěv a tras",
         icon: MapPin,
-        color: "text-green-600",
-        bgColor: "bg-green-50",
-        href: "/admin/VisitData"
+        href: "/admin/VisitData",
+        gradient: "from-green-500/20 to-emerald-500/20",
+        border: "border-green-500/20",
+        iconColor: "text-green-600 dark:text-green-400"
     },
     {
         name: "User",
         title: "Uživatelé",
         description: "Správa uživatelských účtů",
         icon: Users,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50",
-        href: "/admin/User"
+        href: "/admin/User",
+        gradient: "from-blue-500/20 to-cyan-500/20",
+        border: "border-blue-500/20",
+        iconColor: "text-blue-600 dark:text-blue-400"
     },
     {
         name: "News",
         title: "Aktuality",
         description: "Správa novinek a článků",
         icon: FileText,
-        color: "text-purple-600",
-        bgColor: "bg-purple-50",
-        href: "/admin/News"
+        href: "/admin/news",
+        gradient: "from-purple-500/20 to-violet-500/20",
+        border: "border-purple-500/20",
+        iconColor: "text-purple-600 dark:text-purple-400"
     },
     {
         name: "Formular",
         title: "Nastavení formuláře",
-        description: "Bodování, pole a typy míst",
+        description: "Bodování a typy míst",
         icon: Sliders,
-        color: "text-orange-600",
-        bgColor: "bg-orange-50",
-        href: "/admin/formular"
+        href: "/admin/formular",
+        gradient: "from-orange-500/20 to-amber-500/20",
+        border: "border-orange-500/20",
+        iconColor: "text-orange-600 dark:text-orange-400"
     }
 ];
 
@@ -126,333 +132,142 @@ const AdminDashboardPage = () => {
     }, []);
 
     return (
-        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-                        Admin Dashboard
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Správa turistické aplikace
-                    </p>
-                </div>
-            </div>
-
-            {/* VisitData Statistics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <Card className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+        <AdminPageTemplate
+            title="Admin Dashboard"
+            description="Centrální správa aplikace a systémová data."
+            icon="Sliders"
+            backHref="/"
+            backLabel="Zpět na hlavní stránku"
+            containerClassName="bg-transparent border-none shadow-none backdrop-blur-none p-0 sm:p-0"
+        >
+            <div className="space-y-10">
+                {/* Stats Row */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                    {[
+                        { label: "Celkem", value: visitDataStats.total, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-500/5", icon: MapPin },
+                        { label: "Čekající", value: visitDataStats.pending, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-500/5", icon: Clock },
+                        { label: "Schváleno", value: visitDataStats.approved, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-500/5", icon: CheckCircle },
+                        { label: "Zamítnuto", value: visitDataStats.rejected, color: "text-rose-600 dark:text-rose-400", bgColor: "bg-rose-500/5", icon: AlertCircle },
+                    ].map((stat, i) => (
+                        <div key={i} className="group relative">
+                            <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 flex flex-col items-start transition-all duration-300 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm">
+                                <div className={cn("p-2 rounded-xl mb-4", stat.bgColor)}>
+                                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{stat.label}</span>
+                                <span className={cn("text-2xl font-black tracking-tight", stat.color)}>
+                                    {loading ? "..." : new Intl.NumberFormat('cs-CZ').format(stat.value)}
+                                </span>
+                            </div>
                         </div>
-                        <div className="min-w-0">
-                            <p className="text-xs sm:text-sm text-muted-foreground">Celkem návštěv</p>
-                            <p className="text-lg sm:text-xl font-bold">
-                                {loading ? "..." : visitDataStats.total}
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="p-2 bg-yellow-100 rounded-lg">
-                            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-xs sm:text-sm text-muted-foreground">Čekající</p>
-                            <p className="text-lg sm:text-xl font-bold">
-                                {loading ? "..." : visitDataStats.pending}
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-xs sm:text-sm text-muted-foreground">Schválené</p>
-                            <p className="text-lg sm:text-xl font-bold">
-                                {loading ? "..." : visitDataStats.approved}
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-3 sm:p-4">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="p-2 bg-red-100 rounded-lg">
-                            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-xs sm:text-sm text-muted-foreground">Zamítnuté</p>
-                            <p className="text-lg sm:text-xl font-bold">
-                                {loading ? "..." : visitDataStats.rejected}
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-            </div>
-
-            {/* Main Collections */}
-            <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg sm:text-xl font-semibold">Hlavní správa</h2>
+                    ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {mainCollections.map((collection) => {
-                        const IconComponent = collection.icon;
-                        return (
-                            <Card key={collection.name} className="group hover:shadow-md transition-all duration-200">
-                                <Link href={collection.href} className="block">
-                                    <CardHeader className="p-4 sm:p-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-3 rounded-lg ${collection.bgColor}`}>
-                                                <IconComponent className={`h-6 w-6 ${collection.color}`} />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <CardTitle className="text-base sm:text-lg truncate">
-                                                    {collection.title}
-                                                </CardTitle>
-                                                <CardDescription className="text-sm text-muted-foreground">
-                                                    {collection.description}
-                                                </CardDescription>
-                                            </div>
+                {/* Main Hub Grid */}
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white px-2">Správa obsahu</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {mainCollections.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <Link key={item.name} href={item.href} className="group relative">
+                                    <div className={cn(
+                                        "absolute inset-0 rounded-[2.5rem] bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl",
+                                        item.gradient
+                                    )} />
+                                    <div className={cn(
+                                        "relative h-full bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-[2.5rem] p-8 transition-all duration-500",
+                                        "group-hover:translate-y-[-8px] dark:group-hover:border-white/20 group-hover:shadow-2xl group-hover:bg-white/80 dark:group-hover:bg-white/10",
+                                        item.border
+                                    )}>
+                                        <div className={cn("p-4 rounded-[1.5rem] w-fit mb-6 bg-white dark:bg-white/10 shadow-sm transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3", item.iconColor)}>
+                                            <Icon className="h-10 w-10" />
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="p-4 sm:p-6 pt-0">
-                                        <div className="flex items-center justify-between">
-                                            <Badge variant="outline" className="text-xs">
-                                                {collection.name}
-                                            </Badge>
-                                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <ChevronRight className="h-4 w-4" />
-                                            </Button>
+                                        <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.title}</h3>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-relaxed">{item.description}</p>
+
+                                        <div className="mt-6 flex items-center text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transform translate-x-[-10px] group-hover:translate-x-0 transition-all duration-500">
+                                            Spravovat <ChevronRight className="h-4 w-4 ml-1" />
                                         </div>
-                                    </CardContent>
+                                    </div>
                                 </Link>
-                            </Card>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Database Usage */}
-            {databaseStats && (
-                <Card>
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Database className="h-5 w-5 text-primary" />
-                                <CardTitle className="text-lg">Databázové statistiky</CardTitle>
-                            </div>
-                            <Link href="/admin/debug">
-                                <Button variant="outline" size="sm">
-                                    <Bug className="h-4 w-4 mr-2" />
-                                    Debug View
-                                </Button>
-                            </Link>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {/* Database Size Info */}
-                        {databaseStats.size && (
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Celková velikost dat</p>
-                                        <p className="text-lg font-bold">{databaseStats.size.totalSizeMB} MB</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Storage size</p>
-                                        <p className="text-lg font-bold">{databaseStats.size.storageSizeMB} MB</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Indexy</p>
-                                        <p className="text-lg font-bold">{databaseStats.size.indexSizeMB} MB</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Celkem záznamů</p>
-                                        <p className="text-lg font-bold text-primary">{databaseStats.totalRecords}</p>
-                                    </div>
-                                </div>
-                                {databaseStats.size.freeSpaceMB !== null && databaseStats.size.totalSpaceMB !== null && (
-                                    <div className={`p-3 rounded-lg border ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
-                                            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900'
-                                            : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60
-                                                ? 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900'
-                                                : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900'
-                                        }`}>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Volné místo</p>
-                                                <p className={`text-lg font-bold ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
-                                                        ? 'text-red-600'
-                                                        : 'text-green-600'
-                                                    }`}>
-                                                    {databaseStats.size.freeSpaceMB} MB
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Celková kapacita</p>
-                                                <p className="text-lg font-bold">
-                                                    {databaseStats.size.totalSpaceMB} MB
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Limit MongoDB</p>
-                                                <p className="text-lg font-bold">
-                                                    {databaseStats.size.maxSizeMB ? `${databaseStats.size.maxSizeMB} MB` : 'N/A'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Vyčerpáno</p>
-                                                <p className={`text-lg font-bold ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
-                                                        ? 'text-red-600'
-                                                        : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60
-                                                            ? 'text-yellow-600'
-                                                            : 'text-primary'
-                                                    }`}>
-                                                    {databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` : 'N/A'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60 && (
-                                            <div className={`mb-3 p-2 rounded text-xs ${databaseStats.size.percentageUsed > 80
-                                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                                                    : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
-                                                }`}>
-                                                ⚠️ Varování: Databáze je {databaseStats.size.percentageUsed > 80 ? 'téměř plná' : 'naplněná'}! Zvažte upgrade plánu nebo vyčištění starých dat.
-                                            </div>
-                                        )}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-xs text-muted-foreground">Využití prostoru</p>
-                                                <p className="text-xs font-semibold">
-                                                    {databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` :
-                                                        databaseStats.size.totalSpaceMB && databaseStats.size.freeSpaceMB
-                                                            ? (((databaseStats.size.totalSpaceMB - databaseStats.size.freeSpaceMB) / databaseStats.size.totalSpaceMB) * 100).toFixed(1) + '%'
-                                                            : '0%'}
-                                                </p>
-                                            </div>
-                                            <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-2.5">
-                                                <div
-                                                    className={`h-2.5 rounded-full transition-all ${databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 80
-                                                            ? 'bg-red-600 dark:bg-red-500'
-                                                            : databaseStats.size.percentageUsed && databaseStats.size.percentageUsed > 60
-                                                                ? 'bg-yellow-600 dark:bg-yellow-500'
-                                                                : 'bg-blue-600 dark:bg-blue-500'
-                                                        }`}
-                                                    style={{
-                                                        width: databaseStats.size.percentageUsed ? `${databaseStats.size.percentageUsed}%` :
-                                                            databaseStats.size.totalSpaceMB && databaseStats.size.freeSpaceMB
-                                                                ? `${((databaseStats.size.totalSpaceMB - databaseStats.size.freeSpaceMB) / databaseStats.size.totalSpaceMB * 100).toFixed(1)}%`
-                                                                : '0%'
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Top collections by size */}
-                        {databaseStats.size?.topCollections && databaseStats.size.topCollections.length > 0 && (
-                            <div>
-                                <p className="text-sm font-semibold mb-2">Největší kolekce:</p>
-                                <div className="space-y-2">
-                                    {databaseStats.size.topCollections.map((item: { name: string; sizeMB: number; count: number }) => {
-                                        // Convert camelCase to Title Case for display
-                                        const withSpaces = item.name.replace(/([A-Z])/g, ' $1').trim();
-                                        const displayName = withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
-                                        return (
-                                            <div key={item.name} className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground">{displayName}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <span>{item.sizeMB} MB</span>
-                                                    <span className="text-muted-foreground">({item.count} záz.)</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Collection counts - compact */}
-                        <div>
-                            <p className="text-sm font-semibold mb-2">Počty záznamů:</p>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                {Object.entries(databaseStats.stats).map(([key, value]) => {
-                                    // Convert camelCase to Title Case for display
-                                    const withSpaces = key.replace(/([A-Z])/g, ' $1').trim();
-                                    const displayName = withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
-                                    return (
-                                        <div key={key} className="flex flex-col items-center p-2 bg-muted/30 rounded">
-                                            <p className="text-xs text-muted-foreground text-center truncate w-full">{displayName}</p>
-                                            <p className="text-base font-bold">{value}</p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-
-            {/* Advanced Collections */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-muted-foreground" />
-                        <h2 className="text-lg sm:text-xl font-semibold">Pokročilé</h2>
+                            );
+                        })}
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                        Systémové
-                    </Badge>
                 </div>
 
-                <Card>
-                    <CardContent className="p-4 sm:p-6">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-                            {advancedCollections.map((collection) => (
-                                <Link key={collection} href={`/admin/${collection}`}>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-auto p-3 flex flex-col gap-1 text-xs"
-                                    >
-                                        <Database className="h-4 w-4" />
-                                        <span className="truncate">{collection}</span>
+                {/* Advanced Section */}
+                <div className="space-y-6">
+                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white px-1">
+                        Systémové kolekce
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {[
+                            "Account",
+                            "VerificationToken",
+                            "PasswordResetToken",
+                            "TwoFactorToken",
+                            "TwoFactorConfirmation",
+                            "Season"
+                        ].map((col) => (
+                            <Link key={col} href={`/admin/${col}`}>
+                                <div className="group bg-zinc-50 dark:bg-zinc-900/40 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 text-center transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700">
+                                    <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors tracking-tight line-clamp-1">{col}</span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Database Usage Stats Visualization if present */}
+                    {databaseStats && (
+                        <div className="relative group overflow-hidden bg-white/60 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 rounded-[2.5rem] p-8 mt-10 shadow-sm hover:shadow-xl transition-all duration-500">
+                            <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-500">
+                                <Database className="h-48 w-48 text-blue-500" />
+                            </div>
+
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className="p-3 rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                                    <Database className="h-6 w-6" />
+                                </div>
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Využití databáze</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Celková velikost</p>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{databaseStats.size?.totalSizeMB || 0} <span className="text-base font-bold text-gray-400">MB</span></p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Velikost indexů</p>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{databaseStats.size?.indexSizeMB || 0} <span className="text-base font-bold text-gray-400">MB</span></p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Počet záznamů</p>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{new Intl.NumberFormat('cs-CZ').format(databaseStats.totalRecords || 0)}</p>
+                                </div>
+                            </div>
+
+                            {/* Debug tool link */}
+                            <div className="mt-10 pt-8 border-t border-gray-200/50 dark:border-white/5 flex justify-end">
+                                <Link href="/admin/debug">
+                                    <Button variant="outline" size="sm" className="rounded-full gap-2 text-xs font-bold uppercase tracking-wider border-gray-200/50 dark:border-white/10 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/50">
+                                        <Bug className="h-4 w-4" /> Debugging Tools
                                     </Button>
                                 </Link>
-                            ))}
+                            </div>
                         </div>
-                    </CardContent>
-                </Card>
+                    )}
+                </div>
             </div>
-        </div>
+        </AdminPageTemplate>
     );
 };
 
 const AdminPage = () => {
-    const user = useCurrentUser();
-    const role = useCurrentRole();
-
     return (
-        <CommonPageTemplate contents={{ header: true }} headerMode={"auto-hide"} currentUser={user} currentRole={role}>
-            <RoleGate allowedRole={UserRole.ADMIN}>
-                <AdminDashboardPage />
-            </RoleGate>
-        </CommonPageTemplate>
+        <RoleGate allowedRole={UserRole.ADMIN}>
+            <AdminDashboardPage />
+        </RoleGate>
     );
 };
 

@@ -57,9 +57,12 @@ const Header = ({
     const pathname = usePathname();
     const isMobile = useIsMobile();
 
+    const isHome = pathname === "/";
+    const isTransparentHomeHeader = isHome && !isScrolled && isMobile;
+
     // Fixed light styling (no background detection)
-    const textColor = "text-gray-900";
-    const textColorHover = "hover:text-gray-700";
+    const textColor = (effectiveTheme === "dark" || isTransparentHomeHeader) ? "text-white" : "text-gray-900";
+    const textColorHover = (effectiveTheme === "dark" || isTransparentHomeHeader) ? "hover:text-gray-200" : "hover:text-gray-700";
 
     useEffect(() => {
         setMounted(true);
@@ -181,7 +184,7 @@ const Header = ({
                     <span
                         className={cn(
                             "text-lg sm:text-xl md:text-2xl font-bold tracking-tight transition-colors duration-200 truncate",
-                            effectiveTheme === "dark" ? "text-white" : "text-gray-900",
+                            textColor,
                             "drop-shadow-sm"
                         )}
                     >
@@ -240,167 +243,144 @@ const Header = ({
                                     size="icon"
                                     className={cn(
                                         "relative flex items-center justify-center p-0 h-10 w-10 rounded-full transition-all duration-200",
-                                        "hover:bg-gray-900/10 text-gray-900"
+                                        "hover:bg-gray-900/10 text-gray-900",
+                                        "focus:outline-none"
                                     )}
                                     aria-label="Menu"
                                 >
                                     {/* Hamburger blob (mobile only) */}
-                                    <span className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white/50 backdrop-blur-xl rounded-full -z-10" />
-                                    <AnimatePresence mode="wait" initial={false}>
-                                        {isMobileMenuOpen ? (
-                                            <motion.div
-                                                key="close"
-                                                initial={{ opacity: 0, rotate: -90 }}
-                                                animate={{ opacity: 1, rotate: 0 }}
-                                                exit={{ opacity: 0, rotate: 90 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="flex items-center justify-center"
-                                            >
-                                                <X className="h-6 w-6" />
-                                            </motion.div>
-                                        ) : (
-                                            <motion.div
-                                                key="menu"
-                                                initial={{ opacity: 0, rotate: 90 }}
-                                                animate={{ opacity: 1, rotate: 0 }}
-                                                exit={{ opacity: 0, rotate: -90 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="flex items-center justify-center"
-                                            >
-                                                <Menu className="h-6 w-6" />
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                    <span className={cn(
+                                        "md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full -z-10 transition-all duration-300 group-hover:bg-white/80",
+                                        (effectiveTheme === "dark" || isTransparentHomeHeader) ? "bg-white/20 backdrop-blur-xl" : "bg-white/50 backdrop-blur-xl"
+                                    )} />
+
+                                    <div className="relative w-5 h-5 flex flex-col justify-center items-center gap-1.5">
+                                        <motion.span
+                                            animate={isMobileMenuOpen ? { rotate: 45, y: 5.5 } : { rotate: 0, y: 0 }}
+                                            transition={{ duration: 0.3, ease: "anticipate" }}
+                                            className={cn("w-5 h-0.5 rounded-full origin-center", (effectiveTheme === "dark" || isTransparentHomeHeader) ? "bg-white" : "bg-gray-900")}
+                                        />
+                                        <motion.span
+                                            animate={isMobileMenuOpen ? { opacity: 0, scale: 0 } : { opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.2 }}
+                                            className={cn("w-5 h-0.5 rounded-full origin-center", (effectiveTheme === "dark" || isTransparentHomeHeader) ? "bg-white" : "bg-gray-900")}
+                                        />
+                                        <motion.span
+                                            animate={isMobileMenuOpen ? { rotate: -45, y: -5.5 } : { rotate: 0, y: 0 }}
+                                            transition={{ duration: 0.3, ease: "anticipate" }}
+                                            className={cn("w-5 h-0.5 rounded-full origin-center", (effectiveTheme === "dark" || isTransparentHomeHeader) ? "bg-white" : "bg-gray-900")}
+                                        />
+                                    </div>
                                 </Button>
                             </SheetTrigger>
 
                             <SheetContent
                                 side="right"
-                                className="w-[90%] max-w-sm p-0 border-none"
+                                className="w-full sm:w-[400px] max-w-none p-0 border-none bg-white/90 backdrop-blur-3xl shadow-2xl [&>button]:hidden"
                             >
-                                <SheetHeader>
-                                    <SheetTitle className="sr-only">Hlavní menu</SheetTitle>
-                                </SheetHeader>
-                                <div className="flex flex-col h-full">
-                                    <div className="flex items-center justify-between p-4 border-b">
-                                        <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
+                                <SheetHeader className="absolute top-0 left-0 w-full p-4 z-50 flex flex-row items-center justify-between border-b border-gray-100/50 bg-white/50 backdrop-blur-sm">
+                                    <SheetTitle className="hidden">Hlavní menu</SheetTitle> {/* Accessibility only */}
+
+                                    <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <div className="relative w-8 h-8 mr-3">
                                             <Image
                                                 src={basicInfo.img.icons.transparentHeaderOutline}
                                                 alt="Logo"
-                                                width={24}
-                                                height={24}
-                                                className="mr-2"
+                                                fill
+                                                className="object-contain"
                                             />
-                                            <span className="font-semibold">Strakatá Turistika</span>
-                                        </Link>
-                                    </div>
+                                        </div>
+                                        <span className="font-bold text-lg text-gray-900 tracking-tight">Strakatá Turistika</span>
+                                    </Link>
 
-                                    <div className="flex-1 overflow-y-auto py-4 px-5">
-                                        <nav className="space-y-4">
-                                            <Link
-                                                href="/"
-                                                className={cn(
-                                                    "block py-2 px-3 rounded-md transition-colors",
-                                                    pathname === "/" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
-                                                )}
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                            >
+                                    <SheetClose asChild>
+                                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-100">
+                                            <X className="h-5 w-5 text-gray-500" />
+                                            <span className="sr-only">Zavřít</span>
+                                        </Button>
+                                    </SheetClose>
+                                </SheetHeader>
+
+                                <div className="flex flex-col h-full pt-20 pb-6 px-6 overflow-y-auto">
+                                    <nav className="flex-1 space-y-8 animate-in slide-in-from-bottom-4 duration-500 delay-100 fade-in">
+
+                                        {/* Main Navigation Group */}
+                                        <div className="space-y-4">
+                                            <MobileNavLink href="/" active={pathname === "/"} onClick={() => setIsMobileMenuOpen(false)}>
                                                 Domů
-                                            </Link>
-                                            <div>
-                                                <h3 className="font-medium mb-2 px-3">Informace</h3>
-                                                <div className="space-y-2 pl-2">
-                                                    <Link
-                                                        href="/kontakty"
-                                                        className={cn(
-                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
-                                                            pathname === "/kontakty" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                                        )}
-                                                        onClick={() => setIsMobileMenuOpen(false)}
-                                                    >
-                                                        Kontakty
-                                                    </Link>
-                                                    <Link
-                                                        href="/fotogalerie"
-                                                        className={cn(
-                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
-                                                            pathname === "/fotogalerie" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                                        )}
-                                                        onClick={() => setIsMobileMenuOpen(false)}
-                                                    >
-                                                        Fotogalerie
-                                                    </Link>
-                                                    <Link
-                                                        href="/pravidla"
-                                                        className={cn(
-                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
-                                                            pathname === "/pravidla" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                                        )}
-                                                        onClick={() => setIsMobileMenuOpen(false)}
-                                                    >
-                                                        Pravidla
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-medium mb-2 px-3">Výsledky</h3>
-                                                <div className="space-y-2 pl-2">
-                                                    <Link
-                                                        href="/vysledky"
-                                                        className={cn(
-                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
-                                                            pathname === "/vysledky" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                                        )}
-                                                        onClick={() => setIsMobileMenuOpen(false)}
-                                                    >
-                                                        Přehled výsledků
-                                                    </Link>
-                                                    <Link
-                                                        href="/vysledky/moje"
-                                                        className={cn(
-                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
-                                                            pathname === "/vysledky/moje" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                                        )}
-                                                        onClick={() => setIsMobileMenuOpen(false)}
-                                                    >
-                                                        Moje návštěvy
-                                                    </Link>
-                                                    <Link
-                                                        href="/vysledky/statistiky"
-                                                        className={cn(
-                                                            "block py-3 px-3 rounded-md transition-colors text-base font-medium",
-                                                            pathname === "/vysledky/statistiky" ? "bg-gray-100 dark:bg-white/10 text-black dark:text-white" : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                                        )}
-                                                        onClick={() => setIsMobileMenuOpen(false)}
-                                                    >
-                                                        Statistiky
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                            <Link
-                                                href="/soutez"
-                                                className={cn(
-                                                    "block py-2 px-3 rounded-md transition-colors",
-                                                    pathname === "/soutez" ? "bg-gray-100 font-medium" : "hover:bg-gray-50"
-                                                )}
-                                                onClick={() => setIsMobileMenuOpen(false)}
-                                            >
+                                            </MobileNavLink>
+                                            <MobileNavLink href="/soutez" active={pathname === "/soutez"} onClick={() => setIsMobileMenuOpen(false)}>
                                                 Soutěžit
-                                            </Link>
-                                        </nav>
-                                    </div>
+                                            </MobileNavLink>
+                                        </div>
 
-                                    <div className="p-4 border-t">
+                                        {/* Information Group */}
+                                        <div className="space-y-3">
+                                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4">Informace</h3>
+                                            <div className="space-y-1">
+                                                <MobileNavLink href="/kontakty" active={pathname === "/kontakty"} secondary onClick={() => setIsMobileMenuOpen(false)}>
+                                                    Kontakty
+                                                </MobileNavLink>
+                                                <MobileNavLink href="/fotogalerie" active={pathname === "/fotogalerie"} secondary onClick={() => setIsMobileMenuOpen(false)}>
+                                                    Fotogalerie
+                                                </MobileNavLink>
+                                                <MobileNavLink href="/pravidla" active={pathname === "/pravidla"} secondary onClick={() => setIsMobileMenuOpen(false)}>
+                                                    Pravidla
+                                                </MobileNavLink>
+                                            </div>
+                                        </div>
+
+                                        {/* Results Group */}
+                                        <div className="space-y-3">
+                                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-4">Výsledky</h3>
+                                            <div className="space-y-1">
+                                                <MobileNavLink href="/vysledky" active={pathname === "/vysledky"} secondary onClick={() => setIsMobileMenuOpen(false)}>
+                                                    Přehled výsledků
+                                                </MobileNavLink>
+                                                <MobileNavLink href="/vysledky/moje" active={pathname === "/vysledky/moje"} secondary onClick={() => setIsMobileMenuOpen(false)}>
+                                                    Moje návštěvy
+                                                </MobileNavLink>
+                                                <MobileNavLink href="/vysledky/statistiky" active={pathname === "/vysledky/statistiky"} secondary onClick={() => setIsMobileMenuOpen(false)}>
+                                                    Statistiky
+                                                </MobileNavLink>
+                                            </div>
+                                        </div>
+                                    </nav>
+
+                                    {/* Footer / Auth Actions */}
+                                    <div className="mt-8 pt-6 border-t border-gray-100/50 animate-in slide-in-from-bottom-4 duration-500 delay-200 fade-in">
                                         {!user ? (
-                                            <div className="flex flex-col gap-3">
-                                                <LoginButton>Přihlásit se</LoginButton>
-                                                <RegisterButton>Začít</RegisterButton>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <Button
+                                                    className="w-full bg-gray-100 text-gray-900 hover:bg-gray-200 border-0 font-semibold h-12 rounded-xl"
+                                                    onClick={() => {
+                                                        window.location.href = "/auth/login";
+                                                        setIsMobileMenuOpen(false);
+                                                    }}
+                                                >
+                                                    Přihlásit se
+                                                </Button>
+                                                <Button
+                                                    className="w-full bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 transition-all font-semibold h-12 rounded-xl"
+                                                    onClick={() => {
+                                                        window.location.href = "/auth/register";
+                                                        setIsMobileMenuOpen(false);
+                                                    }}
+                                                >
+                                                    Začít
+                                                </Button>
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
-                                                <UserButton role={role} />
-                                                <LogoutButton className="mt-2 block w-full">
-                                                    <Button variant="outline" className="w-full">
+                                                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                                    <UserButton role={role} />
+                                                    <div className="mt-3 text-center">
+                                                        <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                                        <p className="text-xs text-gray-500">{user.email}</p>
+                                                    </div>
+                                                </div>
+                                                <LogoutButton className="block w-full">
+                                                    <Button variant="destructive" className="w-full h-12 rounded-xl font-medium bg-red-50 text-red-600 hover:bg-red-100 border-transparent">
                                                         Odhlásit se
                                                     </Button>
                                                 </LogoutButton>
@@ -416,6 +396,46 @@ const Header = ({
 
             {mode !== "static" && showGap && <div style={{ height: `${headerHeight}px` }}></div>}
         </>
+    );
+};
+
+// Helper component for mobile nav links
+const MobileNavLink = ({
+    href,
+    children,
+    active,
+    secondary = false,
+    onClick
+}: {
+    href: string;
+    children: React.ReactNode;
+    active?: boolean;
+    secondary?: boolean;
+    onClick?: () => void
+}) => {
+    return (
+        <Link
+            href={href}
+            onClick={onClick}
+            className={cn(
+                "block w-full rounded-xl transition-all duration-200",
+                secondary ? "py-2 px-4 text-sm font-medium" : "py-3 px-4 text-base font-semibold",
+                active
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100"
+            )}
+        >
+            <div className="flex items-center justify-between">
+                <span>{children}</span>
+                {active && (
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-1.5 h-1.5 rounded-full bg-blue-600"
+                    />
+                )}
+            </div>
+        </Link>
     );
 };
 

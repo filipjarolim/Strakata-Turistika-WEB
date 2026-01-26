@@ -60,8 +60,27 @@ export const VisitCard: React.FC<VisitCardProps> = ({ visit, onClick, className 
                     <Calendar className="w-3 h-3" />
                     {visit.visitDate ? format(new Date(visit.visitDate), "d.M.", { locale: cs }) : "?"}
                 </div>
-                <div className="absolute top-3 right-3 px-2 py-1 bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-300 rounded-lg text-xs font-bold shadow-sm">
-                    {visit.points} b
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                    {visit.state === 'APPROVED' && (
+                        <div className="px-2 py-1 bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-300 rounded-lg text-xs font-bold shadow-sm">
+                            {visit.points} b
+                        </div>
+                    )}
+                    {visit.state === 'PENDING_REVIEW' && (
+                        <div className="px-2 py-1 bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold shadow-sm">
+                            Čeká na kontrolu
+                        </div>
+                    )}
+                    {visit.state === 'REJECTED' && (
+                        <div className="px-2 py-1 bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold shadow-sm">
+                            Zamítnuto
+                        </div>
+                    )}
+                    {visit.state === 'DRAFT' && (
+                        <div className="px-2 py-1 bg-gray-100 dark:bg-gray-500/20 border border-gray-200 dark:border-gray-500/30 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold shadow-sm">
+                            Draft
+                        </div>
+                    )}
                 </div>
             </div>
 

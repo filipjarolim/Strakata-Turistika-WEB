@@ -1,7 +1,9 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 
-import { getUserById } from "@/data/user"
+import { getUserById, getUserByEmail } from "@/data/user"
+import Credentials from "next-auth/providers/credentials"
+import { LoginSchema } from "@/schemas"
 import { getAccountByUserId } from "./data/account";
 
 import { db } from "@/lib/db"
@@ -140,4 +142,40 @@ export const {
     session: { strategy: "jwt" },
     trustHost: true,
     ...authConfig,
+    providers: [
+        ...(authConfig.providers || []),
+        Credentials({
+            async authorize(credentials) {
+                console.log("[AUTH_DEBUG] Authorize called");
+                const validatedFields = LoginSchema.safeParse(credentials)
+
+                if (validatedFields.success) {
+                    const { email, password } = validatedFields.data
+                    console.log("[AUTH_DEBUG] Validated credentials for email:", email);
+
+                    const user = await getUserByEmail(email)
+                    if (!user || !user.password) {
+                        console.log("[AUTH_DEBUG] User not found or no password for email:", email);
+                        return null
+                    }
+
+                    //      CODING THE PASSWORD --- IMPORTANT
+                    // Dynamic import for Edge Runtime compatibility
+                    const bcrypt = (await import("bcryptjs")).default
+
+                    const passwordsMatch = await bcrypt.compare(password, user.password)
+
+                    if (passwordsMatch) {
+                        console.log("[AUTH_DEBUG] Password match successful for user:", user.id);
+                        return user
+                    }
+                    console.log("[AUTH_DEBUG] Password match failed for user:", user.id);
+                } else {
+                    console.log("[AUTH_DEBUG] Validation failed:", validatedFields.error);
+                }
+
+                return null
+            }
+        })
+    ],
 });

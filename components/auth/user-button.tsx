@@ -109,7 +109,7 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
             <IOSDropdownMenuSeparator />
 
             {/* My Routes */}
-            <Link href="/vysledky/moje">
+            <Link href="/auth/profil">
                 <IOSDropdownMenuItem
                     icon={<Map className="h-4 w-4" />}
                     className="px-3 py-2.5"

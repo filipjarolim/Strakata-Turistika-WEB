@@ -117,7 +117,7 @@ export default function DynamicFormFields({ values = {}, onChange, dark = false 
 
       case 'select':
         if (!field.options || !Array.isArray(field.options)) return null;
-        
+
         return (
           <div key={field.id} className="space-y-2">
             <label className="text-sm font-medium text-white">
@@ -127,11 +127,10 @@ export default function DynamicFormFields({ values = {}, onChange, dark = false 
             <select
               value={String(value ?? '')}
               onChange={(e) => handleChange(field.name, e.target.value)}
-              className={`w-full px-4 py-2 rounded-xl border transition-colors ${
-                dark 
-                  ? 'bg-black/40 border-white/30 text-white' 
+              className={`w-full px-4 py-2 rounded-xl border transition-colors ${dark
+                  ? 'bg-black/40 border-white/30 text-white'
                   : 'bg-white border-gray-300 text-gray-900'
-              }`}
+                }`}
             >
               <option value="">Vyberte...</option>
               {field.options.map((option) => (

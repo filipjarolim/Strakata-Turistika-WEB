@@ -52,7 +52,7 @@ export interface PaginatedParams {
   page: number;
   limit: number;
   season: number;
-  state?: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+  state?: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'ALL';
   userId?: string;
   searchQuery?: string;
   sortBy: 'visitDate' | 'points' | 'routeTitle' | 'createdAt';
@@ -96,9 +96,12 @@ export async function getPaginatedVisitData(
   try {
     // Try raw MongoDB query first to avoid Prisma type issues
     const mongoFilters: Record<string, unknown> = {
-      seasonYear: season,
-      state
+      seasonYear: season
     };
+
+    if (state && state !== 'ALL') {
+      mongoFilters.state = state;
+    }
 
     if (userId) {
       mongoFilters.userId = userId;
@@ -148,9 +151,12 @@ export async function getPaginatedVisitData(
 
     // Fallback to Prisma query (original implementation)
     const whereClause: Record<string, unknown> = {
-      year: season,
-      state
+      year: season
     };
+
+    if (state && state !== 'ALL') {
+      whereClause.state = state;
+    }
 
     if (userId) {
       whereClause.userId = userId;

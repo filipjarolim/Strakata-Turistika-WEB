@@ -1,15 +1,15 @@
-import { currentRole } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
-import { redirect } from "next/navigation";
-import FormularClient from "./formular-client";
+import FormBuilderClient from "./form-builder-client";
+import { AdminPageTemplate } from "@/components/admin/AdminPageTemplate";
+import { Sliders } from "lucide-react";
 
-export default async function FormularPage() {
-  const role = await currentRole();
-
-  if (role !== UserRole.ADMIN) {
-    redirect("/");
-  }
-
-  return <FormularClient />;
+export default function FormularPage() {
+  return (
+    <AdminPageTemplate
+      title="Nastavení formuláře"
+      description="Konfigurace bodování a typů návštěv."
+      icon="Sliders"
+    >
+      <FormBuilderClient />
+    </AdminPageTemplate>
+  );
 }
-

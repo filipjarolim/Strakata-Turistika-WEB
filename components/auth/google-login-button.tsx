@@ -9,19 +9,19 @@ interface GoogleLoginButtonProps {
     disabled?: boolean;
 }
 
-export const GoogleLoginButton = ({ 
-    children, 
+export const GoogleLoginButton = ({
+    children,
     className = "w-full",
-    disabled = false 
+    disabled = false
 }: GoogleLoginButtonProps) => {
-    
+
     const handleGoogleLogin = () => {
-        signIn("google", { callbackUrl: "/nastaveni" })
+        signIn("google", { callbackUrl: "/auth/profil" })
     }
 
     return (
-        <Button 
-            variant="outline" 
+        <Button
+            variant="outline"
             className={className}
             disabled={disabled}
             onClick={handleGoogleLogin}

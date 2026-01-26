@@ -1,4 +1,4 @@
-import {Settings, User, ScanFace, CirclePlus} from "lucide-react";
+import { Settings, User, ScanFace, CirclePlus } from "lucide-react";
 
 const tooltipIconClass = "mr-2"
 const userMenuIconClass = "h-4 w-4"
@@ -29,11 +29,7 @@ export const authprefix = {
                         "icon": <User className={userMenuIconClass} />,
                         "href": "/auth/profil"
                     },
-                    {
-                        "label": "Nastavení",
-                        "icon": <Settings className={userMenuIconClass} />,
-                        "href": "/nastaveni"
-                    }
+
 
                 ]
             }
