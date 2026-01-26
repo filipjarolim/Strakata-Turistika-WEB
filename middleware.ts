@@ -24,20 +24,27 @@ export default auth((req) => {
     });
 
 
-    const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix)
-    const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
+    const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
+
+    // Completely skip middleware for NextAuth API routes to avoid interference
+    if (isApiAuthRoute) {
+        return NextResponse.next();
+    }
+
+    const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
     const isPublicApiRoute = publicApiRoutes.some(route => {
         if (route.endsWith("/*")) {
             const basePath = route.slice(0, -2);
             return nextUrl.pathname.startsWith(basePath);
         }
         return nextUrl.pathname === route;
-    })
-    const isAuthRoute = authRoutes.includes(nextUrl.pathname)
+    });
 
-    if (isApiAuthRoute || isPublicApiRoute) {
-        return
+    if (isPublicApiRoute) {
+        return NextResponse.next();
     }
+
+    const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
     if (isAuthRoute) {
         if (isLoggedIn) {
