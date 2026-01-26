@@ -20,6 +20,7 @@ export const {
         signIn: "/auth/login",
         error: "/auth/error"
     },
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
     debug: process.env.NODE_ENV === "development" || process.env.DEBUG_AUTH === "true",
     events: {
         async linkAccount({ user }) {

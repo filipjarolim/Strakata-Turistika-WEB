@@ -31,14 +31,23 @@ export default auth((req) => {
         return NextResponse.next();
     }
 
-    const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
-    const isPublicApiRoute = publicApiRoutes.some(route => {
-        if (route.endsWith("/*")) {
-            const basePath = route.slice(0, -2);
-            return nextUrl.pathname.startsWith(basePath);
-        }
-        return nextUrl.pathname === route;
-    });
+    // Helper function to check if a path matches the route definitions (supports wildcards)
+    const matchesRoute = (path: string, routes: string[]) => {
+        return routes.some(route => {
+            if (route.endsWith("/*")) {
+                const basePath = route.slice(0, -2);
+                // Ensure we match /basePath or /basePath/something, but not /basePathExtra
+                // We check if path starts with base, and if it's longer, the next char must be /
+                if (path === basePath) return true;
+                if (path.startsWith(basePath + "/")) return true;
+                return false;
+            }
+            return path === route;
+        });
+    };
+
+    const isPublicRoute = matchesRoute(nextUrl.pathname, publicRoutes);
+    const isPublicApiRoute = matchesRoute(nextUrl.pathname, publicApiRoutes);
 
     if (isPublicApiRoute) {
         return NextResponse.next();

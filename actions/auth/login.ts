@@ -6,14 +6,14 @@ import { AuthError } from "next-auth"
 import { LoginSchema } from "@/schemas"
 
 import { signIn } from "@/auth"
-import {DEFAULT_LOGIN_REDIRECT} from "@/routes";
+import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 
-import {generateVerificationToken, generateTwoFactorToken} from "@/lib/tokens";
-import {getUserByEmail} from "@/data/user";
+import { generateVerificationToken, generateTwoFactorToken } from "@/lib/tokens";
+import { getUserByEmail } from "@/data/user";
 import { sendVerificationEmail, sendTwoFactorTokenEmail } from "@/lib/mail"
 import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
-import {db} from "@/lib/db";
-import {getTwoFactorConfirmationByUserId} from "@/data/two-factor-confirmation";
+import { db } from "@/lib/db";
+import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
 
 export const login = async (values: z.infer<typeof LoginSchema>) => {
     const validatedFields = LoginSchema.safeParse(values)
@@ -79,7 +79,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
                 }
             })
 
-            
+
 
         } else {
             const twoFactorToken = await generateTwoFactorToken(existingUser.email)
@@ -99,6 +99,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
         })
     } catch (error) {
         if (error instanceof AuthError) {
+            console.error("[LOGIN_ACTION] AuthError:", error.type, error.message);
             switch (error.type) {
                 case "CredentialsSignin":
                     return { error: "Neplatné údaje!" }
@@ -106,6 +107,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
                     return { error: "Někde nastala chyba!" }
             }
         }
+        console.log("[LOGIN_ACTION] Non-AuthError (likely redirect):", error);
         throw error
     }
 }
