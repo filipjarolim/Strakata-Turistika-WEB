@@ -30,7 +30,8 @@ export const publicApiRoutes = [
     "/api/gallery",
     "/api/health",
     "/api/seasons",
-    "/api/results/*"
+    "/api/results/*",
+    "/api/debug/db"
 ]
 /*
     * An array of public routes that do not require authentication
