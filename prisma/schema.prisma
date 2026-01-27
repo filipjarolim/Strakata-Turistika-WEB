@@ -46,6 +46,7 @@ model User {
   createdRoutes         CustomRoute[]          @relation("UserCreatedRoutes")
   freeCategoryUsage     Json?                  // Track weekly usage: [{ week, used, visitId }]
   categoryUsage         UserCategoryUsage[]
+  exceptionRequests     ExceptionRequest[]
 
   @@map("users")
 }
@@ -306,4 +307,19 @@ model FormConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("form_configs")
+}
+
+model ExceptionRequest {
+  id                  String   @id @default(cuid()) @map("_id")
+  userId              String
+  reason              String
+  requestedMinKm      Float
+  status              String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  adminResponse       String?
+  approvedById        String?
+  createdAt           DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id])
+  
+  @@map("exception_requests")
 }

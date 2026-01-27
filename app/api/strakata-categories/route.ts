@@ -17,7 +17,7 @@ export async function GET() {
         const currentMonth = format(now, 'yyyy-MM');
 
         // 2. Enhance categories with availability for the current user
-        const enhancedCategories = await Promise.all(categories.map(async (cat: any) => {
+        const enhancedCategories = await Promise.all(categories.map(async (cat) => {
             // Check if anyone has used it this month (for the Star/First indicator)
             const firstUsage = await db.userCategoryUsage.findFirst({
                 where: {

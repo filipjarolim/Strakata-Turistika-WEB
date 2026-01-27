@@ -179,7 +179,7 @@ export function calculatePoints(
   };
 
   // Distance penalty removed as per 2025/2026 rules
-  let distancePenalty = false;
+  const distancePenalty = false;
   let startEndDistance = 0;
 
   if (route.trackPoints && route.trackPoints.length >= 2) {

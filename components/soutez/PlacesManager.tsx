@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, MapPin, Mountain, Eye, TreeDeciduous, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, MapPin, Mountain, Eye, TreeDeciduous, AlertCircle } from 'lucide-react';
 import { IOSCard } from "@/components/ui/ios/card";
 import { IOSButton } from '@/components/ui/ios/button';
 import { IOSTextInput } from '@/components/ui/ios/text-input';
@@ -263,7 +263,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                       </label>
                       <IOSSelect
                         value={place.proofType || 'STANDARD'}
-                        onChange={(value: string) => handleUpdatePlace(place.id, { proofType: value as any })}
+                        onChange={(value: string) => handleUpdatePlace(place.id, { proofType: value as 'STANDARD' | 'PEAK' | 'VOLNÁ' })}
                         options={[
                           { value: 'STANDARD', label: 'Standardní (foto s označníkem)' },
                           { value: 'PEAK', label: 'Vrchol (foto s výhledem/mapou)' },
@@ -299,7 +299,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                           placeholder="Lat"
                           type="number"
                           value={place.lat || ''}
-                          onChange={(e: any) => handleUpdatePlace(place.id, { lat: parseFloat(e.target.value) })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lat: parseFloat(e.target.value) })}
                           dark={dark}
                           className="flex-1"
                         />
@@ -307,7 +307,7 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                           placeholder="Lng"
                           type="number"
                           value={place.lng || ''}
-                          onChange={(e: any) => handleUpdatePlace(place.id, { lng: parseFloat(e.target.value) })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lng: parseFloat(e.target.value) })}
                           dark={dark}
                           className="flex-1"
                         />

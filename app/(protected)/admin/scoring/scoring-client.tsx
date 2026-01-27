@@ -42,7 +42,9 @@ interface PlaceTypeConfig {
     order: number;
 }
 
-const ICON_MAP: Record<string, any> = {
+import { type LucideIcon } from 'lucide-react';
+
+const ICON_MAP: Record<string, LucideIcon> = {
     Mountain: Mountain,
     Eye: Eye,
     TreeDeciduous: TreeDeciduous,
@@ -93,6 +95,7 @@ export default function ScoringClient() {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleSaveConfig = () => {
@@ -221,10 +224,11 @@ export default function ScoringClient() {
                     const data = await res.json();
                     throw new Error(data.error || "Failed to create");
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : "Nepodařilo se vytvořit typ místa.";
                 toast({
                     title: "Chyba",
-                    description: error.message || "Nepodařilo se vytvořit typ místa.",
+                    description: message,
                     variant: "destructive"
                 });
             }

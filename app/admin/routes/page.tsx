@@ -25,7 +25,7 @@ interface CustomRoute {
     name: string | null;
     email: string | null;
   };
-  parts: any;
+  parts: unknown;
 }
 
 const AdminRoutesPage = () => {

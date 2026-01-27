@@ -18,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 // IOS-style Segmented Control for tabs
-const TabButton = ({ active, children, onClick, icon: Icon, count }: { active: boolean, children: React.ReactNode, onClick: () => void, icon?: any, count?: number }) => (
+const TabButton = ({ active, children, onClick, icon: Icon, count }: { active: boolean, children: React.ReactNode, onClick: () => void, icon?: React.ElementType, count?: number }) => (
     <button
         onClick={onClick}
         className={cn(
@@ -68,14 +68,12 @@ const GlassButton = ({ active, children, onClick, className }: { active?: boolea
 
 type VisitState = 'ALL' | 'APPROVED' | 'PENDING_REVIEW' | 'REJECTED' | 'DRAFT';
 
-export default function DashboardClient({ user }: { user: any }) {
+export default function DashboardClient({ user }: { user: { id: string;[key: string]: unknown } }) {
     // State
     const [allYears, setAllYears] = useState<number[]>([]);
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [visits, setVisits] = useState<VisitDataWithUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-
-    // Filter State
     const [activeTab, setActiveTab] = useState<VisitState>('ALL');
 
     // Modal State
@@ -94,6 +92,7 @@ export default function DashboardClient({ user }: { user: any }) {
                 }
             })
             .catch(err => console.error("Error fetching seasons:", err));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Fetch Visits
@@ -124,7 +123,7 @@ export default function DashboardClient({ user }: { user: any }) {
         .reduce((sum, item) => sum + (item.points || 0), 0);
 
     const visitCounts = {
-        ALL: visits.length, // Only valid if fetching ALL, but we fetch per tab now. 
+        ALL: visits.length, // Only valid if fetching ALL, but we fetch per tab now.
         // Actually, to show counts on tabs we ideally need all data or separate counts stats. 
         // For now, only showing count for the CURRENT active tab is accurate if we fetch per tab.
         // If we want counts on all tabs, we'd need to fetch ALL and filter client side.

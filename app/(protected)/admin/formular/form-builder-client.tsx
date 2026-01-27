@@ -91,7 +91,9 @@ interface FormConfig {
     definition: FormDefinition;
 }
 
-const FIELD_TYPES: { type: FieldType; label: string; icon: any; color: string }[] = [
+import { type LucideIcon } from 'lucide-react'; // Add this if needed or checking existing import
+
+const FIELD_TYPES: { type: FieldType; label: string; icon: LucideIcon; color: string }[] = [
     { type: 'text', label: 'Krátký text', icon: Type, color: 'text-blue-500 bg-blue-500/10' },
     { type: 'number', label: 'Číslo', icon: Hash, color: 'text-emerald-500 bg-emerald-500/10' },
     { type: 'date', label: 'Datum', icon: Calendar, color: 'text-amber-500 bg-amber-500/10' },
@@ -159,16 +161,17 @@ export default function FormBuilderClient() {
                 setIsLoading(false);
             })
             .catch(err => console.error(err));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const loadForm = (slug: string, allForms: FormConfig[]) => {
-        let selected = allForms.find((f: any) => f.slug === slug);
+        const selected = allForms.find((f) => f.slug === slug);
 
         if (selected) {
             const def = typeof selected.definition === 'string' ? JSON.parse(selected.definition) : selected.definition;
 
             // Ensure standard steps exist
-            const existingStepIds = def.steps.map((s: any) => s.id);
+            const existingStepIds = def.steps.map((s: { id: string }) => s.id);
             const stepsToAdd = DEFAULT_STEPS.filter(s => !existingStepIds.includes(s.id));
 
             if (stepsToAdd.length > 0) {
@@ -191,7 +194,7 @@ export default function FormBuilderClient() {
         if (forms.length > 0) {
             loadForm(activeFormSlug, forms);
         }
-    }, [activeFormSlug]);
+    }, [activeFormSlug, forms]);
 
     const handleSave = async () => {
         if (!currentConfig) return;

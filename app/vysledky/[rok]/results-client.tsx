@@ -16,7 +16,8 @@ import {
   User,
   Dog,
   Search,
-  Filter
+  Filter,
+  Info
 } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 import { TileBackground } from "@/components/results/TileBackground";
 import { RoutePreviewSVG } from "@/components/results/RoutePreviewSVG";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // COMPONENTS
 // We define some local components for the new design to keep it self-contained
@@ -179,6 +181,8 @@ export default function ResultsClient() {
 
   const renderLeaderboardRow = (entry: LeaderboardEntry, idx: number) => {
     const isTop3 = idx < 3;
+    const hasSamePoints = idx > 0 && state.leaders[idx - 1].totalPoints === entry.totalPoints;
+
     return (
       <motion.div
         key={entry.userId}
@@ -221,11 +225,26 @@ export default function ResultsClient() {
             <p className="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wider font-semibold mb-0.5">Návštěvy</p>
             <p className="text-xl font-bold text-gray-700 dark:text-gray-300">{entry.visitsCount}</p>
           </div>
-          <div>
+          <div className="flex flex-col items-end">
             <p className="text-blue-600 dark:text-blue-500 text-xs uppercase tracking-wider font-semibold mb-0.5">Body</p>
-            <p className="text-2xl font-black text-gray-900 dark:text-white drop-shadow-sm dark:drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]">
-              {entry.totalPoints}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-black text-gray-900 dark:text-white drop-shadow-sm dark:drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                {entry.totalPoints}
+              </p>
+              {hasSamePoints && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-gray-400 hover:text-blue-500 transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>Stejný počet bodů</p>
+                      <p className="text-xs opacity-70">Rozhoduje: délka trasy, poté počet míst</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

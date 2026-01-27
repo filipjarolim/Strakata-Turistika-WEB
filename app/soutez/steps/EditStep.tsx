@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Navigation, AlertCircle, Loader2, Info } from 'l
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import FormRenderer from "@/components/soutez/FormRenderer";
+import { Place } from '@/components/soutez/PlacesManager';
 
 interface User {
   id?: string;
@@ -27,7 +28,7 @@ interface Route {
   routeLink: string;
   track: { lat: number; lng: number }[];
   visitDate: Date | null;
-  extraPoints?: any;
+  extraPoints?: { source: string; points: number;[key: string]: unknown };
 }
 
 export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
@@ -35,10 +36,10 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<{ url: string; public_id: string; title?: string }[]>([]);
   const [visitDate, setVisitDate] = useState<Date | null>(null);
   const [dogNotAllowed, setDogNotAllowed] = useState(false);
-  const [places, setPlaces] = useState<any[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
   const [extraData, setExtraData] = useState<Record<string, unknown>>({});
 
   const handleImageUpload = async (file: File, title: string) => {
@@ -216,9 +217,10 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
               onPhotosChange: setImages,
               onPlacesChange: setPlaces,
               onRouteUpdate: (updates) => {
-                if (updates.visitDate) setVisitDate(updates.visitDate);
-                if (updates.dogNotAllowed !== undefined) setDogNotAllowed(updates.dogNotAllowed);
-                setRoute(prev => prev ? ({ ...prev, ...updates }) : null);
+                const typedUpdates = updates as Record<string, unknown>;
+                if (typedUpdates.visitDate) setVisitDate(typedUpdates.visitDate as Date);
+                if (typedUpdates.dogNotAllowed !== undefined) setDogNotAllowed(typedUpdates.dogNotAllowed as boolean);
+                setRoute(prev => prev ? ({ ...prev, ...typedUpdates }) : null);
               },
               handleImageUpload,
               handleImageDelete

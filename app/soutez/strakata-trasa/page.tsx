@@ -17,19 +17,26 @@ import { cn } from '@/lib/utils';
 
 import CompetitionBackground from '@/components/ui/competition/CompetitionBackground';
 
+interface Category {
+    id: string;
+    name: string;
+    icon?: string;
+    isFirstThisMonth?: boolean;
+}
+
 export default function StrakataTrasaPage() {
     const { data: session } = useSession();
     const router = useRouter();
 
-    const [categories, setCategories] = useState<any[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<any>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form state
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [images, setImages] = useState<any[]>([]);
+    const [images, setImages] = useState<{ url: string; public_id: string; title?: string }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
@@ -68,7 +75,7 @@ export default function StrakataTrasaPage() {
         try {
             const seasonResponse = await fetch('/api/seasons');
             const seasons = await seasonResponse.json();
-            const activeSeason = seasons.find((s: any) => s.isActive) || seasons[0];
+            const activeSeason = seasons.find((s: { isActive: boolean }) => s.isActive) || seasons[0];
 
             const response = await fetch('/api/visitData', {
                 method: 'POST',
@@ -108,8 +115,12 @@ export default function StrakataTrasaPage() {
 
             setSuccess(true);
             setTimeout(() => router.push('/soutez'), 3000);
-        } catch (err: any) {
-            setError(err.message || 'Chyba při odesílání');
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message || 'Chyba při odesílání');
+            } else {
+                setError('Chyba při odesílání');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -253,7 +264,7 @@ export default function StrakataTrasaPage() {
                                                     label="Místo"
                                                     placeholder="NAPŘ. ROZHLEDNA X"
                                                     value={title}
-                                                    onChange={(e: any) => setTitle(e.target.value)}
+                                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                                                     className="bg-white/5 border-white/10 focus:border-white/30 text-white placeholder:text-white/10 font-bold uppercase tracking-widest text-xs"
                                                 />
 

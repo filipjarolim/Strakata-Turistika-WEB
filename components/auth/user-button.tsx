@@ -1,6 +1,5 @@
-import { FaUser } from "react-icons/fa";
 import { ExitIcon } from "@radix-ui/react-icons";
-import { Map, Shield, Bug, Settings, ChevronDown } from "lucide-react";
+import { Map, Shield, Bug, Settings, ChevronDown, User } from "lucide-react";
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -51,7 +50,7 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                             <Image src={user.image} alt="User Image" width={32} height={32} className="rounded-full" />
                         ) : (
                             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
-                                <FaUser className="text-white w-4 h-4" />
+                                <User className="text-white w-4 h-4" />
                             </AvatarFallback>
                         )}
                     </Avatar>
@@ -78,7 +77,7 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                             <Image src={user.image} alt="User Image" width={32} height={32} className="rounded-full" />
                         ) : (
                             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
-                                <FaUser className="text-white w-4 h-4" />
+                                <User className="text-white w-4 h-4" />
                             </AvatarFallback>
                         )}
                     </Avatar>

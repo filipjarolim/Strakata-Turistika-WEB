@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import {Button} from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -15,9 +15,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {Badge} from "@/components/ui/badge";
-import {LuScanFace} from "react-icons/lu";
-import {authprefix} from "@/assets/auth";
+import { Badge } from "@/components/ui/badge";
+// import {LuScanFace} from "react-icons/lu"; // Removed
+import { authprefix } from "@/assets/auth";
 
 interface LoginButtonProps {
     children: React.ReactNode;
@@ -26,10 +26,10 @@ interface LoginButtonProps {
 }
 
 export const LoginButton = ({
-                                children,
-                                mode = "redirect",
-                                asChild
-                            }: LoginButtonProps) => {
+    children,
+    mode = "redirect",
+    asChild
+}: LoginButtonProps) => {
 
     const router = useRouter()
 
@@ -54,12 +54,12 @@ export const LoginButton = ({
     return (
         <span onClick={onClick} className="cursor-pointer">
             <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button 
-                        variant="secondary" 
-                        size="md" 
-                        className={`
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="secondary"
+                            size="md"
+                            className={`
                             group relative overflow-hidden rounded-2xl px-6 py-2.5
                             bg-gradient-to-r from-gray-900 to-gray-800 
                             hover:from-gray-800 hover:to-gray-700
@@ -72,15 +72,15 @@ export const LoginButton = ({
                             before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:via-white/10 before:to-white/0
                             before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700
                         `}
-                    >
-                        {children}
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent className="flex flex-row items-center justify-center bg-gray-900 text-white border-gray-700" style={{zIndex: 110}}>
-                    {authprefix.buttons.login.tooltip.icon}
-                    {authprefix.buttons.login.tooltip.label}
-                </TooltipContent>
-              </Tooltip>
+                        >
+                            {children}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="flex flex-row items-center justify-center bg-gray-900 text-white border-gray-700" style={{ zIndex: 110 }}>
+                        {authprefix.buttons.login.tooltip.icon}
+                        {authprefix.buttons.login.tooltip.label}
+                    </TooltipContent>
+                </Tooltip>
             </TooltipProvider>
         </span>
     )

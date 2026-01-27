@@ -44,7 +44,9 @@ interface PlaceTypeConfig {
     isActive: boolean;
 }
 
-const ICON_MAP: Record<string, any> = {
+import { type LucideIcon } from 'lucide-react';
+
+const ICON_MAP: Record<string, LucideIcon> = {
     Mountain: Mountain,
     Eye: Eye,
     TreeDeciduous: TreeDeciduous,

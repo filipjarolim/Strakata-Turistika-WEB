@@ -48,8 +48,8 @@ export function validateProximityToPath(
  * Validates multiple places against a path
  */
 export function validatePlacesProximity(
-    places: any[],
-    path: any[],
+    places: { lat?: number; lng?: number;[key: string]: unknown }[],
+    path: { lat: number; lng: number }[],
     isFreeCategory: boolean = false
 ): ProximityResult[] {
     // If it's a free category, we don't enforce trail proximity for the target POI

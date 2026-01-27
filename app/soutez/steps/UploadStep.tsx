@@ -10,7 +10,7 @@ import { isPhotoWithinTimeLimit } from '@/lib/validation-utils';
 
 interface UploadStepProps {
   onComplete: (routeId: string) => void;
-  user: any;
+  user: { id: string;[key: string]: unknown };
   userRole?: string;
   initialMode?: 'gpx' | 'manual' | 'gps' | null;
   autoTest?: boolean;
@@ -25,8 +25,8 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
   const [activityType, setActivityType] = useState('WALKING');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [trackPoints, setTrackPoints] = useState<any[]>([]);
-  const [screenshotImages, setScreenshotImages] = useState<any[]>([]);
+  const [trackPoints, setTrackPoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [screenshotImages, setScreenshotImages] = useState<{ url: string; public_id: string; title?: string }[]>([]);
   const [extraData, setExtraData] = useState<Record<string, unknown>>({});
 
   // Auto-test logic
@@ -77,7 +77,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
     try {
       const seasonResponse = await fetch('/api/seasons');
       const seasons = await seasonResponse.json();
-      const activeSeason = seasons.find((s: any) => s.isActive) || seasons[0];
+      const activeSeason = seasons.find((s: { isActive: boolean }) => s.isActive) || seasons[0];
 
       const response = await fetch('/api/visitData', {
         method: 'POST',
@@ -107,8 +107,12 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
 
       const data = await response.json();
       onComplete(data.id);
-    } catch (err: any) {
-      setError(err.message || 'Nepodařilo se uložit trasu');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || 'Nepodařilo se uložit trasu');
+      } else {
+        setError('Nepodařilo se uložit trasu');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -149,7 +153,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
               key={mode.id}
               whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.05)' }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setUploadMode(mode.id as any)}
+              onClick={() => setUploadMode(mode.id as 'gpx' | 'manual' | 'gps')}
               className="group cursor-pointer p-10 rounded-[2.5rem] bg-white/5 backdrop-blur-3xl border border-white/5 hover:border-white/20 transition-all flex flex-col justify-between min-h-[280px]"
             >
               <div className="space-y-6">
@@ -201,7 +205,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
 
       <div className="grid lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
-          {isDateWarning && (
+          {isDateWarning ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -211,16 +215,30 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
               <div className="space-y-2">
                 <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest italic">VAROVÁNÍ: STARÝ DOKLAD</h4>
                 <p className="text-[10px] text-amber-200/40 uppercase font-bold tracking-widest leading-loose">
-                  FOTOGRAFIE JE STARŠÍ NEŽ 14 DNÍ. PODLE PRAVIDEL AKTIVNÍ SEZÓNY NEMUSÍ BÝT TATO NÁVŠTĚVA UZNÁNA.
+                  TATO NÁVŠTĚVA JE {Math.floor((new Date().getTime() - visitDate.getTime()) / (1000 * 60 * 60 * 24))} DNÍ STARÁ (MAX. 14 DNÍ). NEBUDE UZNÁNA!
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 rounded-3xl bg-green-500/5 backdrop-blur-xl border border-green-500/10 flex items-center gap-4"
+            >
+              <Check className="w-5 h-5 text-green-500 shrink-0" />
+              <div className="space-y-1">
+                <h4 className="text-[10px] font-black text-green-500 uppercase tracking-widest italic">DATUM V POŘÁDKU</h4>
+                <p className="text-[10px] text-green-200/40 uppercase font-bold tracking-widest leading-none">
+                  FOTOGRAFIE JE V ČASOVÉM LIMITU
                 </p>
               </div>
             </motion.div>
           )}
 
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 rounded-2xl border border-white/5 shadow-2xl">
-            <Watch className="w-3.5 h-3.5 text-white/40" />
-            <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">
-              POVOLENÁ AKTIVITA: POUZE CHŮZE
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-blue-500/10 rounded-2xl border border-blue-500/10 shadow-2xl">
+            <Info className="w-3.5 h-3.5 text-blue-400" />
+            <span className="text-[9px] font-black text-blue-200 uppercase tracking-[0.2em]">
+              ROČNÍK 2025/2026: POVOLENA POUZE CHŮZE
             </span>
           </div>
 
@@ -241,9 +259,9 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
                 photos: screenshotImages,
                 selectedFile: selectedFile,
                 onRouteUpdate: (u) => {
-                  if (u.routeTitle !== undefined) setRouteName(u.routeTitle);
-                  if (u.routeDescription !== undefined) setRouteDescription(u.routeDescription);
-                  if (u.visitDate !== undefined) setVisitDate(new Date(u.visitDate));
+                  if (typeof u.routeTitle === 'string') setRouteName(u.routeTitle);
+                  if (typeof u.routeDescription === 'string') setRouteDescription(u.routeDescription);
+                  if (typeof u.visitDate === 'string' || typeof u.visitDate === 'number' || u.visitDate instanceof Date) setVisitDate(new Date(u.visitDate));
                 },
                 handleImageUpload: async (file, title) => {
                   const fd = new FormData(); fd.append("file", file); fd.append("title", title);

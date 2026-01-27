@@ -15,7 +15,7 @@ export async function GET(
 
     try {
         // Dynamic access to prisma delegate
-        // @ts-ignore
+        // @ts-expect-error Dynamic access to db model
         const delegate = db[collection.charAt(0).toLowerCase() + collection.slice(1)];
 
         if (!delegate) {

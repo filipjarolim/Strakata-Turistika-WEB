@@ -8,9 +8,17 @@ import FormRenderer from "@/components/soutez/FormRenderer";
 import { Check, Send, Loader2, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function FinishStep({ routeId, onComplete, user }: { routeId: string, onComplete: () => void, user: any }) {
+import { User } from 'next-auth'; // Or just define { id: string }
+// Better to define locally if global User is not easily available
+interface FinishStepUser {
+  id: string;
+  [key: string]: unknown;
+}
+
+export default function FinishStep({ routeId, onComplete, user }: { routeId: string, onComplete: () => void, user: FinishStepUser }) {
   const router = useRouter();
-  const [route, setRoute] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [route, setRoute] = useState<any>(null); // Keeping any for route as it's complex here and only used for rendering
   const [isLoading, setIsLoading] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [extraData, setExtraData] = useState<Record<string, unknown>>({});

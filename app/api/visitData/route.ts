@@ -124,9 +124,9 @@ export async function POST(request: Request) {
 
     // Prepare route data for scoring
     const source = body.extraPoints?.source || 'manual';
-    const validSource: 'gps_tracking' | 'gpx_upload' | 'manual' | 'screenshot' =
+    const validSource =
       ['gps_tracking', 'gpx_upload', 'manual', 'screenshot'].includes(source)
-        ? source as any
+        ? source as RouteData['source']
         : 'manual';
 
     const routeData: RouteData = {
@@ -164,8 +164,11 @@ export async function POST(request: Request) {
     const hasProximityError = proximityResults.some(r => r && !r.valid);
 
     // Add proximity data to scoringResult for admin review
-    (scoringResult as any).proximityResults = proximityResults;
-    (scoringResult as any).hasProximityError = hasProximityError;
+    const extendedResult = {
+      ...scoringResult,
+      proximityResults,
+      hasProximityError
+    };
 
     // Build route object with full structure
     const route = {
@@ -175,6 +178,7 @@ export async function POST(request: Request) {
       source: routeData.source,
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const createData: any = {
       routeTitle: body.routeTitle ?? "Untitled Route",
       routeDescription: body.routeDescription,
@@ -187,7 +191,7 @@ export async function POST(request: Request) {
       photos: body.photos as unknown as Prisma.InputJsonValue,
       points: Math.floor(scoringResult.totalPoints),
       year: body.year || new Date().getFullYear(),
-      extraPoints: scoringResult as unknown as Prisma.InputJsonValue,
+      extraPoints: extendedResult as unknown as Prisma.InputJsonValue,
       extraData: body.extraData as unknown as Prisma.InputJsonValue,
       state: hasProximityError ? 'PENDING_REVIEW' : (body.state || 'DRAFT'),
       activityType: body.activityType || 'WALKING',

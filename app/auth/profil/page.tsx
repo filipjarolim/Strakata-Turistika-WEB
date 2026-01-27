@@ -41,7 +41,8 @@ const Page = async () => {
 
                     {/* Overview Tab */}
                     <TabsContent value="overview" className="mt-6">
-                        <DashboardClient user={user} />
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        <DashboardClient user={user as any} />
                     </TabsContent>
 
                     {/* Settings Tab */}

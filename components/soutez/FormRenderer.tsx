@@ -22,6 +22,7 @@ interface Field {
     required: boolean;
     order: number;
     options?: { label: string; value: string }[];
+    placeholder?: string;
 }
 
 interface Step {
@@ -36,18 +37,18 @@ interface FormDefinition {
 
 export interface FormRendererContext {
     route?: {
-        track?: any[];
+        track?: { lat: number; lng: number }[];
         routeTitle?: string;
         routeDescription?: string;
         visitDate?: Date | null;
         dogNotAllowed?: boolean;
-        extraPoints?: any;
+        extraPoints?: { points: number;[key: string]: unknown };
     };
-    photos?: any[];
+    photos?: { url: string; public_id: string; title?: string }[];
     places?: Place[];
-    onPhotosChange?: (photos: any[]) => void;
+    onPhotosChange?: (photos: { url: string; public_id: string; title?: string }[]) => void;
     onPlacesChange?: (places: Place[]) => void;
-    onRouteUpdate?: (updates: any) => void;
+    onRouteUpdate?: (updates: Record<string, unknown>) => void;
     handleImageUpload?: (file: File, title: string) => Promise<void>;
     handleImageDelete?: (id: string) => Promise<void>;
     handleFileChange?: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
@@ -114,10 +115,10 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             key={field.id}
                             label={field.label}
                             value={String(val ?? '')}
-                            onChange={(e: any) => handleChange(field.name, e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
                             required={field.required}
                             dark={dark}
-                            placeholder={(field as any).placeholder || ''}
+                            placeholder={field.placeholder || ''}
                         />
                     );
                 }
@@ -129,10 +130,10 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             label={field.label}
                             type="number"
                             value={String(val ?? '')}
-                            onChange={(e: any) => handleChange(field.name, parseFloat(e.target.value) || 0)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, parseFloat(e.target.value) || 0)}
                             required={field.required}
                             dark={dark}
-                            placeholder={(field as any).placeholder || ''}
+                            placeholder={field.placeholder || ''}
                         />
                     );
                 }
@@ -153,7 +154,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                     border: dark ? 'border-zinc-800' : 'border-gray-300',
                                     focus: 'border-blue-500'
                                 }}
-                                placeholder={(field as any).placeholder || ''}
+                                placeholder={field.placeholder || ''}
                             />
                         </div>
                     );
@@ -206,7 +207,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             label={field.label}
                             type="date"
                             value={String(val ?? '')}
-                            onChange={(e: any) => handleChange(field.name, e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
                             required={field.required}
                             dark={dark}
                             icon={<Calendar className="w-4 h-4 text-amber-500" />}
@@ -259,7 +260,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             </label>
                             <div className="h-64 sm:h-96 rounded-3xl overflow-hidden border border-white/10 relative">
                                 <DynamicGpxEditor
-                                    initialTrack={context.route.track as any}
+                                    initialTrack={context.route.track as { lat: number; lng: number }[]}
                                     onSave={() => { }}
                                     readOnly
                                     hideControls={['add', 'delete', 'undo', 'redo', 'simplify']}
@@ -310,7 +311,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             key={field.id}
                             label={field.label || "Název trasy"}
                             value={context.route?.routeTitle || ''}
-                            onChange={(e: any) => context.onRouteUpdate?.({ routeTitle: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => context.onRouteUpdate?.({ routeTitle: e.target.value })}
                             required={field.required}
                             dark={dark}
                             icon={<FileText className="w-4 h-4 text-blue-400" />}

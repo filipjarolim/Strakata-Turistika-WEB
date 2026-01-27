@@ -21,7 +21,7 @@ interface CollectionData {
 export default function DatabasePage() {
     const [collections, setCollections] = useState<string[]>([]);
     const [selectedCollection, setSelectedCollection] = useState<string>("");
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<unknown[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingData, setLoadingData] = useState(false);
 
