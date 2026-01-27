@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IOSButton } from "@/components/ui/ios/button";
+import Link from "next/link";
 
 // --- Data ---
 
@@ -251,46 +252,42 @@ const Section = ({ data, index }: { data: typeof RULES_DATA[0], index: number })
 const QuickLinks = () => {
     const quickLinks = [
         {
-            title: "Seznam míst",
-            description: "Kam vyrazit?",
-            icon: <MapPin className="h-5 w-5" />,
-            color: "text-blue-600 bg-blue-50",
-            arrowColor: "text-blue-300 group-hover:text-blue-600"
-        },
-        {
             title: "Průběžné pořadí",
             description: "Jak si vedeme?",
             icon: <Award className="h-5 w-5" />,
             color: "text-emerald-600 bg-emerald-50",
-            arrowColor: "text-emerald-300 group-hover:text-emerald-600"
+            arrowColor: "text-emerald-300 group-hover:text-emerald-600",
+            href: "/soutez/poradi"
         },
         {
             title: "Fotogalerie",
             description: "Inspirace",
             icon: <Camera className="h-5 w-5" />,
             color: "text-purple-600 bg-purple-50",
-            arrowColor: "text-purple-300 group-hover:text-purple-600"
+            arrowColor: "text-purple-300 group-hover:text-purple-600",
+            href: "/galerie"
         }
     ];
 
     return (
         <div className="grid md:grid-cols-3 gap-6">
             {quickLinks.map((link, i) => (
-                <motion.button
-                    key={i}
-                    whileHover={{ y: -5 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="group relative flex items-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200 transition-all duration-300"
-                >
-                    <div className={cn("p-4 rounded-2xl mr-5 transition-colors", link.color)}>
-                        {link.icon}
-                    </div>
-                    <div className="text-left flex-1">
-                        <h3 className="font-bold text-gray-900 text-lg">{link.title}</h3>
-                        <p className="text-gray-500 text-sm">{link.description}</p>
-                    </div>
-                    <ChevronRight className={cn("h-6 w-6 transition-colors", link.arrowColor)} />
-                </motion.button>
+                <Link key={i} href={link.href}>
+                    <motion.div
+                        whileHover={{ y: -5 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="group relative flex items-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-gray-200 transition-all duration-300 h-full"
+                    >
+                        <div className={cn("p-4 rounded-2xl mr-5 transition-colors", link.color)}>
+                            {link.icon}
+                        </div>
+                        <div className="text-left flex-1">
+                            <h3 className="font-bold text-gray-900 text-lg">{link.title}</h3>
+                            <p className="text-gray-500 text-sm">{link.description}</p>
+                        </div>
+                        <ChevronRight className={cn("h-6 w-6 transition-colors", link.arrowColor)} />
+                    </motion.div>
+                </Link>
             ))}
         </div>
     );
@@ -407,47 +404,7 @@ Kontakt: info@strakataturistika.cz`;
                     <QuickLinks />
 
                     {/* Support Card */}
-                    <div className="mt-20">
-                        <div className="relative rounded-[3rem] overflow-hidden bg-gray-900 text-white p-8 md:p-16 text-center">
-                            {/* Background gradients */}
-                            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-                                <div className="absolute -top-[50%] -left-[20%] w-[80%] h-[80%] rounded-full bg-blue-600/30 blur-[120px]" />
-                                <div className="absolute -bottom-[50%] -right-[20%] w-[80%] h-[80%] rounded-full bg-purple-600/30 blur-[120px]" />
-                            </div>
-
-                            <div className="relative z-10 max-w-2xl mx-auto space-y-8">
-                                <div className="inline-flex p-4 rounded-full bg-white/10 backdrop-blur-md mb-4">
-                                    <Info className="h-8 w-8 text-blue-300" />
-                                </div>
-                                <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
-                                    Něco není jasné?
-                                </h2>
-                                <p className="text-xl text-gray-300 leading-relaxed">
-                                    Jsme tu pro vás. Napište nám nebo si stáhněte kompletní pravidla v PDF pro offline čtení.
-                                </p>
-                                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                                    <IOSButton
-                                        variant="primary"
-                                        size="lg"
-                                        className="h-14 px-8 text-lg rounded-2xl bg-white text-gray-900 hover:bg-gray-100 border-none"
-                                        onClick={() => window.location.href = 'mailto:info@strakataturistika.cz'}
-                                    >
-                                        <FileText className="mr-2 h-5 w-5" />
-                                        Napsat e-mail
-                                    </IOSButton>
-                                    <IOSButton
-                                        variant="outline"
-                                        size="lg"
-                                        className="h-14 px-8 text-lg rounded-2xl border-white/20 text-white hover:bg-white/10"
-                                        onClick={handleDownloadRules}
-                                    >
-                                        <Download className="mr-2 h-5 w-5" />
-                                        Stáhnout PDF
-                                    </IOSButton>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {/* Support Card - Removed as requested */}
                 </motion.div>
 
             </div>

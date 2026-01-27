@@ -119,15 +119,7 @@ const Page = () => {
               >
                 {/* Hero Text */}
                 <div className="space-y-6 max-w-2xl">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 backdrop-blur-sm"
-                  >
-                    <Trophy className="w-4 h-4 text-blue-300" />
-                    <span className="text-blue-100 text-xs font-semibold uppercase tracking-wider">Soutěžní portál</span>
-                  </motion.div>
+
 
                   <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white leading-tight drop-shadow-2xl tracking-tight">
                     Vaše cesta,<br />
@@ -265,7 +257,7 @@ const Page = () => {
                           <Link href="https://apps.apple.com" target="_blank" className="transition-transform hover:scale-105">
                             <div className="flex items-center gap-3 bg-black/50 hover:bg-black/70 border border-white/10 px-6 py-3 rounded-xl transition-all">
                               <div className="w-8 h-8 flex items-center justify-center">
-                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.61-.91.61.03 1.74.26 2.55 1.38-.03.02-1.53.88-1.53 2.58 0 2.06 1.79 2.76 1.89 2.79-1.34 3.73-3.02 5.09-3.92 5.91zM13 3.5c.67-1.56.24-2.95-.01-3.5 1.48.11 2.98 1.01 3.52 2.75-1.29 1.03-2.92.56-3.51.75z" /></svg>
+                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.74s2.57-.99 3.87-.74c.76.15 1.74.52 2.36 1.1-2.9 1.76-2.34 5.76.51 6.84-.52 1.62-1.25 3.23-1.82 5.03zm-2.22-14.73c.71-.86.99-2.04.86-3.28-1.25.13-2.52 1.05-3 2.1-.53 1.15-.05 2.19.85 3.19.08-1.24 1.25-2.01 1.29-2.01z" /></svg>
                               </div>
                               <div className="flex flex-col">
                                 <span className="text-[10px] text-gray-400 leading-none">Stáhnout na</span>

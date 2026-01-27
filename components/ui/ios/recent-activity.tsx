@@ -5,6 +5,9 @@ import { MapPin, Calendar, Award, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { useRouter } from "next/navigation";
+import { deleteVisit } from "@/actions/visit-actions";
+import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 
 interface RecentVisit {
   id: string;
@@ -57,6 +60,18 @@ export const IOSRecentActivity = ({ visits, className }: IOSRecentActivityProps)
     router.push(`/vysledky/${visit.year}/${visit.id}`);
   };
 
+  const handleDelete = async (e: React.MouseEvent, visitId: string) => {
+    e.stopPropagation();
+    if (confirm("Opravdu chcete smazat tento záznam?")) {
+      const result = await deleteVisit(visitId);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Záznam smazán");
+      }
+    }
+  };
+
   if (visits.length === 0) {
     return (
       <div className={cn(
@@ -80,7 +95,7 @@ export const IOSRecentActivity = ({ visits, className }: IOSRecentActivityProps)
           onClick={() => handleVisitClick(visit)}
           className={cn(
             "p-5 rounded-2xl bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-lg",
-            "transition-all duration-300 hover:shadow-lg hover:scale-[1.002] transform",
+            "transition-all duration-300 hover:shadow-lg hover:scale-[1.002] transform group",
             "cursor-pointer"
           )}
         >
@@ -94,7 +109,7 @@ export const IOSRecentActivity = ({ visits, className }: IOSRecentActivityProps)
                   {visit.routeTitle || `Návštěva ${index + 1}`}
                 </h4>
               </div>
-              
+
               <div className="flex items-center gap-4 text-xs text-gray-500">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3 h-3" />
@@ -112,12 +127,22 @@ export const IOSRecentActivity = ({ visits, className }: IOSRecentActivityProps)
                 )}
               </div>
             </div>
-            
-            <div className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium border",
-              getStateColor(visit.state)
-            )}>
-              {getStateText(visit.state)}
+
+            <div className="flex flex-col items-end gap-2">
+              <div className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-medium border",
+                getStateColor(visit.state)
+              )}>
+                {getStateText(visit.state)}
+              </div>
+
+              <div
+                onClick={(e) => handleDelete(e, visit.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-600"
+                title="Smazat záznam"
+              >
+                <Trash2 className="w-4 h-4" />
+              </div>
             </div>
           </div>
         </div>

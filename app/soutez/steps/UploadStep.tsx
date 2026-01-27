@@ -26,6 +26,34 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
   const [screenshotImages, setScreenshotImages] = useState<any[]>([]);
   const [extraData, setExtraData] = useState<Record<string, unknown>>({});
 
+  // Auto-test logic
+  React.useEffect(() => {
+    if (autoTest && uploadMode) {
+      if (uploadMode === 'gpx') {
+        setRouteName("Testovací GPX Trasa");
+        setRouteDescription("Toto je automaticky vygenerovaná testovací trasa pro ověření funkčnosti.");
+        // Simulate a simple track
+        const dummyPoints = [
+          { lat: 50.0755, lng: 14.4378 },
+          { lat: 50.0760, lng: 14.4380 },
+          { lat: 50.0765, lng: 14.4385 }
+        ];
+        setTrackPoints(dummyPoints);
+        // Simulate file selection visual
+        const dummyFile = new File(["dummy gpx content"], "test-route.gpx", { type: "application/gpx+xml" });
+        setSelectedFile(dummyFile);
+      } else if (uploadMode === 'manual') {
+        setRouteName("Testovací FOTO Trasa");
+        setRouteDescription("Toto je automaticky vygenerovaná testovací trasa z fotky.");
+        setScreenshotImages([{
+          url: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&auto=format&fit=crop&q=60",
+          public_id: "test/dummy-image",
+          title: "Test Image"
+        }]);
+      }
+    }
+  }, [autoTest, uploadMode]);
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -64,6 +92,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
           visitDate: new Date(),
           userId: user.id,
           seasonId: activeSeason?.id,
+          year: activeSeason?.year || new Date().getFullYear(),
           state: 'DRAFT',
           photos: screenshotImages,
           extraData: extraData,

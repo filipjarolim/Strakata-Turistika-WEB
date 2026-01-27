@@ -45,15 +45,15 @@ interface VisitDataRequest {
 export async function POST(request: Request) {
   try {
     const body: VisitDataRequest = await request.json();
-    
+
     // Get places from body
     const places: Place[] = body.places || [];
-    
+
     // Legacy compatibility: auto-fill visitedPlaces from places names
-    const visitedPlaces = places.length > 0 
+    const visitedPlaces = places.length > 0
       ? places.map(p => p.name).filter(Boolean).join(', ')
       : body.visitedPlaces || '';
-    
+
     // Get scoring config
     let scoringConfig: ScoringConfig;
     try {
@@ -69,14 +69,14 @@ export async function POST(request: Request) {
 
     // Parse route data
     const trackPoints = body.route || [];
-    
+
     // Prepare route data for scoring
     const source = body.extraPoints?.source || 'manual';
-    const validSource: 'gps_tracking' | 'gpx_upload' | 'manual' | 'screenshot' = 
-      ['gps_tracking', 'gpx_upload', 'manual', 'screenshot'].includes(source) 
+    const validSource: 'gps_tracking' | 'gpx_upload' | 'manual' | 'screenshot' =
+      ['gps_tracking', 'gpx_upload', 'manual', 'screenshot'].includes(source)
         ? source as 'gps_tracking' | 'gpx_upload' | 'manual' | 'screenshot'
         : 'manual';
-    
+
     const routeData: RouteData = {
       trackPoints: Array.isArray(trackPoints) ? trackPoints.map((point: TrackPoint) => ({
         latitude: point.lat,
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
 
     // Extract userId and create proper relation
     const userId = body.userId;
-    
+
     const visitData = await db.visitData.create({
       data: {
         routeTitle: body.routeTitle ?? "Untitled Route",
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
         places: places as unknown as Prisma.InputJsonValue,
         photos: body.photos as unknown as Prisma.InputJsonValue,
         points: Math.floor(scoringResult.totalPoints), // Round down for integer storage
-        year: body.year,
+        year: body.year || new Date().getFullYear(), // Fallback to current year if missing
         extraPoints: scoringResult as unknown as Prisma.InputJsonValue,
         extraData: body.extraData as unknown as Prisma.InputJsonValue,
         state: body.state || 'DRAFT',

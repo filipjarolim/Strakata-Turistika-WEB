@@ -21,18 +21,18 @@ export default async function AktualityPage() {
     }
 
     return (
-        <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30">
-            {/* Header - consistently dark via theme prop */}
+        <div className="relative min-h-screen bg-white dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30">
+            {/* Header - responsive theme */}
             <Header
                 user={user}
                 role={role}
                 mode="fixed"
-                theme="dark"
+                theme="light"
                 showGap={false}
             />
 
             {/* Background */}
-            <div className="fixed inset-0 w-full h-full -z-10">
+            <div className="fixed inset-0 w-full h-full -z-10 dark:opacity-100 opacity-0 transition-opacity">
                 <Image
                     src="/images/news-bg.png"
                     alt="News Background"
@@ -52,9 +52,9 @@ export default async function AktualityPage() {
                             <span className="text-blue-100 text-xs font-semibold uppercase tracking-wider">Strakatá Turistika</span>
                         </div>
 
-                        <h1 className="text-5xl sm:text-7xl font-black text-white leading-tight drop-shadow-2xl tracking-tight">
+                        <h1 className="text-5xl sm:text-7xl font-black text-gray-900 dark:text-white leading-tight drop-shadow-2xl dark:drop-shadow-none tracking-tight">
                             Aktuality & <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
                                 Novinky
                             </span>
                         </h1>
@@ -71,9 +71,9 @@ export default async function AktualityPage() {
                 {/* Main News Feed */}
                 <div className="w-full">
                     <div className="flex items-center gap-4 mb-8">
-                        <div className="h-px bg-white/20 flex-1" />
-                        <h2 className="text-2xl font-bold text-gray-200">Všechny příspěvky</h2>
-                        <div className="h-px bg-white/20 flex-1" />
+                        <div className="h-px bg-gray-200 dark:bg-white/20 flex-1" />
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-200">Všechny příspěvky</h2>
+                        <div className="h-px bg-gray-200 dark:bg-white/20 flex-1" />
                     </div>
 
                     {/* 
@@ -84,7 +84,7 @@ export default async function AktualityPage() {
                     <News
                         showHeader={false}
                         showAddButton={true}
-                        variant="dark"
+                        variant="light"
                         className="!max-w-none"
                     />
                 </div>

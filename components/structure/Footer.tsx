@@ -14,7 +14,7 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
                     {/* Company Info */}
                     <div className="space-y-3 sm:space-y-4 sm:col-span-2 lg:col-span-2">
-                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Strakatá Turistika</h3>
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">Strakatá Turistika</h3>
                         <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
                             Objevujte krásy České republiky se svým čtyřnohým parťákem.
                             Sledujte trasy, sdílejte zážitky a soutěžte s ostatními.
@@ -33,20 +33,20 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
 
                     {/* Quick Links */}
                     <div className="space-y-3 sm:space-y-4">
-                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Rychlé odkazy</h4>
+                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Rychlé odkazy</h4>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <Link href="/" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     Domů
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/about" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <Link href="/about" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     O nás
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/soutez" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <Link href="/soutez" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     Soutěžit
                                 </Link>
                             </li>
@@ -55,20 +55,20 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
 
                     {/* Legal Links */}
                     <div className="space-y-3 sm:space-y-4">
-                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Právní informace</h4>
+                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Právní informace</h4>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <Link href="/privacy" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <Link href="/privacy" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     Ochrana osobních údajů
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/terms" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <Link href="/terms" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     Podmínky použití
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/kontakty" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+                                <Link href="/kontakty" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     Kontakty
                                 </Link>
                             </li>
@@ -77,14 +77,14 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
 
                     {/* App Download */}
                     <div className="space-y-3 sm:space-y-4">
-                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Aplikace</h4>
+                        <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Aplikace</h4>
                         <ul className="space-y-2 text-sm">
                             <li>
                                 <a
                                     href="https://play.google.com/store/apps/details?id=com.strakataturistika.app"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors flex items-center gap-2"
+                                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors flex items-center gap-2"
                                 >
                                     Google Play
                                 </a>

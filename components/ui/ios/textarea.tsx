@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import { cn } from "@/lib/utils";
 
 interface IOSTextareaProps {
@@ -25,7 +26,6 @@ export const IOSTextarea = ({
     value,
     onChange,
     placeholder,
-    required,
     className,
     readOnly = false,
     colors = {
@@ -60,6 +60,10 @@ export const IOSTextarea = ({
                         class: 'mb-2'
                     }
                 }
+            }),
+            Placeholder.configure({
+                placeholder: placeholder || 'Write something...',
+                emptyEditorClass: 'is-editor-empty',
             })
         ],
         content: value,

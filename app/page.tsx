@@ -141,41 +141,21 @@ const Home = async () => {
                 <div className="hidden md:block absolute bottom-0 left-0 right-0 z-20 px-8 translate-y-1/2">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-4 gap-6">
-                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
-                                <div className="text-3xl font-black text-gray-900 mb-1">147</div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Unikátních uživatelů</div>
-                                <div className="mt-3">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mx-auto text-blue-600">
-                                        <Users className="w-4 h-4" />
-                                    </div>
-                                </div>
+                            <div className="bg-white/70 dark:bg-zinc-800/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 dark:border-white/10 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">147</div>
+                                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Unikátních uživatelů</div>
                             </div>
-                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
-                                <div className="text-3xl font-black text-gray-900 mb-1">25,083</div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Navštívených míst</div>
-                                <div className="mt-3">
-                                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mx-auto text-green-600">
-                                        <MapPin className="w-4 h-4" />
-                                    </div>
-                                </div>
+                            <div className="bg-white/70 dark:bg-zinc-800/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 dark:border-white/10 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">25,083</div>
+                                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Navštívených míst</div>
                             </div>
-                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
-                                <div className="text-3xl font-black text-gray-900 mb-1">5</div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Proběhlých sezón</div>
-                                <div className="mt-3">
-                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mx-auto text-purple-600">
-                                        <Calendar className="w-4 h-4" />
-                                    </div>
-                                </div>
+                            <div className="bg-white/70 dark:bg-zinc-800/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 dark:border-white/10 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">5</div>
+                                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Proběhlých sezón</div>
                             </div>
-                            <div className="bg-white/70 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 transform hover:-translate-y-1 transition-transform duration-300">
-                                <div className="text-3xl font-black text-gray-900 mb-1">28,268</div>
-                                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">Celkem bodů</div>
-                                <div className="mt-3">
-                                    <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center mx-auto text-yellow-600">
-                                        <Trophy className="w-4 h-4" />
-                                    </div>
-                                </div>
+                            <div className="bg-white/70 dark:bg-zinc-800/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/40 dark:border-white/10 transform hover:-translate-y-1 transition-transform duration-300">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">28,268</div>
+                                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Celkem bodů</div>
                             </div>
                         </div>
                     </div>

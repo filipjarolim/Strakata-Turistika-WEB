@@ -16,8 +16,15 @@ import {
   X,
   Share2,
   Calendar,
-  User
+  User,
+  Edit,
+  Trash2,
+  Save,
+  RotateCcw
 } from 'lucide-react';
+import { deleteVisit, updateVisit } from "@/actions/visit-actions";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
 import { VisitDataWithUser } from '@/lib/results-utils';
@@ -49,6 +56,54 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
   const [fullVisitData, setFullVisitData] = useState<FullVisitData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'map' | 'photos'>('info');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDate, setEditDate] = useState<string>('');
+
+  useEffect(() => {
+    if (visit?.visitDate) {
+      // Format to YYYY-MM-DD for input type="date"
+      try {
+        const d = new Date(visit.visitDate);
+        setEditDate(d.toISOString().split('T')[0]);
+      } catch (e) {
+        setEditDate('');
+      }
+    }
+  }, [visit]);
+
+  const handleSave = async () => {
+    if (!visit) return;
+
+    if (!editDate) {
+      toast.error("Datum nesmí být prázdné");
+      return;
+    }
+
+    const result = await updateVisit(visit.id, { visitDate: new Date(editDate) });
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Uloženo");
+      setIsEditing(false);
+      onClose(); // Close to refresh data or force reload
+      // Ideally we should update local state but revalidatePath is server side.
+      // A simple window reload or context refresh might be needed if we don't want to close.
+      window.location.reload();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!visit) return;
+    if (confirm("Opravdu chcete smazat tento záznam?")) {
+      const result = await deleteVisit(visit.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Smazáno");
+        onClose();
+      }
+    }
+  };
 
   // Load detailed data
   useEffect(() => {
@@ -132,6 +187,43 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
           </SheetClose>
         </div>
 
+        {/* Actions Bar */}
+        <div className="absolute top-4 left-4 z-50 flex gap-2">
+          {!isEditing ? (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-2 rounded-full bg-white/50 dark:bg-black/40 text-black dark:text-white backdrop-blur hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm"
+              title="Upravit"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleSave}
+                className="p-2 rounded-full bg-green-500/80 text-white backdrop-blur hover:bg-green-600 transition-colors shadow-sm"
+                title="Uložit"
+              >
+                <Save className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="p-2 rounded-full bg-gray-500/80 text-white backdrop-blur hover:bg-gray-600 transition-colors shadow-sm"
+                title="Zrušit"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleDelete}
+                className="p-2 rounded-full bg-red-500/80 text-white backdrop-blur hover:bg-red-600 transition-colors shadow-sm"
+                title="Smazat"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+
         <div className="flex flex-col h-full">
           {/* Hero Header */}
           <div className="relative shrink-0">
@@ -144,7 +236,18 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-white/50 dark:bg-white/10 border border-black/5 dark:border-white/10 text-gray-700 dark:text-gray-300 text-xs font-medium backdrop-blur-md flex items-center gap-1.5 shadow-sm">
                   <Calendar className="w-3 h-3" />
-                  {visit.visitDate ? format(new Date(visit.visitDate), "d. MMMM yyyy", { locale: cs }) : 'N/A'}
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="px-2 py-0.5 rounded border border-gray-300 text-xs text-black"
+                    />
+                  ) : (
+                    <>
+                      {visit.visitDate ? format(new Date(visit.visitDate), "d. MMMM yyyy", { locale: cs }) : 'N/A'}
+                    </>
+                  )}
                 </span>
               </div>
               <SheetTitle className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white leading-tight drop-shadow-sm">

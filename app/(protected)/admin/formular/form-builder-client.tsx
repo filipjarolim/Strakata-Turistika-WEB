@@ -60,9 +60,16 @@ interface Field {
     type: FieldType;
     required: boolean;
     order: number;
+
     placeholder?: string;
-    description?: string;
+    description?: string; // New: Tooltip/Helper text
     options?: { label: string; value: string }[];
+    validation?: { // New: Validation rules
+        minLength?: number;
+        maxLength?: number;
+        min?: number;
+        max?: number;
+    };
 }
 
 interface Step {
@@ -112,7 +119,13 @@ const DEFAULT_STEPS = [
     { id: 'upload', title: 'Nahrát' },
     { id: 'edit', title: 'Upravit detaily' },
     { id: 'finish', title: 'Dokončit' },
+    { id: 'upload', title: 'Nahrát' },
+    { id: 'edit', title: 'Upravit detaily' },
+    { id: 'finish', title: 'Dokončit' },
 ];
+
+import FormRenderer from '@/components/soutez/FormRenderer'; // Import Renderer
+import { Eye, EyeOff, MoreHorizontal, Copy, GripHorizontal } from 'lucide-react'; // New Icons
 
 export default function FormBuilderClient() {
     const [activeFormSlug, setActiveFormSlug] = useState<string>('gpx-upload');
@@ -122,6 +135,9 @@ export default function FormBuilderClient() {
     const [isSaving, setIsSaving] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({});
+    const [viewMode, setViewMode] = useState<'builder' | 'preview'>('builder'); // New: View Mode
+    const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({}); // New: Preview State
+    const [previewStep, setPreviewStep] = useState<string>('upload'); // New: Preview Step
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -303,9 +319,25 @@ export default function FormBuilderClient() {
         const overId = over.id as string;
 
         if (activeId !== overId) {
+            // Check if we are dragging a STEP
+            const isStepDrag = activeId.startsWith('step-') || currentConfig.steps.some(s => s.id === activeId);
+
+            if (isStepDrag) {
+                const oldIndex = currentConfig.steps.findIndex(s => s.id === activeId);
+                const newIndex = currentConfig.steps.findIndex(s => s.id === overId);
+
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    const newSteps = arrayMove(currentConfig.steps, oldIndex, newIndex);
+                    setCurrentConfig({ ...currentConfig, steps: newSteps });
+                }
+                return;
+            }
+
+            // Otherwise assume we are dragging FIELDS
             const sourceStepIndex = currentConfig.steps.findIndex(s => s.fields.some(f => f.id === activeId));
             const destStepIndex = currentConfig.steps.findIndex(s => s.fields.some(f => f.id === overId));
 
+            // Move within SAME step
             if (sourceStepIndex === destStepIndex && sourceStepIndex !== -1) {
                 const step = currentConfig.steps[sourceStepIndex];
                 const oldIndex = step.fields.findIndex(f => f.id === activeId);
@@ -320,6 +352,56 @@ export default function FormBuilderClient() {
             }
         }
     };
+
+    // New: Duplicate Step
+    const duplicateStep = (stepId: string) => {
+        if (!currentConfig) return;
+        const step = currentConfig.steps.find(s => s.id === stepId);
+        if (!step) return;
+
+        const newId = `step-${Date.now()}`;
+        const newStep: Step = {
+            ...step,
+            id: newId,
+            title: `${step.title} (Kopie)`,
+            fields: step.fields.map(f => ({ ...f, id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` }))
+        };
+
+        setCurrentConfig({
+            ...currentConfig,
+            steps: [...currentConfig.steps, newStep]
+        });
+        setExpandedSteps(prev => ({ ...prev, [newId]: true }));
+    };
+
+    // New: Duplicate Field
+    const duplicateField = (stepId: string, fieldId: string) => {
+        if (!currentConfig) return;
+        setCurrentConfig({
+            ...currentConfig,
+            steps: currentConfig.steps.map(step => {
+                if (step.id === stepId) {
+                    const fieldIndex = step.fields.findIndex(f => f.id === fieldId);
+                    if (fieldIndex === -1) return step;
+
+                    const field = step.fields[fieldIndex];
+                    const newField = {
+                        ...field,
+                        id: `field-${Date.now()}`,
+                        label: `${field.label} (Kopie)`,
+                        name: `${field.name}_copy`
+                    };
+
+                    const newFields = [...step.fields];
+                    newFields.splice(fieldIndex + 1, 0, newField);
+
+                    return { ...step, fields: newFields };
+                }
+                return step;
+            })
+        });
+    };
+
 
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center p-20 space-y-4">
@@ -354,6 +436,28 @@ export default function FormBuilderClient() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* View Mode Toggle */}
+                    <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl mr-2">
+                        <button
+                            onClick={() => setViewMode('builder')}
+                            className={cn(
+                                "flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                viewMode === 'builder' ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                            )}
+                        >
+                            <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Editor
+                        </button>
+                        <button
+                            onClick={() => setViewMode('preview')}
+                            className={cn(
+                                "flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                viewMode === 'preview' ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                            )}
+                        >
+                            <Eye className="w-3.5 h-3.5 mr-1.5" /> Náhled
+                        </button>
+                    </div>
+
                     <div className="relative flex-1 sm:flex-initial">
                         <select
                             value={activeFormSlug}
@@ -377,299 +481,466 @@ export default function FormBuilderClient() {
                 </div>
             </div>
 
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-            >
-                <div className="space-y-4">
-                    <AnimatePresence>
-                        {currentConfig?.steps.map((step, stepIndex) => (
-                            <motion.div
-                                key={step.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.98 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                            >
-                                <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
-                                    <div className="flex items-center justify-between py-6 px-8 bg-gray-50/50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
-                                        <div className="flex items-center gap-6 group/title cursor-pointer" onClick={() => toggleStep(step.id)}>
-                                            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white dark:bg-white/10 shadow-sm text-blue-600 dark:text-blue-400 text-sm font-black border border-gray-100 dark:border-white/5">
-                                                {stepIndex + 1}
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Input
-                                                    value={step.title}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    onChange={(e) => {
-                                                        const newConfig = { ...currentConfig };
-                                                        newConfig.steps[stepIndex].title = e.target.value;
-                                                        setCurrentConfig(newConfig);
-                                                    }}
-                                                    className="bg-transparent border-none p-0 h-auto w-auto focus-visible:ring-0 font-black text-2xl tracking-tight text-gray-900 dark:text-white"
-                                                />
-                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                                    {step.fields.length} {step.fields.length === 1 ? 'pole' : step.fields.length >= 2 && step.fields.length <= 4 ? 'pole' : 'polí'}
-                                                </p>
-                                            </div>
-                                        </div>
+            {viewMode === 'preview' ? (
+                <div className="bg-zinc-100 dark:bg-black/40 rounded-3xl p-8 border border-zinc-200 dark:border-white/10 min-h-[600px] max-w-2xl mx-auto">
+                    <div className="bg-white dark:bg-black p-8 rounded-[2rem] shadow-2xl border border-white/10">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-black text-zinc-900 dark:text-white">Náhled formuláře</h2>
+                            <div className="flex gap-2">
+                                {currentConfig?.steps.map(step => (
+                                    <button
+                                        key={step.id}
+                                        onClick={() => setPreviewStep(step.id)}
+                                        className={cn(
+                                            "w-2.5 h-2.5 rounded-full transition-all",
+                                            previewStep === step.id ? "bg-blue-500 scale-125" : "bg-zinc-300 dark:bg-zinc-700 hover:bg-zinc-400"
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                        </div>
 
-                                        <div className="flex items-center gap-3">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => removeStep(step.id)}
-                                                className="text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl h-10 px-3 transition-colors font-bold text-xs uppercase"
-                                            >
-                                                <Trash2 className="w-4 h-4 mr-2" /> Smazat krok
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => toggleStep(step.id)}
-                                                className="text-gray-400 h-10 w-10 p-0 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
-                                            >
-                                                {expandedSteps[step.id] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                            </Button>
+                        {currentConfig && (
+                            <FormRenderer
+                                slug={activeFormSlug}
+                                stepId={previewStep}
+                                values={previewValues}
+                                onChange={setPreviewValues}
+                                directDefinition={currentConfig} // Direct definition injection
+                                dark={true} // Preview in dark mode by default for premium feel
+                                context={{
+                                    // Mock context for widget previews
+                                    route: { routeTitle: 'Testovací Trasa', extraPoints: { points: 12.5 } },
+                                    photos: [],
+                                    places: [],
+                                }}
+                            />
+                        )}
+
+                        <div className="mt-8 pt-8 border-t border-zinc-100 dark:border-white/5 flex justify-between text-xs text-zinc-400">
+                            <span>Step ID: {previewStep}</span>
+                            <span>Fields: {currentConfig?.steps.find(s => s.id === previewStep)?.fields.length || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
+                    <div className="space-y-4">
+                        <SortableContext items={currentConfig?.steps.map(s => s.id) || []} strategy={verticalListSortingStrategy}>
+                            <AnimatePresence>
+                                {currentConfig?.steps.map((step, stepIndex) => (
+                                    <SortableStep
+                                        key={step.id}
+                                        step={step}
+                                        stepIndex={stepIndex}
+                                        expanded={!!expandedSteps[step.id]}
+                                        onToggle={() => toggleStep(step.id)}
+                                        onRemove={() => removeStep(step.id)}
+                                        onUpdateTitle={(title) => {
+                                            const newConfig = { ...currentConfig! };
+                                            newConfig.steps[stepIndex].title = title;
+                                            setCurrentConfig(newConfig);
+                                        }}
+                                        onDuplicate={() => duplicateStep(step.id)}
+                                        onAddField={() => addField(step.id)}
+                                        fields={step.fields}
+                                        onUpdateField={updateField}
+                                        onRemoveField={removeField}
+                                        onDuplicateField={duplicateField}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </SortableContext>
+
+                        <Button
+                            variant="outline"
+                            onClick={addStep}
+                            className="w-full h-24 border-2 border-dashed border-gray-300 dark:border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all rounded-[2.5rem] group"
+                        >
+                            <div className="flex flex-col items-center">
+                                <Plus className="w-8 h-8 text-gray-300 group-hover:text-indigo-500 transition-colors mb-2" />
+                                <span className="text-sm font-black text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 uppercase tracking-widest transition-colors">Vytvořit nový krok konfigurace</span>
+                            </div>
+                        </Button>
+                    </div>
+
+                    {typeof document !== 'undefined' && createPortal(
+                        <DragOverlay dropAnimation={null}>
+                            {activeItem ? (
+                                <div className="bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-3 opacity-90 cursor-grabbing min-w-[300px] z-[9999]">
+                                    <div className="flex items-center gap-3">
+                                        <GripVertical className="w-4 h-4 text-zinc-400" />
+                                        {/* Handle both field and step dragging preview roughly */}
+                                        <div className="text-xs font-bold text-zinc-900 dark:text-white">
+                                            {'label' in activeItem.field ? activeItem.field.label : 'Položka'}
                                         </div>
                                     </div>
-
-                                    <AnimatePresence>
-                                        {expandedSteps[step.id] && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                                            >
-                                                <CardContent className="p-4 space-y-3 bg-zinc-50/30 dark:bg-zinc-900/30">
-                                                    <SortableContext
-                                                        items={step.fields.map(f => f.id)}
-                                                        strategy={verticalListSortingStrategy}
-                                                    >
-                                                        <div className="space-y-4">
-                                                            {step.fields.map((field) => (
-                                                                <SortableField
-                                                                    key={field.id}
-                                                                    field={field}
-                                                                    stepId={step.id}
-                                                                    onUpdate={updateField}
-                                                                    onRemove={removeField}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </SortableContext>
-                                                    <div className="flex justify-center pt-4">
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => addField(step.id)}
-                                                            className="h-14 w-full border-2 border-dashed border-gray-200 dark:border-white/10 text-gray-400 hover:text-blue-500 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all rounded-[1.5rem] font-black text-sm uppercase tracking-widest gap-2 active:scale-[0.98]"
-                                                        >
-                                                            <Plus className="w-5 h-5" /> Přidat vstupní pole
-                                                        </Button>
-                                                    </div>
-                                                </CardContent>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </Card>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-
-                    <Button
-                        variant="outline"
-                        onClick={addStep}
-                        className="w-full h-24 border-2 border-dashed border-gray-300 dark:border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all rounded-[2.5rem] group"
-                    >
-                        <div className="flex flex-col items-center">
-                            <Plus className="w-8 h-8 text-gray-300 group-hover:text-indigo-500 transition-colors mb-2" />
-                            <span className="text-sm font-black text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 uppercase tracking-widest transition-colors">Vytvořit nový krok konfigurace</span>
-                        </div>
-                    </Button>
-                </div>
-
-                {typeof document !== 'undefined' && createPortal(
-                    <DragOverlay dropAnimation={null}>
-                        {activeItem ? (
-                            <div className="bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-3 opacity-90 cursor-grabbing min-w-[300px] z-[9999]">
-                                <div className="flex items-center gap-3">
-                                    <GripVertical className="w-4 h-4 text-zinc-400" />
-                                    <div className="text-xs font-bold text-zinc-900 dark:text-white">{activeItem.field.label || 'Nové pole'}</div>
                                 </div>
-                            </div>
-                        ) : null}
-                    </DragOverlay>,
-                    document.body
-                )}
-            </DndContext>
+                            ) : null}
+                        </DragOverlay>,
+                        document.body
+                    )}
+                </DndContext>
+            )}
         </div>
     );
-}
+    // Sortable Step Implementation
+    interface SortableStepProps {
+        step: Step;
+        stepIndex: number;
+        expanded: boolean;
+        onToggle: () => void;
+        onRemove: () => void;
+        onUpdateTitle: (title: string) => void;
+        onDuplicate: () => void;
+        onAddField: () => void;
+        fields: Field[];
+        onUpdateField: (stepId: string, fieldId: string, updates: Partial<Field>) => void;
+        onRemoveField: (stepId: string, fieldId: string) => void;
+        onDuplicateField: (stepId: string, fieldId: string) => void;
+    }
 
-function SortableField({ field, stepId, onUpdate, onRemove }: {
-    field: Field,
-    stepId: string,
-    onUpdate: (s: string, f: string, u: Partial<Field>) => void,
-    onRemove: (s: string, f: string) => void
-}) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({ id: field.id });
+    function SortableStep(props: SortableStepProps) {
+        const {
+            attributes,
+            listeners,
+            setNodeRef,
+            transform,
+            transition,
+            isDragging
+        } = useSortable({ id: props.step.id });
 
-    const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
+        const style = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+            opacity: isDragging ? 0.3 : 1, // Dim when dragging
+            zIndex: isDragging ? 999 : 1
+        };
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0 : 1,
-    };
-
-    const typeConfig = FIELD_TYPES.find(t => t.type === field.type) || FIELD_TYPES[0];
-    const FieldIcon = typeConfig.icon;
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            className={cn(
-                "group relative bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-2 transition-all",
-                isDragging ? "border-zinc-900 dark:border-white shadow-xl scale-[0.98]" : "hover:border-zinc-300 dark:hover:border-zinc-700"
-            )}
-        >
-            <div className="flex items-center gap-3">
-                <div {...attributes} {...listeners} className="text-zinc-300 hover:text-zinc-600 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing p-1">
-                    <GripVertical className="w-4 h-4" />
-                </div>
-
-                <div className="flex-1 grid grid-cols-12 gap-2 items-center">
-                    {/* Compact Label */}
-                    <div className="col-span-4 px-1">
-                        <Input
-                            value={field.label}
-                            onChange={(e) => onUpdate(stepId, field.id, { label: e.target.value })}
-                            placeholder="Zobrazit jako..."
-                            className="h-8 bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-700 text-xs font-bold rounded-lg px-2"
-                        />
-                    </div>
-
-                    {/* Type Select */}
-                    <div className="col-span-3">
-                        <div className="relative">
-                            <select
-                                value={field.type}
-                                onChange={(e) => onUpdate(stepId, field.id, { type: e.target.value as FieldType })}
-                                className="w-full appearance-none h-8 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[10px] pl-7 pr-6 font-black focus:outline-none cursor-pointer"
-                            >
-                                {FIELD_TYPES.map(t => (
-                                    <option key={t.type} value={t.type}>{t.label}</option>
-                                ))}
-                            </select>
-                            <FieldIcon className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 transition-colors", typeConfig.color.split(' ')[0])} />
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-zinc-400 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    {/* Technical ID */}
-                    <div className="col-span-2">
-                        <Input
-                            value={field.name}
-                            onChange={(e) => onUpdate(stepId, field.id, { name: e.target.value })}
-                            placeholder="database_key"
-                            className="h-8 bg-zinc-100/50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-700 text-[9px] font-mono rounded-lg px-2 opacity-60 hover:opacity-100 transition-opacity"
-                        />
-                    </div>
-
-                    {/* Actions Row */}
-                    <div className="col-span-3 flex items-center justify-end gap-2">
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700 scale-90">
-                            <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tighter">REQ</span>
-                            <IOSSwitch
-                                checked={field.required}
-                                onCheckedChange={(checked) => onUpdate(stepId, field.id, { required: checked })}
-                            />
+        return (
+            <motion.div
+                ref={setNodeRef}
+                style={style}
+                layout
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className={cn(isDragging && "scale-[1.02] shadow-2xl")}
+            >
+                <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between py-6 px-8 bg-gray-50/50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
+                        <div className="flex items-center gap-6">
+                            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-zinc-300 hover:text-zinc-500">
+                                <GripVertical className="w-6 h-6" />
+                            </div>
+                            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white dark:bg-white/10 shadow-sm text-blue-600 dark:text-blue-400 text-sm font-black border border-gray-100 dark:border-white/5">
+                                {props.stepIndex + 1}
+                            </div>
+                            <div className="space-y-1">
+                                <Input
+                                    value={props.step.title}
+                                    onChange={(e) => props.onUpdateTitle(e.target.value)}
+                                    className="bg-transparent border-none p-0 h-auto w-auto focus-visible:ring-0 font-black text-2xl tracking-tight text-gray-900 dark:text-white"
+                                />
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                    {props.fields.length} {props.fields.length === 1 ? 'pole' : props.fields.length >= 2 && props.fields.length <= 4 ? 'pole' : 'polí'}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-0.5">
-                            {field.type === 'select' && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
-                                    className={cn("h-7 w-7 p-0 rounded-lg", isOptionsExpanded ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-sm" : "text-zinc-400")}
-                                >
-                                    <Settings2 className="w-3.5 h-3.5" />
-                                </Button>
-                            )}
+                        <div className="flex items-center gap-3">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onRemove(stepId, field.id)}
-                                className="h-7 w-7 p-0 text-zinc-300 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg"
+                                onClick={props.onDuplicate}
+                                title="Duplikovat krok"
+                                className="text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl h-10 px-3 transition-colors font-bold text-xs uppercase"
                             >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Copy className="w-4 h-4 mr-2" /> Klonovat
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={props.onRemove}
+                                className="text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl h-10 px-3 transition-colors font-bold text-xs uppercase"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" /> Smazat
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={props.onToggle}
+                                className="text-gray-400 h-10 w-10 p-0 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
+                            >
+                                {props.expanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                             </Button>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Collapsible Options Section */}
-            {field.type === 'select' && isOptionsExpanded && (
-                <div className="mt-2 ml-10 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Konfigurace možností</span>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                                const options = field.options || [];
-                                onUpdate(stepId, field.id, {
-                                    options: [...options, { label: 'Možnost', value: `val_${Date.now()}` }]
-                                });
-                            }}
-                            className="h-6 text-[9px] font-black text-blue-500 hover:text-blue-600 uppercase rounded-md"
-                        >
-                            + Přidat možnost
-                        </Button>
+                    <AnimatePresence>
+                        {props.expanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                            >
+                                <CardContent className="p-4 space-y-3 bg-zinc-50/30 dark:bg-zinc-900/30">
+                                    <SortableContext
+                                        items={props.fields.map(f => f.id)}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        <div className="space-y-4">
+                                            {props.fields.map((field) => (
+                                                <SortableField
+                                                    key={field.id}
+                                                    field={field}
+                                                    stepId={props.step.id}
+                                                    onUpdate={props.onUpdateField}
+                                                    onRemove={props.onRemoveField}
+                                                    onDuplicate={props.onDuplicateField}
+                                                />
+                                            ))}
+                                        </div>
+                                    </SortableContext>
+                                    <div className="flex justify-center pt-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={props.onAddField}
+                                            className="h-14 w-full border-2 border-dashed border-gray-200 dark:border-white/10 text-gray-400 hover:text-blue-500 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all rounded-[1.5rem] font-black text-sm uppercase tracking-widest gap-2 active:scale-[0.98]"
+                                        >
+                                            <Plus className="w-5 h-5" /> Přidat vstupní pole
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </Card>
+            </motion.div>
+        );
+    }
+
+    function SortableField({ field, stepId, onUpdate, onRemove, onDuplicate }: {
+        field: Field,
+        stepId: string,
+        onUpdate: (s: string, f: string, u: Partial<Field>) => void,
+        onRemove: (s: string, f: string) => void,
+        onDuplicate: (s: string, f: string) => void
+    }) {
+        const {
+            attributes,
+            listeners,
+            setNodeRef,
+            transform,
+            transition,
+            isDragging
+        } = useSortable({ id: field.id });
+
+        const [isOptionsExpanded, setIsOptionsExpanded] = useState(false);
+        const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false); // New: Advanced settings
+
+        const style = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+            opacity: isDragging ? 0 : 1,
+        };
+
+        const typeConfig = FIELD_TYPES.find(t => t.type === field.type) || FIELD_TYPES[0];
+        const FieldIcon = typeConfig.icon;
+
+        return (
+            <div
+                ref={setNodeRef}
+                style={style}
+                className={cn(
+                    "group relative bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-2 transition-all",
+                    isDragging ? "border-zinc-900 dark:border-white shadow-xl scale-[0.98]" : "hover:border-zinc-300 dark:hover:border-zinc-700"
+                )}
+            >
+                <div className="flex items-center gap-3">
+                    <div {...attributes} {...listeners} className="text-zinc-300 hover:text-zinc-600 dark:hover:text-zinc-400 cursor-grab active:cursor-grabbing p-1">
+                        <GripVertical className="w-4 h-4" />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {field.options?.map((opt, optIndex) => (
-                            <div key={optIndex} className="flex items-center gap-1 group/opt">
-                                <Input
-                                    value={opt.label}
-                                    onChange={(e) => {
-                                        const newOpts = [...(field.options || [])];
-                                        newOpts[optIndex].label = e.target.value;
-                                        newOpts[optIndex].value = e.target.value.toLowerCase().trim().replace(/\s+/g, '_');
-                                        onUpdate(stepId, field.id, { options: newOpts });
-                                    }}
-                                    placeholder="Popisek volby"
-                                    className="h-7 text-[10px] px-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 font-medium"
+
+                    <div className="flex-1 grid grid-cols-12 gap-2 items-center">
+                        {/* Compact Label */}
+                        <div className="col-span-4 px-1">
+                            <Input
+                                value={field.label}
+                                onChange={(e) => onUpdate(stepId, field.id, { label: e.target.value })}
+                                placeholder="Zobrazit jako..."
+                                className="h-8 bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-700 text-xs font-bold rounded-lg px-2"
+                            />
+                        </div>
+
+                        {/* Type Select */}
+                        <div className="col-span-3">
+                            <div className="relative">
+                                <select
+                                    value={field.type}
+                                    onChange={(e) => onUpdate(stepId, field.id, { type: e.target.value as FieldType })}
+                                    className="w-full appearance-none h-8 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[10px] pl-7 pr-6 font-black focus:outline-none cursor-pointer"
+                                >
+                                    {FIELD_TYPES.map(t => (
+                                        <option key={t.type} value={t.type}>{t.label}</option>
+                                    ))}
+                                </select>
+                                <FieldIcon className={cn("absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 transition-colors", typeConfig.color.split(' ')[0])} />
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-zinc-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Technical ID */}
+                        <div className="col-span-2">
+                            <Input
+                                value={field.name}
+                                onChange={(e) => onUpdate(stepId, field.id, { name: e.target.value })}
+                                placeholder="database_key"
+                                className="h-8 bg-zinc-100/50 dark:bg-zinc-900/30 border-zinc-200 dark:border-zinc-700 text-[9px] font-mono rounded-lg px-2 opacity-60 hover:opacity-100 transition-opacity"
+                            />
+                        </div>
+
+                        {/* Actions Row */}
+                        <div className="col-span-3 flex items-center justify-end gap-2">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700 scale-90">
+                                <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tighter">REQ</span>
+                                <IOSSwitch
+                                    checked={field.required}
+                                    onCheckedChange={(checked) => onUpdate(stepId, field.id, { required: checked })}
                                 />
+                            </div>
+
+                            <div className="flex items-center gap-0.5">
+                                {/* NEW: Advanced Options Toggle */}
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => {
-                                        const newOpts = field.options?.filter((_, i) => i !== optIndex);
-                                        onUpdate(stepId, field.id, { options: newOpts });
-                                    }}
-                                    className="h-7 w-7 p-0 text-zinc-300 hover:text-rose-500 opacity-0 group-hover/opt:opacity-100 transition-opacity"
+                                    onClick={() => setIsAdvancedExpanded(!isAdvancedExpanded)}
+                                    className={cn("h-7 w-7 p-0 rounded-lg", isAdvancedExpanded ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-sm" : "text-zinc-400")}
+                                    title="Pokročilé nastavení"
                                 >
-                                    <Trash2 className="w-2.5 h-2.5" />
+                                    <MoreHorizontal className="w-3.5 h-3.5" />
+                                </Button>
+
+                                {/* NEW: Duplicate Button */}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onDuplicate(stepId, field.id)}
+                                    className="h-7 w-7 p-0 text-zinc-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg"
+                                    title="Duplikovat"
+                                >
+                                    <Copy className="w-3.5 h-3.5" />
+                                </Button>
+
+                                {field.type === 'select' && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
+                                        className={cn("h-7 w-7 p-0 rounded-lg", isOptionsExpanded ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-sm" : "text-zinc-400")}
+                                    >
+                                        <List className="w-3.5 h-3.5" />
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onRemove(stepId, field.id)}
+                                    className="h-7 w-7 p-0 text-zinc-300 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                             </div>
-                        ))}
+                        </div>
                     </div>
                 </div>
-            )}
-        </div>
-    );
+
+                {/* Collapsible Options Section */}
+                {field.type === 'select' && isOptionsExpanded && (
+                    <div className="mt-2 ml-10 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Konfigurace možností</span>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    const options = field.options || [];
+                                    onUpdate(stepId, field.id, {
+                                        options: [...options, { label: 'Možnost', value: `val_${Date.now()}` }]
+                                    });
+                                }}
+                                className="h-6 text-[9px] font-black text-blue-500 hover:text-blue-600 uppercase rounded-md"
+                            >
+                                + Přidat možnost
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {field.options?.map((opt, optIndex) => (
+                                <div key={optIndex} className="flex items-center gap-1 group/opt">
+                                    <Input
+                                        value={opt.label}
+                                        onChange={(e) => {
+                                            const newOpts = [...(field.options || [])];
+                                            newOpts[optIndex].label = e.target.value;
+                                            newOpts[optIndex].value = e.target.value.toLowerCase().trim().replace(/\s+/g, '_');
+                                            onUpdate(stepId, field.id, { options: newOpts });
+                                        }}
+                                        placeholder="Popisek volby"
+                                        className="h-7 text-[10px] px-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 font-medium"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            const newOpts = field.options?.filter((_, i) => i !== optIndex);
+                                            onUpdate(stepId, field.id, { options: newOpts });
+                                        }}
+                                        className="h-7 w-7 p-0 text-zinc-300 hover:text-rose-500 opacity-0 group-hover/opt:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 className="w-2.5 h-2.5" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* NEW: Collapsible Advanced Settings (Placeholder, Desc) */}
+                {isAdvancedExpanded && (
+                    <div className="mt-2 ml-10 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Pokročilé nastavení</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-[9px] uppercase font-bold text-zinc-400 pl-1">Placeholder</label>
+                                <Input
+                                    value={field.placeholder || ''}
+                                    onChange={(e) => onUpdate(stepId, field.id, { placeholder: e.target.value })}
+                                    placeholder="Např. Zadejte vaše jméno..."
+                                    className="h-8 text-xs bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[9px] uppercase font-bold text-zinc-400 pl-1">Vysvětlivka (pod polem)</label>
+                                <Input
+                                    value={field.description || ''}
+                                    onChange={(e) => onUpdate(stepId, field.id, { description: e.target.value })}
+                                    placeholder="Nápověda pro uživatele..."
+                                    className="h-8 text-xs bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 }

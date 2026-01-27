@@ -27,7 +27,7 @@ const Page = async () => {
 
     return (
         <CommonPageTemplate contents={{ header: true }} currentUser={user} currentRole={role}>
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-[90%] mx-auto">
                 <div className="mb-8 space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight">Uživatelský profil</h1>
                     <p className="text-muted-foreground">Spravujte své osobní údaje a nastavení účtu.</p>

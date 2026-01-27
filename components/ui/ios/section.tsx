@@ -24,10 +24,10 @@ export const IOSSection = ({
       {(title || subtitle) && (
         <div className={cn("space-y-1", headerClassName)}>
           {title && (
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
           )}
           {subtitle && (
-            <p className="text-sm text-gray-500">{subtitle}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
           )}
         </div>
       )}

@@ -18,29 +18,29 @@ interface IOSCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
-  ({ 
-    title, 
-    subtitle, 
-    icon, 
-    iconBackground = "bg-blue-100", 
+  ({
+    title,
+    subtitle,
+    icon,
+    iconBackground = "bg-blue-100",
     iconColor = "text-blue-600",
-    footer, 
-    variant = "default", 
+    footer,
+    variant = "default",
     className,
     headerClassName,
     contentClassName,
     footerClassName,
     titleClassName,
     subtitleClassName,
-    children, 
-    ...props 
+    children,
+    ...props
   }, ref) => {
     const cardRef = useRef<HTMLDivElement>(null);
 
     const baseStyles = {
-      default: "bg-white/95 backdrop-blur-2xl border border-gray-200/30 shadow-xl shadow-black/5",
-      elevated: "bg-white/98 backdrop-blur-2xl shadow-2xl border border-gray-200/20",
-      outlined: "border-2 border-gray-200/50 bg-transparent backdrop-blur-sm"
+      default: "bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border border-gray-200/30 dark:border-white/10 shadow-xl shadow-black/5",
+      elevated: "bg-white/98 dark:bg-zinc-900/98 backdrop-blur-2xl shadow-2xl border border-gray-200/20 dark:border-white/10",
+      outlined: "border-2 border-gray-200/50 dark:border-white/10 bg-transparent backdrop-blur-sm"
     };
 
     const iconContainerStyles = cn(
@@ -80,16 +80,16 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
             <div className="flex-1 min-w-0">
               {title && (
                 <h3 className={cn(
-                  "text-xl sm:text-2xl font-bold mb-2",
-                  titleClassName || "text-gray-900"
+                  "text-xl sm:text-2xl font-bold mb-2 text-gray-900 dark:text-white",
+                  titleClassName
                 )}>
                   {title}
                 </h3>
               )}
               {subtitle && (
                 <p className={cn(
-                  "text-sm line-clamp-2 leading-relaxed",
-                  subtitleClassName || "text-gray-600"
+                  "text-sm line-clamp-2 leading-relaxed text-gray-600 dark:text-gray-400",
+                  subtitleClassName
                 )}>
                   {subtitle}
                 </p>
@@ -106,7 +106,7 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
         </div>
         {footer && (
           <div className={cn(
-            "px-6 sm:px-8 py-4 sm:py-5 bg-gray-50/50 border-t border-gray-100/50 backdrop-blur-sm",
+            "px-6 sm:px-8 py-4 sm:py-5 bg-gray-50/50 dark:bg-white/5 border-t border-gray-100/50 dark:border-white/5 backdrop-blur-sm",
             footerClassName
           )}>
             {footer}

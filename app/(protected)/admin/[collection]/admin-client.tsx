@@ -26,7 +26,8 @@ import {
   Minimize2,
   Copy,
   User,
-  ExternalLink
+  ExternalLink,
+  Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
@@ -91,6 +92,9 @@ export default function AdminClient() {
   // Seasons data
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loadingSeasons, setLoadingSeasons] = useState(false);
+
+  // Stats data
+  const [visitStats, setVisitStats] = useState<{ total: number; pending: number; approved: number; rejected: number } | null>(null);
 
   // Action states
   const [processingAction, setProcessingAction] = useState<string | null>(null);
@@ -199,6 +203,22 @@ export default function AdminClient() {
         }
       };
       fetchSeasons();
+      fetchSeasons();
+    }
+  }, [collection]);
+
+  // Load Stats for VisitData
+  useEffect(() => {
+    if (collection === 'VisitData') {
+      fetch('/api/admin/stats')
+        .then(res => res.json())
+        .then(data => setVisitStats({
+          total: data.total || 0,
+          pending: data.pending || 0,
+          approved: data.approved || 0,
+          rejected: data.rejected || 0
+        }))
+        .catch(err => console.error("Failed to load stats", err));
     }
   }, [collection]);
 
@@ -792,6 +812,31 @@ export default function AdminClient() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+
+      {/* Stats for VisitData */}
+      {collection === 'VisitData' && visitStats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6">
+          {[
+            { label: "Celkem", value: visitStats.total, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-500/5", icon: MapPin },
+            { label: "Čekající", value: visitStats.pending, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-500/5", icon: Clock },
+            { label: "Schváleno", value: visitStats.approved, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-500/5", icon: Check },
+            { label: "Zamítnuto", value: visitStats.rejected, color: "text-rose-600 dark:text-rose-400", bgColor: "bg-rose-500/5", icon: AlertCircle },
+          ].map((stat, i) => (
+            <div key={i} className="group relative">
+              <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 flex flex-col items-start transition-all duration-300 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm">
+                <div className={`p-2 rounded-xl mb-4 ${stat.bgColor}`}>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{stat.label}</span>
+                <span className={`text-2xl font-black tracking-tight ${stat.color}`}>
+                  {new Intl.NumberFormat('cs-CZ').format(stat.value)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Header Controls */}
       <div className="flex flex-col gap-3 sm:gap-4">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">

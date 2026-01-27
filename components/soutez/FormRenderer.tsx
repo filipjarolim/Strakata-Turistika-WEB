@@ -55,19 +55,26 @@ export interface FormRendererContext {
 }
 
 interface FormRendererProps {
-    slug: string;
+    slug: string; // Keep slug optional or handle logic inside
     stepId: string;
     values: Record<string, unknown>;
     onChange: (values: Record<string, unknown>) => void;
     context?: FormRendererContext;
     dark?: boolean;
+    directDefinition?: FormDefinition | null; // NEW: For preview mode
 }
 
-export default function FormRenderer({ slug, stepId, values, onChange, context, dark = false }: FormRendererProps) {
-    const [definition, setDefinition] = useState<FormDefinition | null>(null);
-    const [loading, setLoading] = useState(true);
+export default function FormRenderer({ slug, stepId, values, onChange, context, dark = false, directDefinition }: FormRendererProps) {
+    const [definition, setDefinition] = useState<FormDefinition | null>(directDefinition || null);
+    const [loading, setLoading] = useState(!directDefinition);
 
     useEffect(() => {
+        if (directDefinition) {
+            setDefinition(directDefinition);
+            setLoading(false);
+            return;
+        }
+
         fetch(`/api/forms/${slug}`)
             .then(res => res.json())
             .then(data => {
@@ -78,13 +85,18 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 console.error('Failed to load form definition', err);
                 setLoading(false);
             });
-    }, [slug]);
+    }, [slug, directDefinition]);
 
     const handleChange = (name: string, value: unknown) => {
         onChange({ ...values, [name]: value });
     };
 
-    if (loading) return <div className="text-white/50 text-sm animate-pulse">Načítání formuláře...</div>;
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center p-8 space-y-4">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-white/50 text-sm font-medium">Načítání formuláře...</p>
+        </div>
+    );
     if (!definition) return null;
 
     const currentStep = definition.steps.find(s => s.id === stepId);
@@ -105,6 +117,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             onChange={(e: any) => handleChange(field.name, e.target.value)}
                             required={field.required}
                             dark={dark}
+                            placeholder={(field as any).placeholder || ''}
                         />
                     );
                 }
@@ -119,6 +132,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                             onChange={(e: any) => handleChange(field.name, parseFloat(e.target.value) || 0)}
                             required={field.required}
                             dark={dark}
+                            placeholder={(field as any).placeholder || ''}
                         />
                     );
                 }
@@ -139,6 +153,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                     border: dark ? 'border-zinc-800' : 'border-gray-300',
                                     focus: 'border-blue-500'
                                 }}
+                                placeholder={(field as any).placeholder || ''}
                             />
                         </div>
                     );

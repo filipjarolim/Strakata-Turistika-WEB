@@ -15,6 +15,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 import { NewsService, NewsItem } from "@/lib/news-service";
+import { deleteNews } from "@/actions/news-actions";
+import { Trash2, Calendar as CalendarIcon, Eye, EyeOff } from "lucide-react"; // Renamed Calendar to CalendarIcon to avoid conflict if I use Calendar component
+import { Switch } from "@/components/ui/switch";
+import { format } from "date-fns";
 
 // NewsItem is imported now
 
@@ -34,6 +38,10 @@ export default function News({ showHeader = true, showAddButton = true, variant 
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+    // Import actions dynamically or assume they are available
+    // Since this is a client component, we need to pass actions or import them.
+    // I added imports at the top below.
+
     // Filter State
     const [search, setSearch] = useState("");
     const [view, setView] = useState<"grid" | "list">("grid");
@@ -47,7 +55,8 @@ export default function News({ showHeader = true, showAddButton = true, variant 
         content: "",
         summary: "",
         images: [] as ImageSource[],
-        published: true
+        published: true,
+        createdAt: new Date().toISOString().slice(0, 16)
     });
 
     const role = useCurrentRole();
@@ -119,8 +128,15 @@ export default function News({ showHeader = true, showAddButton = true, variant 
 
     // Admin Functions
     const resetForm = () => {
-        setFormData({ title: "", content: "", summary: "", images: [], published: true });
         setEditId(null);
+        setFormData({
+            title: "",
+            content: "",
+            summary: "",
+            images: [],
+            published: true,
+            createdAt: new Date().toISOString().slice(0, 16)
+        });
     };
 
     const handleEdit = (item: NewsItem) => {
@@ -130,7 +146,8 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             content: item.content || "",
             summary: item.summary || "",
             images: item.images || [],
-            published: item.published
+            published: item.published ?? true,
+            createdAt: item.createdAt ? new Date(item.createdAt).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)
         });
         setOpen(true);
     };
@@ -163,6 +180,33 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             setIsSubmitting(false);
         }
     };
+
+    const handleDelete = async (id: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (!confirm("Opravdu chcete smazat tuto aktualitu?")) return;
+
+        try {
+            setIsSubmitting(true);
+            const res = await deleteNews(id);
+            if (res.error) {
+                toast.error(res.error);
+            } else {
+                toast.success("Aktualita smazána");
+                if (open) setOpen(false);
+                fetchNews(1, true, search);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Nepodařilo se smazat aktualitu");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
 
     const handleImageUpload = async (file: File, title: string) => {
         const fd = new FormData();
@@ -250,6 +294,13 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                                             >
                                                 Editovat
                                             </button>
+                                            <button
+                                                onClick={(e) => handleDelete(item.id, e)}
+                                                className="bg-red-600/90 backdrop-blur text-white p-1 rounded hover:bg-red-700"
+                                                title="Smazat"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -281,12 +332,38 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                     <DialogDescription className="hidden">Formulář aktuality</DialogDescription>
 
                     <div className="space-y-4 mt-4">
-                        <Input
-                            placeholder="Nadpis"
-                            value={formData.title}
-                            onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            className={isDark ? "bg-black/40 border-gray-700" : ""}
-                        />
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <Input
+                                    placeholder="Nadpis"
+                                    value={formData.title}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                    className={isDark ? "bg-black/40 border-gray-700" : ""}
+                                />
+                            </div>
+                            <div className="w-48">
+                                <Input
+                                    type="datetime-local"
+                                    value={formData.createdAt}
+                                    onChange={e => setFormData({ ...formData, createdAt: e.target.value })}
+                                    className={isDark ? "bg-black/40 border-gray-700" : ""}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 pb-2">
+                            <Switch
+                                checked={formData.published}
+                                onCheckedChange={(checked) => setFormData({ ...formData, published: checked })}
+                                id="published-mode"
+                            />
+                            <label
+                                htmlFor="published-mode"
+                                className={cn("text-sm font-medium cursor-pointer flex items-center gap-2", isDark ? "text-gray-300" : "text-gray-700")}
+                            >
+                                {formData.published ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4 text-gray-500" />}
+                                {formData.published ? "Publikováno" : "Skryto (Draft)"}
+                            </label>
+                        </div>
                         <Input
                             placeholder="Krátký souhrn (max 500 znaků)"
                             value={formData.summary}
@@ -306,9 +383,22 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                             onDelete={async (pid) => setFormData(p => ({ ...p, images: p.images.filter(i => i.public_id !== pid) }))}
                             count={1} // For now limit to 1 main image for simplicity of card, or update card to slideshow
                         />
-                        <div className="flex justify-end gap-2">
-                            <IOSButton variant="ghost" onClick={() => setOpen(false)}>Zrušit</IOSButton>
-                            <IOSButton onClick={handleSubmit} loading={isSubmitting}>Uložit</IOSButton>
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-800">
+                            {editId && (
+                                <IOSButton
+                                    variant="outline"
+                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20"
+                                    onClick={() => handleDelete(editId)}
+                                    loading={isSubmitting}
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Smazat
+                                </IOSButton>
+                            )}
+                            <div className="flex gap-2 ml-auto">
+                                <IOSButton variant="ghost" onClick={() => setOpen(false)}>Zrušit</IOSButton>
+                                <IOSButton onClick={handleSubmit} loading={isSubmitting}>Uložit</IOSButton>
+                            </div>
                         </div>
                     </div>
                 </DialogContent>
