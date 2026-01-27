@@ -29,7 +29,7 @@ export async function PUT(
     const body = await req.json();
     const { id } = params;
 
-    console.log('Updating visitData:', { id, body });
+
 
     // Get existing record to preserve data if not updating
     const existingRecord = await db.visitData.findUnique({ where: { id } });

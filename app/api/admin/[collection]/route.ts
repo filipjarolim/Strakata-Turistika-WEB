@@ -8,20 +8,20 @@ export async function GET(
     { params }: { params: Promise<{ collection: string }> }
 ) {
     try {
-        console.log("Admin API: Starting request");
-        
+
+
         const role = await currentRole();
-        console.log("Admin API: User role:", role);
+
 
         // Check if user is admin
         if (role !== UserRole.ADMIN) {
-            console.log("Admin API: Unauthorized access - role is not ADMIN");
+
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
         const { collection } = await params;
-        console.log("Admin API: Fetching collection:", collection);
-        
+
+
         // Parse query parameters for pagination
         const url = new URL(request.url);
         const page = parseInt(url.searchParams.get('page') || '1');
@@ -31,16 +31,16 @@ export async function GET(
         const sortDesc = url.searchParams.get('sortDesc') === 'true';
         const seasonFilter = url.searchParams.get('season') || '';
         const stateFilter = url.searchParams.get('state') || '';
-        
-        console.log("Admin API: Pagination params:", { page, limit, searchQuery, sortBy, sortDesc });
-        
+
+
+
         let records: unknown[] = [];
         let totalCount = 0;
 
         // Get records based on collection name with pagination
         const skip = (page - 1) * limit;
         const orderBy = { [sortBy]: sortDesc ? 'desc' : 'asc' };
-        
+
         switch (collection) {
             case "User":
                 const userWhere = searchQuery ? {
@@ -123,7 +123,7 @@ export async function GET(
             case "VisitData":
                 // Build where clause with search, season and state filter
                 const visitDataWhereConditions: Record<string, unknown>[] = [];
-                
+
                 if (searchQuery) {
                     visitDataWhereConditions.push({
                         OR: [
@@ -133,19 +133,19 @@ export async function GET(
                         ]
                     });
                 }
-                
+
                 if (seasonFilter) {
                     visitDataWhereConditions.push({ seasonId: seasonFilter });
                 }
-                
+
                 if (stateFilter) {
                     visitDataWhereConditions.push({ state: stateFilter });
                 }
-                
-                const visitDataWhere = visitDataWhereConditions.length > 0 
+
+                const visitDataWhere = visitDataWhereConditions.length > 0
                     ? { AND: visitDataWhereConditions }
                     : {};
-                
+
                 // Query without problematic createdAt field
                 try {
                     const rawRecords = await db.visitData.findMany({
@@ -174,7 +174,7 @@ export async function GET(
                             places: true
                         }
                     });
-                    
+
                     records = rawRecords;
                     totalCount = await db.visitData.count({ where: visitDataWhere });
                 } catch (visitDataError) {
@@ -240,15 +240,15 @@ export async function GET(
                 totalCount = await db.scoringConfig.count();
                 break;
             default:
-                console.log("Admin API: Unknown collection:", collection);
+
                 return new NextResponse(`Unknown collection: ${collection}`, { status: 400 });
         }
 
         const totalPages = Math.ceil(totalCount / limit);
         const hasMore = page < totalPages;
 
-        console.log(`Admin API: Successfully fetched ${records.length} records for ${collection} (page ${page}/${totalPages})`);
-        
+
+
         return NextResponse.json({
             data: records,
             total: totalCount,
@@ -281,7 +281,7 @@ export async function DELETE(
             return NextResponse.json({ error: "No IDs provided" }, { status: 400 });
         }
 
-        console.log(`Bulk deleting ${ids.length} records from collection ${collection}`);
+
 
         let deletedCount = 0;
 
@@ -339,10 +339,10 @@ export async function DELETE(
                 return NextResponse.json({ error: `Unknown collection: ${collection}` }, { status: 400 });
         }
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             message: `Successfully deleted ${deletedCount} record(s)`,
-            deletedCount 
+            deletedCount
         });
     } catch (error: unknown) {
         console.error("Error bulk deleting records:", error);

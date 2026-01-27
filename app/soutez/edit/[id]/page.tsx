@@ -29,7 +29,7 @@ import { IOSCalendar } from '@/components/ui/ios/calendar';
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
   () => import('@/components/editor/GpxEditor').then(mod => mod.default),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -101,21 +101,21 @@ interface ImageData {
 // Add downsampling function
 function downsampleTrack(points: { lat: number; lng: number }[], maxPoints = 1000) {
   if (points.length <= maxPoints) return points;
-  
+
   // Calculate the step size to get approximately maxPoints
   const step = Math.ceil(points.length / maxPoints);
-  
+
   // Always include first and last point
   const result = [points[0]];
-  
+
   // Sample points at regular intervals
   for (let i = step; i < points.length - step; i += step) {
     result.push(points[i]);
   }
-  
+
   // Add the last point
   result.push(points[points.length - 1]);
-  
+
   return result;
 }
 
@@ -124,18 +124,18 @@ function calculateDistance(point1: TrackPoint, point2: TrackPoint): number {
   const R = 6371; // Earth's radius in km
   const dLat = (point2.lat - point1.lat) * Math.PI / 180;
   const dLon = (point2.lng - point1.lng) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
 function calculateElevationGain(points: TrackPoint[]): number {
   let totalGain = 0;
   for (let i = 1; i < points.length; i++) {
-    const ele1 = points[i-1].ele || 0;
+    const ele1 = points[i - 1].ele || 0;
     const ele2 = points[i].ele || 0;
     const diff = ele2 - ele1;
     if (diff > 0) {
@@ -147,14 +147,14 @@ function calculateElevationGain(points: TrackPoint[]): number {
 
 function calculateRouteStats(points: TrackPoint[]): { distance: number; elevationGain: number } {
   if (points.length < 2) return { distance: 0, elevationGain: 0 };
-  
+
   let totalDistance = 0;
   for (let i = 1; i < points.length; i++) {
-    totalDistance += calculateDistance(points[i-1], points[i]);
+    totalDistance += calculateDistance(points[i - 1], points[i]);
   }
-  
+
   const elevationGain = calculateElevationGain(points);
-  
+
   return {
     distance: totalDistance,
     elevationGain
@@ -200,7 +200,7 @@ export default function EditRoutePage() {
         if (!response.ok) throw new Error('Failed to fetch route');
         const data = await response.json();
         const track = data.routeLink ? JSON.parse(data.routeLink) : [];
-        
+
         setRoute({
           id: data.id,
           routeTitle: data.routeTitle,
@@ -247,11 +247,11 @@ export default function EditRoutePage() {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      console.log('Saving route data...', { routeTitle: route?.routeTitle, formData });
-      
+
+
       // Calculate route statistics
       const stats = calculateRouteStats(route?.track || []);
-      
+
       const response = await fetch(`/api/visitData/${params.id}`, {
         method: 'PUT',
         headers: {
@@ -311,10 +311,10 @@ export default function EditRoutePage() {
 
   const handleTrackSave = (track: TrackPoint[]) => {
     if (!route) return;
-    
+
     // Calculate new route statistics
     const stats = calculateRouteStats(track);
-    
+
     // Update route with new track and stats
     const updatedRoute = {
       ...route,
@@ -348,16 +348,16 @@ export default function EditRoutePage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', 'your_upload_preset'); // Replace with your actual upload preset
-      
+
       const response = await fetch(`https://api.cloudinary.com/v1_1/your_cloud_name/image/upload`, {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Upload failed');
       }
-      
+
       const data = await response.json();
       return data.secure_url;
     } catch (error) {
@@ -370,7 +370,7 @@ export default function EditRoutePage() {
 
   const deleteImage = async (publicId: string) => {
     // Implement image deletion if needed
-    console.log('Delete image:', publicId);
+
   };
 
   const handleImageUpload = async (file: File, title: string) => {
@@ -422,7 +422,7 @@ export default function EditRoutePage() {
           photos: updatedImages
         };
         setRoute(updatedRoute);
-        
+
         // Update sessionStorage
         sessionStorage.setItem('routeData', JSON.stringify(updatedRoute));
       }
@@ -441,7 +441,7 @@ export default function EditRoutePage() {
 
   if (isLoading) {
     return (
-      <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role} className="px-6">
+      <CommonPageTemplate contents={{ header: true }} currentUser={user} currentRole={role} className="px-6">
         <div className="container mx-auto py-6 space-y-6 max-w-5xl">
           <div className="h-12 w-48 bg-gray-200 rounded-lg animate-pulse" />
           <div className="grid gap-6">
@@ -470,7 +470,7 @@ export default function EditRoutePage() {
   }
 
   return (
-    <CommonPageTemplate contents={{header: true}} currentUser={user} headerMode="auto-hide" currentRole={role} className="px-6">
+    <CommonPageTemplate contents={{ header: true }} currentUser={user} headerMode="auto-hide" currentRole={role} className="px-6">
       <div className="container mx-auto py-6 space-y-6 max-w-5xl">
         <IOSStepProgress
           steps={['Nahrát trasu', 'Upravit trasu', 'Dokončení']}

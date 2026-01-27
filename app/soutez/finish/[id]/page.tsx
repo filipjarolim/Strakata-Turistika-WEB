@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 // Import GPX Editor dynamically to handle SSR
 const DynamicGpxEditor = dynamic(
   () => import('@/components/editor/GpxEditor').then(mod => mod.default),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -74,21 +74,21 @@ interface FormData {
 // Add downsampling function
 function downsampleTrack(points: { lat: number; lng: number }[], maxPoints = 1000) {
   if (points.length <= maxPoints) return points;
-  
+
   // Calculate the step size to get approximately maxPoints
   const step = Math.ceil(points.length / maxPoints);
-  
+
   // Always include first and last point
   const result = [points[0]];
-  
+
   // Sample points at regular intervals
   for (let i = step; i < points.length - step; i += step) {
     result.push(points[i]);
   }
-  
+
   // Add the last point
   result.push(points[points.length - 1]);
-  
+
   return result;
 }
 
@@ -116,21 +116,21 @@ const StatsCard = ({ route }: { route: Route }) => {
       variant="elevated"
     >
       <div className="grid grid-cols-2 gap-6">
-        <InfoSection 
-          label="Vzdálenost" 
-          value={`${route.extraPoints?.distance?.toFixed(2) || '0'} km`} 
+        <InfoSection
+          label="Vzdálenost"
+          value={`${route.extraPoints?.distance?.toFixed(2) || '0'} km`}
         />
-        <InfoSection 
-          label="Převýšení" 
-          value={`${route.extraPoints?.totalAscent?.toFixed(0) || '0'} m`} 
+        <InfoSection
+          label="Převýšení"
+          value={`${route.extraPoints?.totalAscent?.toFixed(0) || '0'} m`}
         />
-        <InfoSection 
-          label="Čas" 
-          value={formatDuration(route.extraPoints?.elapsedTime || 0)} 
+        <InfoSection
+          label="Čas"
+          value={formatDuration(route.extraPoints?.elapsedTime || 0)}
         />
-        <InfoSection 
-          label="Průměrná rychlost" 
-          value={`${route.extraPoints?.averageSpeed?.toFixed(1) || '0'} km/h`} 
+        <InfoSection
+          label="Průměrná rychlost"
+          value={`${route.extraPoints?.averageSpeed?.toFixed(1) || '0'} km/h`}
         />
       </div>
     </IOSCard>
@@ -147,17 +147,17 @@ const RouteDetailsCard = ({ route, dogNotAllowed }: { route: Route; dogNotAllowe
     variant="elevated"
   >
     <div className="space-y-6">
-      <InfoSection 
-        label="Název trasy" 
-        value={route.routeTitle} 
+      <InfoSection
+        label="Název trasy"
+        value={route.routeTitle}
       />
-      <InfoSection 
-        label="Datum absolvování" 
+      <InfoSection
+        label="Datum absolvování"
         value={route.visitDate ? new Date(route.visitDate).toLocaleDateString('cs-CZ', {
           day: 'numeric',
           month: 'long',
           year: 'numeric'
-        }) : '—'} 
+        }) : '—'}
       />
       <div className="space-y-1">
         <div className="text-sm text-gray-500">Popis trasy</div>
@@ -169,8 +169,8 @@ const RouteDetailsCard = ({ route, dogNotAllowed }: { route: Route; dogNotAllowe
         <div className="text-sm text-gray-500">Zákaz vstupu se psy:</div>
         <div className={cn(
           "text-sm font-medium px-2 py-0.5 rounded-full",
-          dogNotAllowed === "true" 
-            ? "bg-red-100 text-red-700" 
+          dogNotAllowed === "true"
+            ? "bg-red-100 text-red-700"
             : "bg-green-100 text-green-700"
         )}>
           {dogNotAllowed === "true" ? "Ano" : "Ne"}
@@ -210,7 +210,7 @@ export default function FinishRoutePage() {
         const response = await fetch(`/api/visitData/${params.id}`);
         if (!response.ok) throw new Error('Failed to fetch route');
         const data = await response.json();
-        
+
         // Parse the track data properly
         let trackPoints = [];
         try {
@@ -219,7 +219,7 @@ export default function FinishRoutePage() {
           console.error('Failed to parse track data:', e);
           trackPoints = [];
         }
-        
+
         // If we didn't get data from sessionStorage, use the API data
         if (!storedData) {
           setRouteTitle(data.routeTitle || '');
@@ -227,7 +227,7 @@ export default function FinishRoutePage() {
           setDogNotAllowed(data.dogNotAllowed || 'false');
           setVisitDate(data.visitDate ? new Date(data.visitDate) : null);
         }
-        
+
         setRoute({
           id: data.id,
           routeTitle: data.routeTitle || '',
@@ -263,23 +263,6 @@ export default function FinishRoutePage() {
 
     setIsPublishing(true);
     try {
-      console.log('Saving route with ID:', params.id);
-      console.log('Request body:', {
-        routeTitle,
-        routeDescription,
-        dogNotAllowed,
-        visitDate: visitDate?.toISOString(),
-        routeLink: JSON.stringify(route.track),
-        extraPoints: {
-          ...route.extraPoints,
-          distance: route.extraPoints?.distance || 0,
-          totalAscent: route.extraPoints?.totalAscent || 0,
-          elapsedTime: route.extraPoints?.elapsedTime || 0,
-          averageSpeed: route.extraPoints?.averageSpeed || 0,
-          difficulty: route.extraPoints?.difficulty || 1
-        }
-      });
-
       const response = await fetch(`/api/visitData/${params.id}`, {
         method: 'PUT',
         headers: {
@@ -302,12 +285,10 @@ export default function FinishRoutePage() {
         }),
       });
 
-      console.log('Response status:', response.status);
       const responseData = await response.json().catch(() => null);
-      console.log('Response data:', responseData);
 
       if (!response.ok) throw new Error(`Failed to save route: ${responseData?.message || response.statusText}`);
-      
+
       // Navigate to the results page
       router.push('/vysledky/moje');
     } catch (err) {
@@ -323,14 +304,14 @@ export default function FinishRoutePage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', title);
-      
+
       const response = await fetch(`/api/competition/images/${params.id}`, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) throw new Error('Failed to upload photo');
-      
+
       const data = await response.json();
       setRoute(prev => {
         if (!prev) return null;
@@ -360,7 +341,7 @@ export default function FinishRoutePage() {
       });
 
       if (!response.ok) throw new Error('Failed to delete photo');
-      
+
       setRoute(prev => {
         if (!prev) return null;
         return {
@@ -376,7 +357,7 @@ export default function FinishRoutePage() {
 
   if (isLoading) {
     return (
-      <CommonPageTemplate contents={{header: true}} currentUser={user} currentRole={role} className="px-6">
+      <CommonPageTemplate contents={{ header: true }} currentUser={user} currentRole={role} className="px-6">
         <div className="container mx-auto py-6 space-y-6 max-w-5xl">
           <div className="h-12 w-48 bg-gray-200 rounded-lg animate-pulse" />
           <div className="grid gap-6">
@@ -409,7 +390,7 @@ export default function FinishRoutePage() {
   }
 
   return (
-    <CommonPageTemplate contents={{header: true}} headerMode={"auto-hide"} currentUser={user} currentRole={role} className="px-6">
+    <CommonPageTemplate contents={{ header: true }} headerMode={"auto-hide"} currentUser={user} currentRole={role} className="px-6">
       <div className="container mx-auto py-6 space-y-6 max-w-5xl">
         <IOSStepProgress
           steps={['Nahrát trasu', 'Upravit trasu', 'Dokončení']}
@@ -421,7 +402,7 @@ export default function FinishRoutePage() {
             '/icons/finish.png',
           ]}
         />
-        
+
         <div className="flex items-center gap-2 mb-6">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
@@ -449,7 +430,7 @@ export default function FinishRoutePage() {
             <div className="h-[400px]">
               <DynamicGpxEditor
                 initialTrack={route.track}
-                onSave={() => {}}
+                onSave={() => { }}
                 readOnly
                 hideControls={['editMode', 'add', 'delete', 'undo', 'redo', 'simplify']}
               />

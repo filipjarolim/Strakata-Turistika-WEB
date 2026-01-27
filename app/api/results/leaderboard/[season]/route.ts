@@ -7,7 +7,7 @@ type tParams = Promise<{ season: string }>;
 export async function GET(request: Request, { params }: { params: tParams }) {
   const { season } = await params;
   const url = new URL(request.url);
-  
+
   // Parse query parameters
   const page = parseInt(url.searchParams.get('page') || '1');
   const limit = parseInt(url.searchParams.get('limit') || '10000'); // Large limit to get all users
@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: tParams }) {
       5 * 60 * 1000 // 5 minutes TTL
     ) as { data: unknown[]; hasMore: boolean };
 
-    console.log(`[LEADERBOARD_API] Season ${year}, Page ${page}, Limit ${limit}, Results: ${response.data.length} items, HasMore: ${response.hasMore}`);
+
     return NextResponse.json(response);
 
   } catch (error) {

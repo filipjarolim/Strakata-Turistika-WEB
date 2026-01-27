@@ -10,7 +10,7 @@ import {
 
 export async function GET(request: NextRequest) {
     try {
-        console.log("[API_DEBUG] GET /api/news called", request.url);
+
         const { searchParams } = new URL(request.url);
 
         // Parse query parameters
@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
         const sortBy = searchParams.get('sortBy') as 'createdAt' | 'title' || 'createdAt';
         const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' || 'desc';
 
-        console.log("[API_DEBUG] /api/news params:", { page, limit, search, tag, authorId, publishedOnly });
+
 
         // Validate parameters
         if (page < 1 || limit < 1 || limit > 100) {
-            console.warn("[API_DEBUG] /api/news invalid parameters");
+
             return createErrorResponse("INVALID_PARAMETERS", 400, "Invalid pagination parameters");
         }
 
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
             sortOrder
         });
 
-        console.log("[API_DEBUG] /api/news success, items:", result.data.length);
+
 
         const response = createSuccessResponse(
             result.data,

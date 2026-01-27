@@ -30,13 +30,10 @@ export async function PUT(
 ) {
     const { collection, id } = await params;
     const data = await request.json();
-    console.log("HEELOOOOOOOOOOOO")
-    console.log(data)
-    console.log(collection)
-    console.log(id)
+
 
     const result = await updateRecord(collection, id, data);
-    console.log(result)
+
     if (result.error) {
         return NextResponse.json({ error: result.error }, { status: 500 });
     }
@@ -54,7 +51,7 @@ export async function DELETE(
         }
 
         const { collection, id } = await params;
-        console.log(`Deleting record ${id} from collection ${collection}`);
+
 
         // Delete record based on collection
         switch (collection) {
