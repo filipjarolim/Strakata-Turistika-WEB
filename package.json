@@ -56,11 +56,15 @@
     "@radix-ui/react-toggle-group": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@tanstack/react-table": "^8.20.6",
-    "@tiptap/extension-link": "^2.26.2",
-    "@tiptap/extension-placeholder": "^2.14.0",
+    "@tiptap/core": "^2.11.7",
+    "@tiptap/extension-horizontal-rule": "2.11.7",
+    "@tiptap/extension-link": "2.11.7",
+    "@tiptap/extension-placeholder": "2.11.7",
+    "@tiptap/pm": "^2.11.7",
     "@tiptap/react": "^2.11.7",
     "@tiptap/starter-kit": "^2.11.7",
     "@tmcw/togeojson": "^7.1.1",
+    "@turf/turf": "^7.3.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/react-leaflet": "^2.8.3",
     "@types/uuid": "^10.0.0",
@@ -83,12 +87,16 @@
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",
     "leaflet-gpx": "^2.2.0",
+    "linkifyjs": "^4.3.2",
     "lucide-react": "^0.471.0",
     "maplibre-gl": "^5.4.0",
     "mongodb": "^6.12.0",
-    "next": "^15.1.6",
-    "next-auth": "^5.0.0-beta.25",
+    "next": "15.1.6",
+    "next-auth": "5.0.0-beta.30",
     "next-themes": "^0.4.4",
+    "oauth4webapi": "^3.8.3",
+    "preact": "^10.28.2",
+    "preact-render-to-string": "^6.6.5",
     "prisma": "^5.22.0",
     "react": "^19.0.0",
     "react-confetti": "^6.4.0",
@@ -102,7 +110,7 @@
     "recharts": "^2.15.0",
     "resend": "^4.0.1",
     "simplify-js": "^1.2.4",
-    "sonner": "^1.7.1",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "togpx": "^0.5.4",
@@ -131,13 +139,15 @@
   },
   "overrides": {
     "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "cmdk": {
       "react": "^19.0.0",
       "react-dom": "^19.0.0"
     },
-    "next-auth": {
-      "next": "^15.1.6"
-    }
+    "@auth/core": "0.41.1",
+    "oauth4webapi": "^3.8.3",
+    "@tiptap/core": "^2.11.7",
+    "@tiptap/pm": "^2.11.7"
   },
   "resolutions": {
     "@types/react": "^19.0.0"

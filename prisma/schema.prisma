@@ -44,6 +44,8 @@ model User {
   news                  News[]                 @relation("UserNews")
   isExemptFromDistanceLimit Boolean            @default(false)
   createdRoutes         CustomRoute[]          @relation("UserCreatedRoutes")
+  freeCategoryUsage     Json?                  // Track weekly usage: [{ week, used, visitId }]
+  categoryUsage         UserCategoryUsage[]
 
   @@map("users")
 }
@@ -154,6 +156,11 @@ model VisitData {
   photos        Json?     // Array of { url: string, public_id: string, title: string }
   places        Json?     // Array of { id, name, type, photos: [{ id, url, public_id, title, description, uploadedAt, isLocal }], description, createdAt }
   extraData     Json?     // Dynamic form data: { fieldName: value }
+  activityType  String?   @default("WALKING")
+  isFreeCategory Boolean   @default(false)
+  freeCategoryIcon String?
+  strataCategoryId String?
+  strataCategoryIcon String?
 
   // Relation to Season
   seasonId String?
@@ -194,8 +201,44 @@ model CustomRoute {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   visits      VisitData[] // Track who walked this route
+  
+  requiredCategoryId String?
+  requiredCategory   StrataCategory? @relation(fields: [requiredCategoryId], references: [id])
+  minDistanceKm      Float           @default(7.0)
+  createdMonth       Int?            // Month of creation for limits tracking
+  creatorBonusPoints Float           @default(0)
 
   @@map("custom_routes")
+}
+
+model StrataCategory {
+  id        String        @id @default(cuid()) @map("_id")
+  name      String        @unique // e.g., "SKALNÍ_ÚTVAR"
+  label     String        // Czech name
+  icon      String
+  order     Int
+  isActive  Boolean       @default(true)
+  routes    CustomRoute[]
+  usage     UserCategoryUsage[]
+
+  @@map("strata_categories")
+}
+
+model UserCategoryUsage {
+  id         String   @id @default(cuid()) @map("_id")
+  userId     String
+  categoryId String
+  seasonYear Int?     // Optional for older data or grouping
+  month      String   // Added for monthly limits (yyyy-MM)
+  points     Int?     @default(1)
+  visitId    String?  // Relation to VisitData
+  usedAt     DateTime @default(now())
+  
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category StrataCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month])
+  @@map("user_category_usage")
 }
 
 model Rules {

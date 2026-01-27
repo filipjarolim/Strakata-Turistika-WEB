@@ -3,6 +3,7 @@ import { Prisma, UserRole, VisitState } from '@prisma/client';
 import { db } from '@/lib/db';
 import { currentRole } from '@/lib/auth';
 import { calculatePoints, getDefaultScoringConfig, type Place, type RouteData, type ScoringConfig } from '@/lib/scoring-utils';
+import { validateVisitSubmission, validateActivityType } from '@/lib/validation-utils';
 
 export async function GET(
   request: Request,
@@ -29,12 +30,28 @@ export async function PUT(
     const body = await req.json();
     const { id } = params;
 
-
-
     // Get existing record to preserve data if not updating
     const existingRecord = await db.visitData.findUnique({ where: { id } });
     if (!existingRecord) {
       return NextResponse.json({ message: 'VisitData not found.' }, { status: 404 });
+    }
+
+    // 1. Validations
+    if (body.visitDate) {
+      const dateValidation = validateVisitSubmission({
+        visitDate: body.visitDate,
+      });
+
+      if (!dateValidation.valid) {
+        return NextResponse.json({ message: dateValidation.error }, { status: 400 });
+      }
+    }
+
+    if (body.activityType !== undefined) {
+      const activityValidation = validateActivityType(body.activityType);
+      if (!activityValidation.valid) {
+        return NextResponse.json({ message: activityValidation.error }, { status: 400 });
+      }
     }
 
     // Parse the route data from string back to array if updating routeLink
@@ -58,16 +75,20 @@ export async function PUT(
       ? places.map((p: Place) => p.name || String(p)).filter(Boolean).join(', ')
       : body.visitedPlaces || existingRecord.visitedPlaces || '';
 
-    // Get scoring config
+    // Get scoring config directly from DB
     let scoringConfig: ScoringConfig;
-    try {
-      const configResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/scoring-config`);
-      if (configResponse.ok) {
-        scoringConfig = await configResponse.json();
-      } else {
-        scoringConfig = getDefaultScoringConfig();
-      }
-    } catch {
+    const dbConfig = await db.scoringConfig.findFirst({
+      where: { active: true }
+    });
+
+    if (dbConfig) {
+      scoringConfig = {
+        pointsPerKm: dbConfig.pointsPerKm,
+        minDistanceKm: dbConfig.minDistanceKm,
+        requireAtLeastOnePlace: dbConfig.requireAtLeastOnePlace,
+        placeTypePoints: dbConfig.placeTypePoints as Record<string, number>
+      };
+    } else {
       scoringConfig = getDefaultScoringConfig();
     }
 
@@ -113,6 +134,7 @@ export async function PUT(
         ...(body.places !== undefined && { places: places as unknown as Prisma.InputJsonValue }),
         ...(body.extraData !== undefined && { extraData: body.extraData as unknown as Prisma.InputJsonValue }),
         ...(body.state && { state: body.state as VisitState }),
+        ...(body.activityType !== undefined && { activityType: body.activityType }),
         ...(scoringResult && {
           points: Math.floor(scoringResult.totalPoints),
           extraPoints: scoringResult as unknown as Prisma.InputJsonValue
@@ -142,4 +164,4 @@ export async function DELETE(
     console.error('[DELETE_VISITDATA_ERROR]', error);
     return NextResponse.json({ message: 'Failed to delete VisitData.' }, { status: 500 });
   }
-} 
+}

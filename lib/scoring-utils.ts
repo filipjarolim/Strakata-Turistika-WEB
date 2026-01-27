@@ -19,7 +19,10 @@ export interface ScoringConfig {
 export interface Place {
   id: string;
   name: string;
-  type: 'PEAK' | 'TOWER' | 'TREE' | 'OTHER';
+  type: 'PEAK' | 'TOWER' | 'TREE' | 'RUINS' | 'CAVE' | 'UNUSUAL_NAME' | 'OTHER';
+  lat?: number;
+  lng?: number;
+  proofType?: 'STANDARD' | 'PEAK' | 'VOLNÁ';
   photos: Array<{
     id: string;
     url: string;
@@ -63,6 +66,9 @@ export interface ScoringResult {
   peaks: number;
   towers: number;
   trees: number;
+  ruins: number;
+  caves: number;
+  unusualNames: number;
   others: number;
   places: string[];
   totalPoints: number;
@@ -166,10 +172,13 @@ export function calculatePoints(
     peaks: places.filter((p) => p.type === 'PEAK').length,
     towers: places.filter((p) => p.type === 'TOWER').length,
     trees: places.filter((p) => p.type === 'TREE').length,
+    ruins: places.filter((p) => p.type === 'RUINS').length,
+    caves: places.filter((p) => p.type === 'CAVE').length,
+    unusualNames: places.filter((p) => p.type === 'UNUSUAL_NAME').length,
     others: places.filter((p) => p.type === 'OTHER').length,
   };
 
-  // Check 3km distance limit (Start vs End)
+  // Distance penalty removed as per 2025/2026 rules
   let distancePenalty = false;
   let startEndDistance = 0;
 
@@ -177,11 +186,6 @@ export function calculatePoints(
     const start = route.trackPoints[0];
     const end = route.trackPoints[route.trackPoints.length - 1];
     startEndDistance = calculateDistance(start.latitude, start.longitude, end.latitude, end.longitude);
-
-    // If distance between start and end > 3km, it's not a loop
-    if (startEndDistance > 3000 && !isExemptFromDistanceLimit) {
-      distancePenalty = true;
-    }
   }
 
   // Calculate bonus points for Monthly Theme
@@ -206,6 +210,9 @@ export function calculatePoints(
   placePoints += placeTypeCounts.peaks * (config.placeTypePoints.PEAK ?? 0);
   placePoints += placeTypeCounts.towers * (config.placeTypePoints.TOWER ?? 0);
   placePoints += placeTypeCounts.trees * (config.placeTypePoints.TREE ?? 0);
+  placePoints += (placeTypeCounts.ruins || 0) * (config.placeTypePoints.RUINS ?? 0);
+  placePoints += (placeTypeCounts.caves || 0) * (config.placeTypePoints.CAVE ?? 0);
+  placePoints += (placeTypeCounts.unusualNames || 0) * (config.placeTypePoints.UNUSUAL_NAME ?? 0);
   placePoints += placeTypeCounts.others * (config.placeTypePoints.OTHER ?? 0);
 
   // Calculate total points
@@ -220,10 +227,7 @@ export function calculatePoints(
     totalPoints = distancePoints + placePoints + themeBonus;
   }
 
-  // Apply penalty
-  if (distancePenalty) {
-    totalPoints = 0;
-  }
+  // Penalty logic removed
 
   // Round down to 1 decimal place
   totalPoints = Math.floor(totalPoints * 10) / 10;
@@ -242,6 +246,9 @@ export function calculatePoints(
     peaks: placeTypeCounts.peaks,
     towers: placeTypeCounts.towers,
     trees: placeTypeCounts.trees,
+    ruins: placeTypeCounts.ruins,
+    caves: placeTypeCounts.caves,
+    unusualNames: placeTypeCounts.unusualNames,
     others: placeTypeCounts.others,
     places: places.map((p) => p.name),
     totalPoints,
@@ -254,13 +261,16 @@ export function calculatePoints(
  */
 export function getDefaultScoringConfig(): ScoringConfig {
   return {
-    pointsPerKm: 2.0,
+    pointsPerKm: 1.0,
     minDistanceKm: 3.0,
     requireAtLeastOnePlace: true,
     placeTypePoints: {
       PEAK: 1.0,
       TOWER: 1.0,
       TREE: 1.0,
+      RUINS: 1.0,
+      CAVE: 1.0,
+      UNUSUAL_NAME: 1.0,
       OTHER: 0.0,
     },
   };

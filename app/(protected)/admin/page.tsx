@@ -57,6 +57,16 @@ const mainCollections = [
         gradient: "from-orange-500/10 to-amber-500/10",
         border: "border-orange-500/10",
         iconColor: "text-orange-600 dark:text-orange-400"
+    },
+    {
+        name: "Scoring",
+        title: "Bodování",
+        description: "Centrální správa bodování a typů míst.",
+        icon: Sliders,
+        href: "/admin/scoring",
+        gradient: "from-blue-500/10 to-indigo-500/10",
+        border: "border-blue-500/10",
+        iconColor: "text-blue-600 dark:text-blue-400"
     }
 ];
 

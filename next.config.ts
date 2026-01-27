@@ -2,161 +2,24 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     experimental: {
-        optimizePackageImports: ["lucide-react"]
+        optimizePackageImports: ["lucide-react"],
     },
-
-    serverExternalPackages: ['@prisma/client', 'prisma'],
+    serverExternalPackages: ['@prisma/client', 'prisma', 'oauth4webapi'],
+    transpilePackages: ["next-auth", "@auth/core", "sonner", "@tiptap/core", "@tiptap/react", "@tiptap/starter-kit", "@tiptap/pm"],
 
     images: {
         remotePatterns: [
-            {
-                protocol: "https",
-                hostname: "res.cloudinary.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "tile.openstreetmap.org",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "server.arcgisonline.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "lh3.googleusercontent.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "play.google.com",
-                port: "",
-                pathname: "/**",
-            },
-            {
-                protocol: "https",
-                hostname: "images.unsplash.com",
-                port: "",
-                pathname: "/**",
-            },
-
+            { protocol: "https", hostname: "res.cloudinary.com" },
+            { protocol: "https", hostname: "tile.openstreetmap.org" },
+            { protocol: "https", hostname: "server.arcgisonline.com" },
+            { protocol: "https", hostname: "lh3.googleusercontent.com" },
+            { protocol: "https", hostname: "play.google.com" },
+            { protocol: "https", hostname: "images.unsplash.com" },
         ],
     },
 
-    async headers() {
-        return [
-
-            // Disable caching in development
-            ...(process.env.NODE_ENV === 'development' ? [
-                {
-                    source: "/(.*)",
-                    headers: [
-                        {
-                            key: "Cache-Control",
-                            value: "no-cache, no-store, must-revalidate, max-age=0",
-                        },
-                        {
-                            key: "Pragma",
-                            value: "no-cache",
-                        },
-                        {
-                            key: "Expires",
-                            value: "0",
-                        },
-                        {
-                            key: "Surrogate-Control",
-                            value: "no-store",
-                        },
-                    ],
-                },
-                // Aggressive cache-busting for JS chunks
-                {
-                    source: "/_next/static/chunks/(.*)",
-                    headers: [
-                        {
-                            key: "Cache-Control",
-                            value: "no-cache, no-store, must-revalidate, max-age=0",
-                        },
-                        {
-                            key: "Pragma",
-                            value: "no-cache",
-                        },
-                        {
-                            key: "Expires",
-                            value: "0",
-                        },
-                        {
-                            key: "Surrogate-Control",
-                            value: "no-store",
-                        },
-                    ],
-                },
-                {
-                    source: "/_next/static/(.*)",
-                    headers: [
-                        {
-                            key: "Cache-Control",
-                            value: "no-cache, no-store, must-revalidate, max-age=0",
-                        },
-                        {
-                            key: "Pragma",
-                            value: "no-cache",
-                        },
-                        {
-                            key: "Expires",
-                            value: "0",
-                        },
-                        {
-                            key: "Surrogate-Control",
-                            value: "no-store",
-                        },
-                    ],
-                },
-
-            ] : []),
-        ];
-    },
-
-    webpack: (config, { dev, isServer }) => {
-        if (!dev && !isServer) {
-            config.resolve.fallback = {
-                ...config.resolve.fallback,
-                fs: false,
-                net: false,
-                tls: false,
-            };
-        }
-
-        // Ignore Prisma WASM files
-        config.resolve.alias = {
-            ...config.resolve.alias,
-            './query_engine_bg.js': false,
-            './query_engine_bg.wasm': false,
-            './query_engine_bg.wasm?module': false,
-        };
-
-        // Ignore WASM files in module resolution
-        config.resolve.extensions = config.resolve.extensions || [];
-        config.resolve.extensions = config.resolve.extensions.filter((ext: string) => ext !== '.wasm');
-
-        // Suppress Edge Runtime warnings for bcryptjs (it's dynamically imported and won't execute in Edge)
-        if (config.module) {
-            config.module.parser = {
-                ...config.module.parser,
-                javascript: {
-                    ...config.module.parser?.javascript,
-                    strictExportPresence: false,
-                },
-            };
-        }
-
-        // Ignore warnings about Node.js APIs in Edge Runtime for bcryptjs
+    webpack: (config) => {
+        // Suppress Edge Runtime warnings for bcryptjs
         config.ignoreWarnings = [
             ...(config.ignoreWarnings || []),
             /bcryptjs/,
@@ -172,15 +35,6 @@ const nextConfig: NextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
-
-    turbopack: {
-        rules: {
-            '*.node': {
-                loaders: ['file-loader'],
-                as: '*.js'
-            }
-        }
-    }
 };
 
 export default nextConfig;

@@ -40,13 +40,40 @@ const DEFAULT_PLACE_TYPES = [
         points: 0,
         color: "#9E9E9E",
         order: 3
+    },
+    {
+        id: "RUINS",
+        name: "RUINS",
+        label: "Zřícenina",
+        icon: "castle",
+        points: 1,
+        color: "#F59E0B",
+        order: 4
+    },
+    {
+        id: "CAVE",
+        name: "CAVE",
+        label: "Jeskyně",
+        icon: "terrain",
+        points: 1,
+        color: "#6B7280",
+        order: 5
+    },
+    {
+        id: "UNUSUAL_NAME",
+        name: "UNUSUAL_NAME",
+        label: "Neobvyklý název",
+        icon: "star",
+        points: 1,
+        color: "#9333EA",
+        order: 6
     }
 ];
 
 export async function GET() {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
@@ -74,7 +101,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Upload, MapIcon, MapPin, BarChart, ArrowRight, Watch, FileText, Camera, AlertCircle, Check } from 'lucide-react';
+import { Upload, MapIcon, MapPin, BarChart, ArrowRight, Watch, FileText, Camera, AlertCircle, Check, Info, Loader2 } from 'lucide-react';
 import { IOSButton } from '@/components/ui/ios/button';
 import { cn } from "@/lib/utils";
 import FormRenderer from "@/components/soutez/FormRenderer";
 import { motion } from 'framer-motion';
+import { isPhotoWithinTimeLimit } from '@/lib/validation-utils';
 
 interface UploadStepProps {
   onComplete: (routeId: string) => void;
@@ -20,6 +21,8 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [routeName, setRouteName] = useState('');
   const [routeDescription, setRouteDescription] = useState('');
+  const [visitDate, setVisitDate] = useState<Date>(new Date());
+  const [activityType, setActivityType] = useState('WALKING');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [trackPoints, setTrackPoints] = useState<any[]>([]);
@@ -32,14 +35,8 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
       if (uploadMode === 'gpx') {
         setRouteName("Testovací GPX Trasa");
         setRouteDescription("Toto je automaticky vygenerovaná testovací trasa pro ověření funkčnosti.");
-        // Simulate a simple track
-        const dummyPoints = [
-          { lat: 50.0755, lng: 14.4378 },
-          { lat: 50.0760, lng: 14.4380 },
-          { lat: 50.0765, lng: 14.4385 }
-        ];
+        const dummyPoints = [{ lat: 50.0755, lng: 14.4378 }, { lat: 50.0760, lng: 14.4380 }, { lat: 50.0765, lng: 14.4385 }];
         setTrackPoints(dummyPoints);
-        // Simulate file selection visual
         const dummyFile = new File(["dummy gpx content"], "test-route.gpx", { type: "application/gpx+xml" });
         setSelectedFile(dummyFile);
       } else if (uploadMode === 'manual') {
@@ -69,7 +66,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
         }));
         setTrackPoints(points);
       } catch (e) {
-        setError("Failed to parse file");
+        setError("Nepodařilo se zpracovat soubor");
       }
     }
   };
@@ -89,7 +86,8 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
           routeTitle: routeName,
           routeDescription: routeDescription,
           routeLink: JSON.stringify(trackPoints),
-          visitDate: new Date(),
+          visitDate: visitDate,
+          activityType: activityType,
           userId: user.id,
           seasonId: activeSeason?.id,
           year: activeSeason?.year || new Date().getFullYear(),
@@ -101,80 +99,213 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
           }
         }),
       });
+
+      if (!response.ok) {
+        const d = await response.json();
+        throw new Error(d.message || 'Nepodařilo se uložit trasu');
+      }
+
       const data = await response.json();
       onComplete(data.id);
-    } catch (err) {
-      setError('Nepodařilo se uložit trasu');
+    } catch (err: any) {
+      setError(err.message || 'Nepodařilo se uložit trasu');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const isDateWarning = !isPhotoWithinTimeLimit(visitDate);
+
   if (!uploadMode) {
     return (
-      <div className="space-y-8 max-w-4xl mx-auto py-10">
-        <h2 className="text-3xl font-bold text-white text-center">Jak chcete nahrát trasu?</h2>
+      <div className="space-y-12 max-w-5xl mx-auto py-12 px-6">
+        <div className="text-center space-y-4">
+          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter italic leading-none">
+            ZAČNĚTE <span className="text-white/30">CESTU.</span>
+          </h2>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">REKORDNÍ VÝKON ZAČÍNÁ JEDNÍM NAHRÁNÍM</p>
+        </div>
+
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-          <div onClick={() => setUploadMode('gpx')} className="cursor-pointer p-8 rounded-3xl bg-black/80 border border-white/10 hover:border-blue-500/50 transition-all">
-            <FileText className="h-10 w-10 text-blue-400 mb-4" />
-            <h3 className="text-xl font-bold text-white">GPX Soubor</h3>
-            <p className="text-sm text-gray-400 mt-2">Importujte data přímo ze zařízení.</p>
-          </div>
-          <div onClick={() => setUploadMode('manual')} className="cursor-pointer p-8 rounded-3xl bg-black/80 border border-white/10 hover:border-purple-500/50 transition-all">
-            <Camera className="h-10 w-10 text-purple-400 mb-4" />
-            <h3 className="text-xl font-bold text-white">Screenshot</h3>
-            <p className="text-sm text-gray-400 mt-2">Nahrání fotky z jiné aplikace.</p>
-          </div>
+          {[
+            {
+              id: 'gpx',
+              icon: FileText,
+              title: 'GPX SOUBOR',
+              desc: 'PŘÍMÝ IMPORT ZE ZAŘÍZENÍ NEBO APKY',
+              color: 'text-blue-400',
+              bg: 'bg-blue-400/5'
+            },
+            {
+              id: 'manual',
+              icon: Camera,
+              title: 'SCREENSHOT',
+              desc: 'DOKLAD Z JINÉ APLIKACE (MAPY.CZ, STRAVA)',
+              color: 'text-purple-400',
+              bg: 'bg-purple-400/5'
+            }
+          ].map((mode) => (
+            <motion.div
+              key={mode.id}
+              whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.05)' }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setUploadMode(mode.id as any)}
+              className="group cursor-pointer p-10 rounded-[2.5rem] bg-white/5 backdrop-blur-3xl border border-white/5 hover:border-white/20 transition-all flex flex-col justify-between min-h-[280px]"
+            >
+              <div className="space-y-6">
+                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors shadow-2xl", mode.bg)}>
+                  <mode.icon className={cn("h-7 w-7", mode.color)} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">{mode.title}</h3>
+                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest leading-loose mt-2">{mode.desc}</p>
+                </div>
+              </div>
+              <div className="flex justify-end pr-2">
+                <ArrowRight className="w-6 h-6 text-white/10 group-hover:text-white/40 transition-colors" />
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between border-b border-white/10 pb-6">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          {uploadMode === 'gpx' ? <Upload className="h-6 w-6 text-blue-400" /> : <Camera className="h-6 w-6 text-purple-400" />}
-          {uploadMode === 'gpx' ? 'Nahrát GPX' : 'Nahrát Screenshot'}
-        </h2>
-        <button onClick={() => {
-          setUploadMode(null);
-          setTrackPoints([]);
-          setSelectedFile(null);
-        }} className="text-sm text-white/50 hover:text-white">Změnit typ</button>
+    <div className="space-y-10 max-w-6xl mx-auto px-6 py-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", uploadMode === 'gpx' ? "bg-blue-400/10" : "bg-purple-400/10")}>
+              {uploadMode === 'gpx' ? <Upload className="h-4 w-4 text-blue-400" /> : <Camera className="h-4 w-4 text-purple-400" />}
+            </div>
+            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">KROK 01: NAHRÁNÍ</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter italic">
+            {uploadMode === 'gpx' ? 'NAHRÁT ' : 'NAHRÁT '}
+            <span className="text-white/30">{uploadMode === 'gpx' ? 'GPX SOUBOR' : 'SCREENSHOT'}</span>
+          </h2>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            setUploadMode(null);
+            setTrackPoints([]);
+            setSelectedFile(null);
+          }}
+          className="text-[10px] font-black text-white/20 hover:text-white uppercase tracking-[0.3em] pb-1 border-b border-transparent hover:border-white/20 transition-all italic"
+        >
+          ZMĚNIT TYP
+        </motion.button>
       </div>
 
-      <div className="grid gap-8">
-        <FormRenderer
-          slug={uploadMode === 'gpx' ? 'gpx-upload' : 'screenshot-upload'}
-          stepId="upload"
-          values={extraData}
-          onChange={setExtraData}
-          dark
-          context={{
-            route: { routeTitle: routeName, routeDescription: routeDescription, track: trackPoints },
-            photos: screenshotImages,
-            selectedFile: selectedFile,
-            onRouteUpdate: (u) => {
-              if (u.routeTitle !== undefined) setRouteName(u.routeTitle);
-              if (u.routeDescription !== undefined) setRouteDescription(u.routeDescription);
-            },
-            handleImageUpload: async (file, title) => {
-              const fd = new FormData(); fd.append("file", file); fd.append("title", title);
-              const res = await fetch("/api/upload", { method: "POST", body: fd });
-              if (!res.ok) throw new Error("Upload failed");
-              const d = await res.json();
-              setScreenshotImages(p => [...p, { url: d.url, public_id: d.public_id, title: d.title }]);
-            },
-            handleImageDelete: async (id) => setScreenshotImages(p => p.filter(i => i.public_id !== id)),
-            handleFileChange: handleFileChange
-          }}
-        />
+      <div className="grid lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-8 space-y-8">
+          {isDateWarning && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-6 rounded-3xl bg-amber-500/5 backdrop-blur-xl border border-amber-500/10 flex items-start gap-4"
+            >
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-1" />
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest italic">VAROVÁNÍ: STARÝ DOKLAD</h4>
+                <p className="text-[10px] text-amber-200/40 uppercase font-bold tracking-widest leading-loose">
+                  FOTOGRAFIE JE STARŠÍ NEŽ 14 DNÍ. PODLE PRAVIDEL AKTIVNÍ SEZÓNY NEMUSÍ BÝT TATO NÁVŠTĚVA UZNÁNA.
+                </p>
+              </div>
+            </motion.div>
+          )}
 
-        <div className="flex justify-end mt-4">
-          <IOSButton variant="blue" size="lg" onClick={handleSave} disabled={isSaving || !routeName} loading={isSaving} className="px-12 h-14 shadow-xl">
-            Uložit a Pokračovat
-          </IOSButton>
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 rounded-2xl border border-white/5 shadow-2xl">
+            <Watch className="w-3.5 h-3.5 text-white/40" />
+            <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">
+              POVOLENÁ AKTIVITA: POUZE CHŮZE
+            </span>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
+            <FormRenderer
+              slug={uploadMode === 'gpx' ? 'gpx-upload' : 'screenshot-upload'}
+              stepId="upload"
+              values={extraData}
+              onChange={setExtraData}
+              dark
+              context={{
+                route: {
+                  routeTitle: routeName,
+                  routeDescription: routeDescription,
+                  track: trackPoints,
+                  visitDate: visitDate
+                },
+                photos: screenshotImages,
+                selectedFile: selectedFile,
+                onRouteUpdate: (u) => {
+                  if (u.routeTitle !== undefined) setRouteName(u.routeTitle);
+                  if (u.routeDescription !== undefined) setRouteDescription(u.routeDescription);
+                  if (u.visitDate !== undefined) setVisitDate(new Date(u.visitDate));
+                },
+                handleImageUpload: async (file, title) => {
+                  const fd = new FormData(); fd.append("file", file); fd.append("title", title);
+                  const res = await fetch("/api/upload", { method: "POST", body: fd });
+                  if (!res.ok) throw new Error("Upload failed");
+                  const d = await res.json();
+                  setScreenshotImages(p => [...p, { url: d.url, public_id: d.public_id, title: d.title }]);
+                },
+                handleImageDelete: async (id) => setScreenshotImages(p => p.filter(i => i.public_id !== id)),
+                handleFileChange: handleFileChange
+              }}
+            />
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-8 p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-2xl text-center italic"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            <div className="flex justify-end mt-12">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSave}
+                disabled={isSaving || !routeName}
+                className={cn(
+                  "px-12 h-16 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl",
+                  isSaving || !routeName
+                    ? "bg-white/5 text-white/10 cursor-not-allowed"
+                    : "bg-white text-black hover:bg-slate-200 shadow-white/5"
+                )}
+              >
+                {isSaving ? <Loader2 className="animate-spin w-5 h-5" /> : <><ArrowRight className="w-5 h-5" /> ULOŽIT A POKRAČOVAT</>}
+              </motion.button>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 space-y-6">
+          {/* Guidelines side card */}
+          <div className="p-8 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] space-y-6 sticky top-24">
+            <div className="flex items-center gap-2">
+              <Info className="w-3.5 h-3.5 text-white/40" />
+              <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">PRAVIDLA</span>
+            </div>
+            <ul className="space-y-4">
+              {[
+                'MAXIMÁLNĚ 14 DNÍ OD POŘÍZENÍ',
+                'MUSÍ BÝT VIDĚT DATUM A ČAS',
+                'TRASA MUSÍ OBSAHOVAT MIN. 2 KM',
+                'POUZE PĚŠÍ AKTIVITA'
+              ].map((rule, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-1.5 shrink-0" />
+                  <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest leading-loose">{rule}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>

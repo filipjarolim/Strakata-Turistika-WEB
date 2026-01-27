@@ -10,30 +10,23 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding scoring configuration...');
 
+  // Delete existing scoring config if any to start fresh and avoid DateTime issues
+  await prisma.scoringConfig.deleteMany({});
+
   // Create default scoring config
-  const scoringConfig = await prisma.scoringConfig.upsert({
-    where: { id: 'default_scoring_config' },
-    update: {
-      pointsPerKm: 2.0,
-      minDistanceKm: 3.0,
-      requireAtLeastOnePlace: true,
-      placeTypePoints: {
-        PEAK: 1.0,
-        TOWER: 1.0,
-        TREE: 1.0,
-        OTHER: 0.0
-      },
-      active: true
-    },
-    create: {
+  const scoringConfig = await prisma.scoringConfig.create({
+    data: {
       id: 'default_scoring_config',
-      pointsPerKm: 2.0,
+      pointsPerKm: 1.0,
       minDistanceKm: 3.0,
       requireAtLeastOnePlace: true,
       placeTypePoints: {
         PEAK: 1.0,
         TOWER: 1.0,
         TREE: 1.0,
+        RUINS: 1.0,
+        CAVE: 1.0,
+        UNUSUAL_NAME: 1.0,
         OTHER: 0.0
       },
       active: true
@@ -79,6 +72,33 @@ async function main() {
       points: 0.0,
       isActive: true,
       order: 3
+    },
+    {
+      name: 'RUINS',
+      label: 'Zřícenina',
+      icon: 'Castle',
+      color: 'text-amber-600',
+      points: 1.0,
+      isActive: true,
+      order: 4
+    },
+    {
+      name: 'CAVE',
+      label: 'Jeskyně',
+      icon: 'Mountain',
+      color: 'text-gray-700',
+      points: 1.0,
+      isActive: true,
+      order: 5
+    },
+    {
+      name: 'UNUSUAL_NAME',
+      label: 'Neobvyklý název',
+      icon: 'Sparkles',
+      color: 'text-purple-600',
+      points: 1.0,
+      isActive: true,
+      order: 6
     }
   ];
 

@@ -45,6 +45,8 @@ export interface LeaderboardEntry {
   dogName?: string;
   totalPoints: number;
   visitsCount: number;
+  totalDistance: number;
+  totalDuration: number;
   lastVisitDate?: Date;
 }
 
@@ -273,6 +275,8 @@ export async function getLeaderboard(
         dogName: visit.user?.dogName || undefined,
         totalPoints: 0,
         visitsCount: 0,
+        totalDistance: 0,
+        totalDuration: 0,
         lastVisitDate: undefined
       });
     }
@@ -280,6 +284,12 @@ export async function getLeaderboard(
     const entry = userMap.get(groupKey)!;
     entry.totalPoints += visit.points;
     entry.visitsCount += 1;
+
+    // Aggregate distance and duration from route
+    if (visit.route) {
+      entry.totalDistance += visit.route.totalDistance || 0;
+      entry.totalDuration += visit.route.duration || 0;
+    }
 
     if (!entry.lastVisitDate || (visit.visitDate && visit.visitDate > entry.lastVisitDate)) {
       entry.lastVisitDate = visit.visitDate || undefined;
@@ -297,19 +307,39 @@ export async function getLeaderboard(
     );
   }
 
-  // Sort by points or visits
+  // Sort with tiebreaker rules (2025/2026)
   if (sortByVisits) {
     leaderboardEntries.sort((a, b) => {
+      // 1. Visits count (desc)
       if (b.visitsCount !== a.visitsCount) {
         return b.visitsCount - a.visitsCount;
       }
-      return b.totalPoints - a.totalPoints;
-    });
-  } else {
-    leaderboardEntries.sort((a, b) => {
+      // 2. Points (desc)
       if (b.totalPoints !== a.totalPoints) {
         return b.totalPoints - a.totalPoints;
       }
+      // 3. Duration (asc)
+      if (a.totalDuration !== b.totalDuration) {
+        return a.totalDuration - b.totalDuration;
+      }
+      // 4. Distance (desc)
+      return b.totalDistance - a.totalDistance;
+    });
+  } else {
+    leaderboardEntries.sort((a, b) => {
+      // 1. Points (desc)
+      if (b.totalPoints !== a.totalPoints) {
+        return b.totalPoints - a.totalPoints;
+      }
+      // 2. Duration (asc) - lowest duration first for same points
+      if (a.totalDuration !== b.totalDuration) {
+        return a.totalDuration - b.totalDuration;
+      }
+      // 3. Distance (desc) - highest distance if points and duration same
+      if (b.totalDistance !== a.totalDistance) {
+        return b.totalDistance - a.totalDistance;
+      }
+      // 4. Visits count (desc)
       return b.visitsCount - a.visitsCount;
     });
   }

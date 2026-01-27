@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -15,106 +15,49 @@ import {
     Award,
     ExternalLink,
     ChevronRight,
-    Search
+    Search,
+    Loader2,
+    Mountain,
+    Eye,
+    TreeDeciduous,
+    Castle,
+    Sparkles,
+    Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IOSButton } from "@/components/ui/ios/button";
 import Link from "next/link";
 
-// --- Data ---
+interface ScoringConfig {
+    pointsPerKm: number;
+    minDistanceKm: number;
+    requireAtLeastOnePlace: boolean;
+}
 
-const RULES_DATA = [
-    {
-        id: "how-to",
-        title: "Jak na to?",
-        subtitle: "Základní principy",
-        icon: <MapPin className="h-6 w-6" />,
-        color: "text-blue-500",
-        bgColor: "bg-blue-500/10",
-        image: "/img/mascot/hiking.png",
-        description: "Účast v soutěži je snadná. Stačí vzít svého strakáče, vyrazit do přírody a dodržet pár jednoduchých pravidel.",
-        rules: [
-            {
-                title: "Pouze po svých",
-                content: "Žádná kola, lodě ani běžky. Uznáváme pouze pěší turistiku. Jen vy a váš pes v přírodě.",
-                important: true,
-                icon: <MapPin className="h-5 w-5" />
-            },
-            {
-                title: "Minimálně 3 km",
-                content: "Každý výlet musí mít délku alespoň 3 km. Kratší procházky se do soutěže nepočítají.",
-                important: true,
-                icon: <Search className="h-5 w-5" />
-            },
-            {
-                title: "Důkaz o trase",
-                content: "Potřebujeme záznam trasy (z aplikace Stopař, Strava apod.) a fotku přímo z místa.",
-                important: false,
-                icon: <CheckCircle className="h-5 w-5" />
-            }
-        ]
-    },
-    {
-        id: "challenges",
-        title: "Místa a Výzvy",
-        subtitle: "Kde sbírat body",
-        icon: <Camera className="h-6 w-6" />,
-        color: "text-emerald-500",
-        bgColor: "bg-emerald-500/10",
-        image: "/img/mascot/photography.png",
-        description: "Objevujte nová místa a plňte měsíční výzvy. Každá fotka se počítá, pokud dodržíte zadání.",
-        rules: [
-            {
-                title: "Správná fotka",
-                content: "Pes musí být na fotce jasně vidět a fotka musí být pořízena přímo u cílového objektu.",
-                important: true,
-                icon: <Camera className="h-5 w-5" />
-            },
-            {
-                title: "Téma měsíce",
-                content: "Každý měsíc vyhlašujeme speciální téma. Najděte místa spojená s pohádkami a získejte bonus.",
-                important: false,
-                icon: <Award className="h-5 w-5" />
-            },
-            {
-                title: "Opakování povolený",
-                content: "Na stejné místo můžete vyrazit vícekrát, ale body z něj započítáme jen jednou ročně.",
-                important: false,
-                icon: <CheckCircle className="h-5 w-5" />
-            }
-        ]
-    },
-    {
-        id: "essentials",
-        title: "Důležité info",
-        subtitle: "Na co nezapomenout",
-        icon: <Shield className="h-6 w-6" />,
-        color: "text-amber-500",
-        bgColor: "bg-amber-500/10",
-        image: "/img/mascot/reading.png",
-        description: "Pár formalit, které je třeba dodržet, aby byly vaše body spravedlivě uznány.",
-        rules: [
-            {
-                title: "14 dní na odeslání",
-                content: "Fotky a záznamy posílejte včas. Maximálně do 14 dnů od výletu, později to nejde.",
-                important: true,
-                icon: <AlertTriangle className="h-5 w-5" />
-            },
-            {
-                title: "Členství ve spolku",
-                content: "Soutěž je exkluzivní pro členy Spolku českého strakatého psa.",
-                important: true,
-                icon: <Shield className="h-5 w-5" />
-            },
-            {
-                title: "Sezóna 24/25",
-                content: "Body sbíráme od 1. listopadu 2024 až do 31. října 2025.",
-                important: false,
-                icon: <CheckCircle className="h-5 w-5" />
-            }
-        ]
-    }
-];
+interface PlaceTypeConfig {
+    id: string;
+    name: string;
+    label: string;
+    icon: string;
+    points: number;
+    color: string;
+    isActive: boolean;
+}
+
+const ICON_MAP: Record<string, any> = {
+    Mountain: Mountain,
+    Eye: Eye,
+    TreeDeciduous: TreeDeciduous,
+    Castle: Castle,
+    Sparkles: Sparkles,
+    MapPin: MapPin,
+    terrain: Mountain,
+    attractions: Eye,
+    park: TreeDeciduous,
+    castle: Castle,
+    star: Sparkles,
+    place: MapPin
+};
 
 // --- Components ---
 
@@ -168,7 +111,17 @@ const RuleCard = ({ rule, index }: { rule: RuleItem, index: number }) => {
     );
 };
 
-const Section = ({ data, index }: { data: typeof RULES_DATA[0], index: number }) => {
+const Section = ({ title, subtitle, icon, color, bgColor, image, description, rules, index }: {
+    title: string,
+    subtitle: string,
+    icon: React.ReactNode,
+    color: string,
+    bgColor: string,
+    image: string,
+    description: string,
+    rules: RuleItem[],
+    index: number
+}) => {
     const isEven = index % 2 === 0;
 
     return (
@@ -193,8 +146,8 @@ const Section = ({ data, index }: { data: typeof RULES_DATA[0], index: number })
                 >
                     <div className="relative aspect-square sm:aspect-[4/3] lg:aspect-square rounded-[3rem] overflow-hidden shadow-2xl transition-transform duration-700 group-hover:scale-[1.02]">
                         <Image
-                            src={data.image}
-                            alt={data.title}
+                            src={image}
+                            alt={title}
                             fill
                             className="object-cover"
                             priority={index === 0}
@@ -207,12 +160,12 @@ const Section = ({ data, index }: { data: typeof RULES_DATA[0], index: number })
                             "transform transition-all duration-500 group-hover:-translate-y-2"
                         )}>
                             <div className="flex items-center gap-4">
-                                <div className={cn("p-3 rounded-2xl bg-white/20", data.color.replace('text-', 'text-white '))} >
-                                    {data.icon}
+                                <div className={cn("p-3 rounded-2xl bg-white/20", color.replace('text-', 'text-white '))} >
+                                    {icon}
                                 </div>
                                 <div>
-                                    <p className="text-white/80 text-sm font-medium uppercase tracking-wider">{data.subtitle}</p>
-                                    <h3 className="text-2xl font-bold text-white">{data.title}</h3>
+                                    <p className="text-white/80 text-sm font-medium uppercase tracking-wider">{subtitle}</p>
+                                    <h3 className="text-2xl font-bold text-white">{title}</h3>
                                 </div>
                             </div>
                         </div>
@@ -231,15 +184,15 @@ const Section = ({ data, index }: { data: typeof RULES_DATA[0], index: number })
                         transition={{ duration: 0.5 }}
                     >
                         <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-6">
-                            {data.title}
+                            {title}
                         </h2>
                         <p className="text-xl text-gray-600 leading-relaxed font-medium">
-                            {data.description}
+                            {description}
                         </p>
                     </motion.div>
 
                     <div className="grid gap-4">
-                        {data.rules.map((rule, i) => (
+                        {rules.map((rule, i) => (
                             <RuleCard key={i} rule={rule} index={i} />
                         ))}
                     </div>
@@ -294,15 +247,48 @@ const QuickLinks = () => {
 };
 
 export function PravidlaClient() {
+    const [config, setConfig] = useState<ScoringConfig | null>(null);
+    const [placeTypes, setPlaceTypes] = useState<PlaceTypeConfig[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [configRes, typesRes] = await Promise.all([
+                    fetch('/api/scoring-config'),
+                    fetch('/api/place-type-configs')
+                ]);
+                if (configRes.ok && typesRes.ok) {
+                    setConfig(await configRes.json());
+                    setPlaceTypes(await typesRes.json());
+                }
+            } catch (error) {
+                console.error("Failed to fetch rules data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
     const handleDownloadRules = () => {
-        const rulesContent = `PRAVIDLA STRAKATÉ TURISTIKY 2024/2025
+        const activePlaceTypesText = placeTypes
+            .filter(t => t.isActive)
+            .map(t => `- ${t.label}: ${t.points} bod${t.points === 1 ? '' : t.points >= 2 && t.points <= 4 ? 'y' : 'ů'}`)
+            .join('\n');
+
+        const rulesContent = `PRAVIDLA STRAKATÉ TURISTIKY 2025/2026
 
 ZÁKLADNÍ PRAVIDLA SOUTĚŽE:
 - Letos je povolena pouze chůze, žádný dopravní prostředek (kolo, loď, běžky)
-- Trasa musí měřit nejméně 3 km (nevztahuje se na téma měsíce)
-- Na trase musíte navštívit alespoň 1 bodované místo
+- Trasa musí měřit nejméně ${config?.minDistanceKm || '3'} km
+- Za každý kilometr získáte ${config?.pointsPerKm || '1'} bod
+- ${config?.requireAtLeastOnePlace ? 'Na trase musíte navštívit alespoň 1 bodované místo' : 'Není nutné navštívit bodované místo, ale doporučujeme to!'}
 - Body se dávají i za desetiny kilometru
 - Počet tras ušlých za jeden den není nijak omezen
+
+BODOVANÁ MÍSTA:
+${activePlaceTypesText}
 
 DŮKAZ UŠLÝCH KILOMETRŮ:
 - Screen nebo odkaz z aplikace (stopař, strava apod.)
@@ -316,19 +302,19 @@ VÝJIMKY:
 BODOVÁNÍ A POŘADÍ:
 - Při rovnosti bodů rozhoduje: 1) počet ušlých kilometrů, 2) počet bodů za navštívená místa
 - Soutěž je pro členy Spolku českého strakatého psa
-- Bodovací období: 1. 11. 2024 do 31. 10. 2025
+- Bodovací období: 1. 11. 2025 do 31. 10. 2026
 - Fotka nesmí být starší 14 dní od pořízení
 
-BODOVANÁ MÍSTA:
+BODOVANÁ MÍSTA (DETAILY):
 - Fotka přímo z bodovaného místa (ne z dálky)
 - Bodované místo můžete navštívit za rok kolikrát chcete, ale body budete mít jen jednou
 - Vícebodová místa: napište všechny získané body
 
 TÉMA MĚSÍCE:
-- Tři slova vztahující se k pohádkám
+- Tři slova vztahující se k tématu měsíce
 - Není podmínka trasy 3 km
-- Bonus 2 body za všechna tři slova v měsíci
-- Aktuální téma: Král - Koruna - Hrad
+- Bonus 5 bodů za splnění tématu
+- Aktuální téma najdete v aktualitách
 
 POŽADAVKY NA FOTKY:
 - Jméno majitele + psa (oficiální i volací)
@@ -342,12 +328,49 @@ Kontakt: info@strakataturistika.cz`;
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'pravidla-strakate-turistiky.txt';
+        link.download = 'pravidla-strakate-turistiky-2025-26.txt';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-40 space-y-4">
+                <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
+                <p className="text-gray-500 font-medium">Načítání pravidel...</p>
+            </div>
+        );
+    }
+
+    const rulesHowTo = [
+        {
+            title: "Pouze po svých",
+            content: "Žádná kola, lodě ani běžky. Uznáváme pouze pěší turistiku. Jen vy a váš pes v přírodě.",
+            important: true,
+            icon: <MapPin className="h-5 w-5" />
+        },
+        {
+            title: `Minimálně ${config?.minDistanceKm || 3} km`,
+            content: `Každý výlet musí mít délku alespoň ${config?.minDistanceKm || 3} km. Kratší procházky se do soutěže nepočítají.`,
+            important: true,
+            icon: <Search className="h-5 w-5" />
+        },
+        {
+            title: "Bodování trasy",
+            content: `Za každý ušlý kilometr získáte ${config?.pointsPerKm || 1} bod. ${config?.requireAtLeastOnePlace ? 'Nezapomeňte navštívit alespoň jedno bodované místo.' : ''}`,
+            important: false,
+            icon: <Award className="h-5 w-5" />
+        }
+    ];
+
+    const rulesChallenges = placeTypes.filter(t => t.isActive).map(t => ({
+        title: t.label,
+        content: `Navštivte toto místo a získejte ${t.points} bod${t.points === 1 ? '' : t.points >= 2 && t.points <= 4 ? 'y' : 'ů'}.`,
+        important: false,
+        icon: React.createElement(ICON_MAP[t.icon] || Mountain, { size: 20 })
+    }));
 
     return (
         <div className="min-h-screen bg-gray-50/50 pb-32 overflow-hidden selection:bg-blue-100 selection:text-blue-900">
@@ -380,13 +403,67 @@ Kontakt: info@strakataturistika.cz`;
                     <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
                         Vše, co potřebuješ vědět. Přehledně, jasně a s láskou k pohybu.
                     </p>
+
+                    <div className="mt-12 flex flex-wrap justify-center gap-4">
+                        <IOSButton
+                            onClick={handleDownloadRules}
+                            className="bg-zinc-900 text-white hover:bg-zinc-800 h-14 px-8 rounded-2xl flex items-center gap-3 animate-fade-in-up shadow-xl shadow-black/10"
+                        >
+                            <Download className="w-5 h-5" /> Stáhnout kompletní pravidla (TXT)
+                        </IOSButton>
+                    </div>
                 </motion.div>
 
                 {/* Main Content Sections */}
                 <div className="space-y-12">
-                    {RULES_DATA.map((section, index) => (
-                        <Section key={section.id} data={section} index={index} />
-                    ))}
+                    <Section
+                        title="Jak na to?"
+                        subtitle="Základní principy"
+                        icon={<MapPin className="h-6 w-6" />}
+                        color="text-blue-500"
+                        bgColor="bg-blue-500/10"
+                        image="/img/mascot/hiking.png"
+                        description="Účast v soutěži je snadná. Stačí vzít svého strakáče, vyrazit do přírody a dodržet pár jednoduchých pravidel."
+                        rules={rulesHowTo}
+                        index={0}
+                    />
+                    <Section
+                        title="Bodovaná místa"
+                        subtitle="Kde sbírat body"
+                        icon={<Camera className="h-6 w-6" />}
+                        color="text-emerald-500"
+                        bgColor="bg-emerald-500/10"
+                        image="/img/mascot/photography.png"
+                        description="Objevujte nová místa a získávejte body. Každý rok můžete navštívit stovky zajímavých lokalit."
+                        rules={rulesChallenges.slice(0, 3)} // Show first 3 in main layout
+                        index={1}
+                    />
+
+                    {/* More Details section */}
+                    <Section
+                        title="Důležité info"
+                        subtitle="Na co nezapomenout"
+                        icon={<Shield className="h-6 w-6" />}
+                        color="text-amber-500"
+                        bgColor="bg-amber-500/10"
+                        image="/img/mascot/reading.png"
+                        description="Pár formalit, které je třeba dodržet, aby byly vaše body spravedlivě uznány."
+                        rules={[
+                            {
+                                title: "14 dní na odeslání",
+                                content: "Fotky a záznamy posílejte včas. Maximálně do 14 dnů od výletu, později to nejde.",
+                                important: true,
+                                icon: <AlertTriangle className="h-5 w-5" />
+                            },
+                            {
+                                title: "Členství ve spolku",
+                                content: "Soutěž je exkluzivní pro členy Spolku českého strakatého psa.",
+                                important: true,
+                                icon: <Shield className="h-5 w-5" />
+                            }
+                        ]}
+                        index={2}
+                    />
                 </div>
 
                 {/* Footer Actions */}
@@ -402,9 +479,6 @@ Kontakt: info@strakataturistika.cz`;
                     </div>
 
                     <QuickLinks />
-
-                    {/* Support Card */}
-                    {/* Support Card - Removed as requested */}
                 </motion.div>
 
             </div>

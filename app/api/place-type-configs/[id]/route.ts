@@ -9,41 +9,29 @@ export async function PUT(
 ) {
     try {
         const role = await currentRole();
-        
+        const { id } = await params;
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
-        const { id } = await params;
         const body = await request.json();
-        const { name, label, icon, points, color } = body;
+        const { name, label, icon, points, color, isActive, order } = body;
 
-        // Check if place type exists
-        const existing = await db.placeTypeConfig.findUnique({
-            where: { id }
-        });
-
-        if (!existing) {
-            return NextResponse.json(
-                { error: "Place type not found" },
-                { status: 404 }
-            );
-        }
-
-        // Update place type
         const placeType = await db.placeTypeConfig.update({
             where: { id },
             data: {
-                name: name ?? existing.name,
-                label: label ?? existing.label,
-                icon: icon ?? existing.icon,
-                points: points !== undefined ? points : existing.points,
-                color: color ?? existing.color,
-                updatedAt: new Date(),
+                name,
+                label,
+                icon,
+                points,
+                color,
+                isActive,
+                order
             }
         });
 
-        return NextResponse.json({ success: true, placeType });
+        return NextResponse.json(placeType);
     } catch (error) {
         console.error("Error updating place type config:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
@@ -56,26 +44,16 @@ export async function DELETE(
 ) {
     try {
         const role = await currentRole();
-        
+        const { id } = await params;
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
-        const { id } = await params;
+        // Check if it's currently used in scoring config
+        // This might be tricky as scoring config uses JSON for placeTypePoints
+        // For now, we just delete it. In a real app we'd warn about references.
 
-        // Check if place type exists
-        const existing = await db.placeTypeConfig.findUnique({
-            where: { id }
-        });
-
-        if (!existing) {
-            return NextResponse.json(
-                { error: "Place type not found" },
-                { status: 404 }
-            );
-        }
-
-        // Delete place type
         await db.placeTypeConfig.delete({
             where: { id }
         });

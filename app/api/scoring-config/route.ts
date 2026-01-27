@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 export async function GET() {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
@@ -24,21 +24,24 @@ export async function GET() {
             },
             where: { active: true } // Only get active configs
         });
-        
+
         // If no config exists, create default one
         if (!config) {
             // First, delete any inactive or duplicate configs
             await db.scoringConfig.deleteMany({});
-            
+
             config = await db.scoringConfig.create({
                 data: {
-                    pointsPerKm: 2.0,
+                    pointsPerKm: 1.0,
                     minDistanceKm: 3.0,
                     requireAtLeastOnePlace: true,
                     placeTypePoints: {
                         PEAK: 1.0,
                         TOWER: 1.0,
                         TREE: 1.0,
+                        RUINS: 1.0,
+                        CAVE: 1.0,
+                        UNUSUAL_NAME: 1.0,
                         OTHER: 0.0,
                     },
                     active: true,
@@ -64,7 +67,7 @@ export async function GET() {
 export async function PUT(request: Request) {
     try {
         const role = await currentRole();
-        
+
         if (role !== UserRole.ADMIN) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
@@ -92,7 +95,7 @@ export async function PUT(request: Request) {
             where: { active: true },
             orderBy: { id: 'asc' } // Get the oldest one if multiple exist
         });
-        
+
         let config;
         if (existingConfig) {
             // Update existing active config
@@ -105,7 +108,7 @@ export async function PUT(request: Request) {
                     placeTypePoints: placeTypePoints || existingConfig.placeTypePoints,
                 }
             });
-            
+
             // Deactivate any other configs (shouldn't exist, but just in case)
             await db.scoringConfig.updateMany({
                 where: {
@@ -117,7 +120,7 @@ export async function PUT(request: Request) {
         } else {
             // No config exists, create new one and delete any inactive ones
             await db.scoringConfig.deleteMany({});
-            
+
             config = await db.scoringConfig.create({
                 data: {
                     pointsPerKm,

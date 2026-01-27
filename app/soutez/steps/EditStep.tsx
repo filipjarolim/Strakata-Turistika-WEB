@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Navigation, AlertCircle } from 'lucide-react';
-import { IOSButton } from '@/components/ui/ios/button';
-import { AlertCircle as AlertIcon } from "lucide-react";
-import FormRenderer from "@/components/soutez/FormRenderer";
+import { ArrowLeft, ArrowRight, Navigation, AlertCircle, Loader2, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import FormRenderer from "@/components/soutez/FormRenderer";
 
 interface User {
   id?: string;
@@ -145,73 +144,103 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
     }
   };
 
-  if (isLoading) return <div className="p-20 text-center text-white/50">Načítám...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-32 space-y-6">
+        <Loader2 className="h-10 w-10 text-white/20 animate-spin" />
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">NAČÍTÁNÍ DAT TRASY...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-20">
-      <div className="border-b border-white/10 pb-6">
-        <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-          <Navigation className="h-6 w-6 text-blue-400" />
-          Upravit trasu
-        </h2>
-        <p className="text-gray-400 mt-2">Přidejte detaily, fotky a zkontrolujte správnost dat.</p>
+    <div className="space-y-12 max-w-6xl mx-auto px-6 py-12 pb-32">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-400/10">
+              <Navigation className="h-4 w-4 text-blue-400" />
+            </div>
+            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">KROK 02: VERIFIKACE</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter italic">
+            UPRAVIT <span className="text-white/30">DETAILY TRASY.</span>
+          </h2>
+        </div>
+        <p className="max-w-xs text-[10px] font-bold text-white/20 uppercase tracking-widest leading-loose italic">
+          ZKONTROLUJTE SPRÁVNOST DAT A PŘIDEJTE DOPLŇUJÍCÍ INFORMACE.
+        </p>
       </div>
 
-      {error && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-200 text-sm flex gap-3">
-          <AlertCircle className="h-5 w-5 shrink-0" /> {error}
-        </motion.div>
-      )}
+      <div className="grid lg:grid-cols-1 gap-10">
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-6 rounded-3xl bg-red-500/5 backdrop-blur-xl border border-red-500/10 flex items-start gap-4"
+          >
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-1" />
+            <div className="space-y-2">
+              <h4 className="text-[10px] font-black text-red-500 uppercase tracking-widest italic">CHYBA PŘI UKLÁDÁNÍ</h4>
+              <p className="text-[10px] text-red-200/40 uppercase font-bold tracking-widest leading-loose">
+                {error}
+              </p>
+            </div>
+          </motion.div>
+        )}
 
-      <div className="grid gap-8 grid-cols-1">
-        <FormRenderer
-          slug={
-            route?.extraPoints?.source === 'screenshot'
-              ? 'screenshot-upload'
-              : route?.extraPoints?.source === 'gps_tracking'
-                ? 'gps-tracking'
-                : 'gpx-upload'
-          }
-          stepId="edit"
-          values={extraData}
-          onChange={setExtraData}
-          dark
-          context={{
-            route: {
-              track: route?.track,
-              routeTitle: route?.routeTitle,
-              routeDescription: route?.routeDescription,
-              visitDate: visitDate,
-              dogNotAllowed: dogNotAllowed,
-              extraPoints: route?.extraPoints
-            },
-            photos: images,
-            places: places,
-            onPhotosChange: setImages,
-            onPlacesChange: setPlaces,
-            onRouteUpdate: (updates) => {
-              if (updates.visitDate) setVisitDate(updates.visitDate);
-              if (updates.dogNotAllowed !== undefined) setDogNotAllowed(updates.dogNotAllowed);
-              setRoute(prev => prev ? ({ ...prev, ...updates }) : null);
-            },
-            handleImageUpload,
-            handleImageDelete
-          }}
-        />
-      </div>
+        <div className="bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
+          <FormRenderer
+            slug={
+              route?.extraPoints?.source === 'screenshot'
+                ? 'screenshot-upload'
+                : route?.extraPoints?.source === 'gps_tracking'
+                  ? 'gps-tracking'
+                  : 'gpx-upload'
+            }
+            stepId="edit"
+            values={extraData}
+            onChange={setExtraData}
+            dark
+            context={{
+              route: {
+                track: route?.track,
+                routeTitle: route?.routeTitle,
+                routeDescription: route?.routeDescription,
+                visitDate: visitDate,
+                dogNotAllowed: dogNotAllowed,
+                extraPoints: route?.extraPoints
+              },
+              photos: images,
+              places: places,
+              onPhotosChange: setImages,
+              onPlacesChange: setPlaces,
+              onRouteUpdate: (updates) => {
+                if (updates.visitDate) setVisitDate(updates.visitDate);
+                if (updates.dogNotAllowed !== undefined) setDogNotAllowed(updates.dogNotAllowed);
+                setRoute(prev => prev ? ({ ...prev, ...updates }) : null);
+              },
+              handleImageUpload,
+              handleImageDelete
+            }}
+          />
 
-      <div className="flex justify-end pt-8">
-        <IOSButton
-          variant="blue"
-          size="lg"
-          onClick={handleSave}
-          disabled={isSaving}
-          loading={isSaving}
-          icon={<ArrowRight className="h-5 w-5" />}
-          className="w-full sm:w-auto px-10 h-14 text-lg shadow-xl shadow-blue-500/30"
-        >
-          Pokračovat k dokončení
-        </IOSButton>
+          <div className="flex justify-end mt-16 pt-10 border-t border-white/5">
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSave}
+              disabled={isSaving}
+              className={cn(
+                "px-12 h-16 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl",
+                isSaving
+                  ? "bg-white/5 text-white/10 cursor-not-allowed"
+                  : "bg-white text-black hover:bg-slate-200 shadow-white/5"
+              )}
+            >
+              {isSaving ? <Loader2 className="animate-spin w-5 h-5" /> : <><ArrowRight className="w-5 h-5" /> POKRAČOVAT K DOKONČENÍ</>}
+            </motion.button>
+          </div>
+        </div>
       </div>
     </div>
   );

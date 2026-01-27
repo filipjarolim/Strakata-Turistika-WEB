@@ -32,6 +32,9 @@ export interface Place {
   id: string;
   name: string;
   type: PlaceType;
+  lat?: number;
+  lng?: number;
+  proofType?: 'STANDARD' | 'PEAK' | 'VOLNÁ';
   photos: PlacePhoto[];
   description: string;
   createdAt: string;
@@ -250,6 +253,65 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                         placeholder="Vyberte typ"
                         dark={dark}
                       />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
+                        Typ doložení
+                      </label>
+                      <IOSSelect
+                        value={place.proofType || 'STANDARD'}
+                        onChange={(value: string) => handleUpdatePlace(place.id, { proofType: value as any })}
+                        options={[
+                          { value: 'STANDARD', label: 'Standardní (foto s označníkem)' },
+                          { value: 'PEAK', label: 'Vrchol (foto s výhledem/mapou)' },
+                          { value: 'VOLNÁ', label: 'Volná (bez omezení stezky)' }
+                        ]}
+                        dark={dark}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
+                          GPS Souřadnice
+                        </label>
+                        <button
+                          onClick={() => {
+                            if (navigator.geolocation) {
+                              navigator.geolocation.getCurrentPosition((pos) => {
+                                handleUpdatePlace(place.id, {
+                                  lat: pos.coords.latitude,
+                                  lng: pos.coords.longitude
+                                });
+                              });
+                            }
+                          }}
+                          className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300"
+                        >
+                          Moje poloha
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <IOSTextInput
+                          placeholder="Lat"
+                          type="number"
+                          value={place.lat || ''}
+                          onChange={(e: any) => handleUpdatePlace(place.id, { lat: parseFloat(e.target.value) })}
+                          dark={dark}
+                          className="flex-1"
+                        />
+                        <IOSTextInput
+                          placeholder="Lng"
+                          type="number"
+                          value={place.lng || ''}
+                          onChange={(e: any) => handleUpdatePlace(place.id, { lng: parseFloat(e.target.value) })}
+                          dark={dark}
+                          className="flex-1"
+                        />
+                      </div>
                     </div>
                   </div>
 
