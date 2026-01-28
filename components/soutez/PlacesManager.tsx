@@ -220,10 +220,11 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                 iconColor={dark ? "text-blue-300" : "text-blue-600"}
                 variant="elevated"
                 className={cn(
+                  "p-4 sm:p-6",
                   dark && "bg-black/40 backdrop-blur-sm border border-white/20 text-white"
                 )}
-                titleClassName={cn(dark && "text-white")}
-                subtitleClassName={cn(dark && "text-white/70")}
+                titleClassName={cn("text-base sm:text-lg", dark && "text-white")}
+                subtitleClassName={cn("text-xs sm:text-sm", dark && "text-white/70")}
               >
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -281,44 +282,44 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
-                          GPS Souřadnice
-                        </label>
-                        <button
-                          onClick={() => {
-                            if (navigator.geolocation) {
-                              navigator.geolocation.getCurrentPosition((pos) => {
-                                handleUpdatePlace(place.id, {
-                                  lat: pos.coords.latitude,
-                                  lng: pos.coords.longitude
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className={cn("text-xs sm:text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
+                            GPS Souřadnice
+                          </label>
+                          <button
+                            onClick={() => {
+                              if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition((pos) => {
+                                  handleUpdatePlace(place.id, {
+                                    lat: pos.coords.latitude,
+                                    lng: pos.coords.longitude
+                                  });
                                 });
-                              });
-                            }
-                          }}
-                          className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300"
-                        >
-                          Moje poloha
-                        </button>
-                      </div>
-                      <div className="flex gap-2">
-                        <IOSTextInput
-                          placeholder="Lat"
-                          type="number"
-                          value={place.lat || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lat: parseFloat(e.target.value) })}
-                          dark={dark}
-                          className="flex-1"
-                        />
-                        <IOSTextInput
-                          placeholder="Lng"
-                          type="number"
-                          value={place.lng || ''}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lng: parseFloat(e.target.value) })}
-                          dark={dark}
-                          className="flex-1"
-                        />
+                              }
+                            }}
+                            className="text-[9px] sm:text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300"
+                          >
+                            Moje poloha
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <IOSTextInput
+                            placeholder="Lat"
+                            type="number"
+                            value={place.lat || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lat: parseFloat(e.target.value) })}
+                            dark={dark}
+                          />
+                          <IOSTextInput
+                            placeholder="Lng"
+                            type="number"
+                            value={place.lng || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lng: parseFloat(e.target.value) })}
+                            dark={dark}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
