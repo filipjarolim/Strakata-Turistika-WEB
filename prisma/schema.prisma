@@ -162,6 +162,8 @@ model VisitData {
   freeCategoryIcon String?
   strataCategoryId String?
   strataCategoryIcon String?
+  deletedAt     DateTime?
+  deletedBy     String?
 
   // Relation to Season
   seasonId String?

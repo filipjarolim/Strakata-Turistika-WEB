@@ -12,7 +12,9 @@ import {
     MapPin,
     Sliders,
     ChevronRight,
-    Server
+    Server,
+    BarChart,
+    LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +69,36 @@ const mainCollections = [
         gradient: "from-blue-500/10 to-indigo-500/10",
         border: "border-blue-500/10",
         iconColor: "text-blue-600 dark:text-blue-400"
+    },
+    {
+        name: "CustomRoute",
+        title: "Strakatá Cesta",
+        description: "Správa a schvalování tras vytvořených uživateli.",
+        icon: MapPin,
+        href: "/admin/CustomRoute",
+        gradient: "from-amber-500/10 to-yellow-500/10",
+        border: "border-amber-500/10",
+        iconColor: "text-amber-600 dark:text-amber-400"
+    },
+    {
+        name: "StrataCategory",
+        title: "Kategorie",
+        description: "Správa soutěžních kategorií a jejich parametrů.",
+        icon: LayoutGrid,
+        href: "/admin/StrataCategory",
+        gradient: "from-green-500/10 to-emerald-500/10",
+        border: "border-green-500/10",
+        iconColor: "text-green-600 dark:text-green-400"
+    },
+    {
+        name: "Stats",
+        title: "Výsledky & Statistiky",
+        description: "Prohlížení aktuálního žebříčku a detailních statistik.",
+        icon: BarChart,
+        href: `/vysledky/${new Date().getFullYear()}`,
+        gradient: "from-pink-500/10 to-rose-500/10",
+        border: "border-pink-500/10",
+        iconColor: "text-pink-600 dark:text-pink-400"
     }
 ];
 

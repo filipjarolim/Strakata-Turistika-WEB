@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
     experimental: {
         optimizePackageImports: ["lucide-react"],
     },
+    turbopack: {},
     serverExternalPackages: ['@prisma/client', 'prisma', 'oauth4webapi'],
     transpilePackages: ["next-auth", "@auth/core", "sonner", "@tiptap/core", "@tiptap/react", "@tiptap/starter-kit", "@tiptap/pm"],
 
@@ -15,6 +16,9 @@ const nextConfig: NextConfig = {
             { protocol: "https", hostname: "lh3.googleusercontent.com" },
             { protocol: "https", hostname: "play.google.com" },
             { protocol: "https", hostname: "images.unsplash.com" },
+            { protocol: "https", hostname: "avatars.githubusercontent.com" },
+            { protocol: "https", hostname: "placehold.co" },
+            { protocol: "https", hostname: "cdn.jsdelivr.net" },
         ],
     },
 
@@ -32,9 +36,6 @@ const nextConfig: NextConfig = {
         return config;
     },
 
-    eslint: {
-        // ignoreDuringBuilds: true,
-    },
 };
 
 export default nextConfig;

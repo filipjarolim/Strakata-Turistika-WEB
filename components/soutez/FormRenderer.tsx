@@ -92,12 +92,10 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
         onChange({ ...values, [name]: value });
     };
 
-    if (loading) return (
-        <div className="flex flex-col items-center justify-center p-8 space-y-4">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-white/50 text-sm font-medium">Načítání formuláře...</p>
-        </div>
-    );
+    <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className={cn("text-sm font-medium", dark ? "text-white/50" : "text-gray-400")}>Načítání formuláře...</p>
+    </div>
     if (!definition) return null;
 
     const currentStep = definition.steps.find(s => s.id === stepId);
@@ -141,7 +139,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'textarea') {
                     return (
                         <div key={field.id} className="space-y-2">
-                            <label className="text-sm font-medium text-white/90">
+                            <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
                                 {field.label} {field.required && <span className="text-red-500">*</span>}
                             </label>
                             <IOSTextarea
@@ -163,7 +161,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'select') {
                     return (
                         <div key={field.id} className="space-y-2">
-                            <label className="text-sm font-medium text-white/90">
+                            <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
                                 {field.label} {field.required && <span className="text-red-500">*</span>}
                             </label>
                             <div className="relative">
@@ -180,7 +178,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
                                 </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
+                                <ChevronDown className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none", dark ? "text-white/50" : "text-gray-400")} />
                             </div>
                         </div>
                     );
@@ -188,9 +186,12 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
 
                 if (field.type === 'checkbox') {
                     return (
-                        <div key={field.id} className="flex items-center justify-between py-4 px-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
+                        <div key={field.id} className={cn(
+                            "flex items-center justify-between py-4 px-5 rounded-2xl border transition-colors",
+                            dark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                        )}>
                             <div className="space-y-1">
-                                <span className="text-sm font-medium text-white block">{field.label}</span>
+                                <span className={cn("text-sm font-medium block", dark ? "text-white" : "text-gray-900")}>{field.label}</span>
                             </div>
                             <IOSSwitch
                                 checked={Boolean(val)}
@@ -219,12 +220,12 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'gpx_upload' && context) {
                     return (
                         <div key={field.id} className="space-y-4">
-                            <label className="text-sm font-semibold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
                                 <FileText className="w-4 h-4" /> {field.label}
                             </label>
                             <label className={cn(
                                 "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl transition-all duration-300 group cursor-pointer",
-                                context.selectedFile ? "bg-green-500/10 border-green-500/30" : "bg-black/40 border-white/10 hover:border-blue-500/50 hover:bg-black/50"
+                                context.selectedFile ? "bg-green-500/10 border-green-500/30" : (dark ? "bg-black/40 border-white/10 hover:border-blue-500/50 hover:bg-black/50" : "bg-gray-50 border-gray-200 hover:border-blue-500/50 hover:bg-gray-100")
                             )}>
                                 <div className="flex flex-col items-center justify-center p-6 text-center space-y-2">
                                     <div className={cn(
@@ -233,10 +234,10 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                     )}>
                                         {context.selectedFile ? <Check className="h-6 w-6 text-green-400" /> : <Upload className="h-6 w-6 text-white/70 group-hover:text-blue-400" />}
                                     </div>
-                                    <p className="text-sm font-medium text-white">
+                                    <p className={cn("text-sm font-medium", dark ? "text-white" : "text-gray-900")}>
                                         {context.selectedFile ? context.selectedFile.name : "Klikněte pro nahrání"}
                                     </p>
-                                    <p className="text-[10px] text-white/40 uppercase tracking-widest">
+                                    <p className={cn("text-[10px] uppercase tracking-widest", dark ? "text-white/40" : "text-gray-400")}>
                                         GPX, KML, TCX, CSV, GeoJSON
                                     </p>
                                 </div>
@@ -255,10 +256,10 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'map_preview' && context?.route?.track) {
                     return (
                         <div key={field.id} className="space-y-4">
-                            <label className="text-sm font-semibold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
                                 <MapPin className="w-4 h-4" /> {field.label}
                             </label>
-                            <div className="h-64 sm:h-96 rounded-3xl overflow-hidden border border-white/10 relative">
+                            <div className={cn("h-64 sm:h-96 rounded-3xl overflow-hidden border relative", dark ? "border-white/10" : "border-gray-200 shadow-sm")}>
                                 <DynamicGpxEditor
                                     initialTrack={context.route.track as { lat: number; lng: number }[]}
                                     onSave={() => { }}
@@ -273,10 +274,10 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'image_upload' && context) {
                     return (
                         <div key={field.id} className="space-y-4">
-                            <label className="text-sm font-semibold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
                                 <Camera className="w-4 h-4" /> {field.label}
                             </label>
-                            <div className="bg-black/20 p-6 rounded-3xl border border-white/5">
+                            <div className={cn("p-6 rounded-3xl border", dark ? "bg-black/20 border-white/5" : "bg-gray-50 border-gray-200")}>
                                 <EnhancedImageUpload
                                     sources={context.photos || []}
                                     onUpload={context.handleImageUpload!}
@@ -293,7 +294,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'places_manager' && context) {
                     return (
                         <div key={field.id} className="space-y-4">
-                            <label className="text-sm font-semibold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
                                 <Mountain className="w-4 h-4" /> {field.label}
                             </label>
                             <PlacesManager
@@ -322,7 +323,7 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'description_input' && context) {
                     return (
                         <div key={field.id} className="space-y-2">
-                            <label className="text-sm font-medium text-white/90 flex items-center gap-2">
+                            <label className={cn("text-sm font-medium flex items-center gap-2", dark ? "text-white/90" : "text-gray-700")}>
                                 <Info className="w-4 h-4 text-blue-400" /> {field.label || "Popis trasy"}
                             </label>
                             <IOSTextarea
@@ -343,14 +344,14 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 if (field.type === 'calendar' && context) {
                     return (
                         <div key={field.id} className="space-y-3">
-                            <label className="text-sm font-medium text-white/90 flex items-center gap-2">
+                            <label className={cn("text-sm font-medium flex items-center gap-2", dark ? "text-white/90" : "text-gray-700")}>
                                 <Calendar className="w-4 h-4 text-orange-400" /> {field.label || "Datum absolvování"}
                             </label>
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                            <div className={cn("rounded-2xl p-4 border", dark ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200")}>
                                 <IOSCalendar
                                     selectedDate={context.route?.visitDate || new Date()}
                                     onDateChange={(date: Date) => context.onRouteUpdate?.({ visitDate: date })}
-                                    className="w-full text-white"
+                                    className={cn("w-full", dark ? "text-white" : "text-gray-900")}
                                 />
                             </div>
                         </div>
@@ -359,13 +360,16 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
 
                 if (field.type === 'dog_switch' && context) {
                     return (
-                        <div key={field.id} className="flex items-center justify-between py-4 px-5 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors">
+                        <div key={field.id} className={cn(
+                            "flex items-center justify-between py-4 px-5 rounded-2xl border transition-colors",
+                            dark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                        )}>
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                     <AlertCircle className="w-4 h-4 text-red-400" />
-                                    <span className="text-base font-medium text-white block">{field.label || "Zákaz vstupu se psy"}</span>
+                                    <span className={cn("text-base font-medium block", dark ? "text-white" : "text-gray-900")}>{field.label || "Zákaz vstupu se psy"}</span>
                                 </div>
-                                <span className="text-xs text-white/50 block ml-6">Bylo na trase nějaké omezení pro psy?</span>
+                                <span className={cn("text-xs block ml-6", dark ? "text-white/50" : "text-gray-500")}>Bylo na trase nějaké omezení pro psy?</span>
                             </div>
                             <IOSSwitch
                                 checked={context.route?.dogNotAllowed || false}
@@ -379,15 +383,15 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                     // This is for the finish step typically
                     return (
                         <div key={field.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-blue-500/10 border border-blue-400/20 rounded-3xl p-8 relative overflow-hidden group">
+                            <div className={cn("border rounded-3xl p-8 relative overflow-hidden group", dark ? "bg-blue-500/10 border-blue-400/20" : "bg-blue-50 border-blue-200 shadow-sm")}>
                                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
-                                    <BarChart className="w-24 h-24" />
+                                    <BarChart className={cn("w-24 h-24", dark ? "text-blue-400" : "text-blue-600")} />
                                 </div>
-                                <h3 className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-2">Bodové hodnocení</h3>
-                                <p className="text-xs text-blue-200/60 mb-6">Váš odhadovaný zisk bodů za tuto trasu</p>
+                                <h3 className={cn("text-sm font-bold uppercase tracking-widest mb-2", dark ? "text-blue-400" : "text-blue-700")}>Bodové hodnocení</h3>
+                                <p className={cn("text-xs mb-6", dark ? "text-blue-200/60" : "text-blue-600/60")}>Váš odhadovaný zisk bodů za tuto trasu</p>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-6xl font-black text-white italic">{(context.route?.extraPoints?.points || 0).toFixed(1)}</span>
-                                    <span className="text-2xl font-bold text-blue-400 uppercase tracking-tighter">bodů</span>
+                                    <span className={cn("text-6xl font-black italic", dark ? "text-white" : "text-blue-900")}>{(context.route?.extraPoints?.points || 0).toFixed(1)}</span>
+                                    <span className={cn("text-2xl font-bold uppercase tracking-tighter", dark ? "text-blue-400" : "text-blue-600")}>bodů</span>
                                 </div>
                             </div>
                             {/* More statistics could follow based on your summary UI */}

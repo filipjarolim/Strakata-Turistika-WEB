@@ -6,6 +6,12 @@ import { validateVisitSubmission, validateActivityType } from '@/lib/validation-
 import { checkFreeCategoryAvailability, recordFreeCategoryUsage } from '@/lib/free-category-utils';
 import { validateProximityToPath } from '@/lib/trail-validation';
 import { checkCategoryAvailability, recordCategoryUsage } from '@/lib/strata-trasa-utils';
+import { calculateThemeBonus } from '@/lib/theme-bonus';
+import { checkRouteSimilarity } from '@/lib/route-similarity-utils';
+import { logVisitSubmission } from '@/lib/monitoring';
+
+
+
 
 interface TrackPoint {
   lat: number;
@@ -48,12 +54,19 @@ interface VisitDataRequest {
   freeCategoryIcon?: string;
   strataCategoryId?: string;
   strataCategoryIcon?: string;
+  customRouteId?: string;
 }
 
 // Create a new VisitData record
 export async function POST(request: Request) {
   try {
     const body: VisitDataRequest = await request.json();
+
+    // ... (rest of function until db.visitData.create)
+    // I cannot replace the whole function easily. I will split this into two replacements.
+    // 1. Add customRouteId to interface.
+    // 2. Add triggering logic at the end.
+
 
     // 1. Validations
     const dateValidation = validateVisitSubmission({
@@ -139,8 +152,33 @@ export async function POST(request: Request) {
       source: validSource,
     };
 
+    // 2.5 Similarity Check
+    if (userId && routeData.trackPoints && routeData.trackPoints.length > 5) {
+      const similarityResult = await checkRouteSimilarity(
+        userId,
+        routeData.trackPoints.map(p => ({ lat: p.latitude, lng: p.longitude }))
+      );
+      if (similarityResult.isDuplicate) {
+        return NextResponse.json({
+          message: `Tato trasa je příliš podobná vaší předchozí trase: ${similarityResult.similarRoute}. Duplicitní trasy nejsou povoleny.`,
+          isDuplicate: true
+        }, { status: 400 });
+      }
+    }
+
     // Calculate points
     const scoringResult = calculatePoints(routeData, places, scoringConfig);
+
+    // Calculate theme bonus
+    const themeBonusResult = await calculateThemeBonus(
+      new Date(body.visitDate),
+      places,
+      body.routeDescription
+    );
+
+    // Merge theme bonus into scoring result
+    scoringResult.totalPoints += themeBonusResult.bonus;
+    scoringResult.themeBonus = themeBonusResult.bonus;
 
     // Add Category specific points
     if (body.isFreeCategory) {
@@ -167,7 +205,8 @@ export async function POST(request: Request) {
     const extendedResult = {
       ...scoringResult,
       proximityResults,
-      hasProximityError
+      hasProximityError,
+      themeKeywordsMatched: themeBonusResult.matchedKeywords
     };
 
     // Build route object with full structure
@@ -208,6 +247,10 @@ export async function POST(request: Request) {
       data: createData
     });
 
+    if (userId) {
+      logVisitSubmission(visitData.id, userId, visitData.points);
+    }
+
     // 4. Record usage after success
     if (body.isFreeCategory && userId) {
       await recordFreeCategoryUsage(userId, visitData.id);
@@ -215,6 +258,29 @@ export async function POST(request: Request) {
 
     if (body.strataCategoryId && userId) {
       await recordCategoryUsage(userId, body.strataCategoryId, visitData.id);
+    }
+
+    // Check if this is completing a Strakatá route (Custom Route)
+    if (body.customRouteId && userId) {
+      // Trigger completion asynchronously (fire and forget or await)
+      // We await to ensure consistency but wrap in try-catch to not fail the visit creation
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        // Note: Using fetch to internal API might require full URL or internal implementation.
+        // It's better to call a function directly if possible, avoiding network roundtrip.
+        // But the plan suggested fetch. Let's try fetch with relative URL if strictly supported or full URL.
+        // Since we are server-side, we should direct call completion logic, but to follow plan/simplicity:
+        await fetch(`${baseUrl}/api/custom-routes/${body.customRouteId}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            visitId: visitData.id
+          })
+        });
+      } catch (e) {
+        console.error('Failed to trigger route completion', e);
+      }
     }
 
     return NextResponse.json(visitData, { status: 201 });
@@ -230,7 +296,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const year = url.searchParams.get('year');
     const userId = url.searchParams.get('userId');
-    const where: { year?: number; userId?: string } = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {
+      deletedAt: null
+    };
     if (year) where.year = parseInt(year);
     if (userId) where.userId = userId;
     const visitData = await db.visitData.findMany({ where, orderBy: { visitDate: 'desc' } });

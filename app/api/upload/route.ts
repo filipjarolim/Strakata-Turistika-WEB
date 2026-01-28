@@ -15,6 +15,12 @@ export async function POST(req: NextRequest) {
     return new Response('Title is required', { status: 400 });
   }
 
+  // File size validation (10MB limit)
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_SIZE) {
+    return new Response('Fotka je příliš velká (max 10 MB)', { status: 400 });
+  }
+
   try {
     // Convert file to base64
     const bytes = await file.arrayBuffer();
@@ -59,7 +65,7 @@ export async function POST(req: NextRequest) {
       ]
     });
 
-    return Response.json({ 
+    return Response.json({
       url: optimizedUrl,
       public_id: result.public_id,
       title: title,

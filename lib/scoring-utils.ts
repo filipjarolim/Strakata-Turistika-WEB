@@ -257,6 +257,14 @@ export function calculatePoints(
 }
 
 /**
+ * Enhanced monthly theme bonus detection
+ * Note: This accepts pre-fetched theme keywords to remain pure/isomorphic if needed, 
+ * or we can make a server-side wrapper.
+ * For now, we will just use the keywords passed to calculatePoints.
+ * The logic for fetching the theme is best done in the API handler.
+ */
+
+/**
  * Get default scoring config
  */
 export function getDefaultScoringConfig(): ScoringConfig {

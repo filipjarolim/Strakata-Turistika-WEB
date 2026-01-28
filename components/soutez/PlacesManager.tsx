@@ -8,6 +8,7 @@ import { IOSTextInput } from '@/components/ui/ios/text-input';
 import { IOSTextarea } from '@/components/ui/ios/textarea';
 import { IOSSelect } from '@/components/ui/ios/select';
 import { EnhancedImageUpload, ImageSource } from "@/components/ui/ios/enhanced-image-upload";
+import { ProofTypeSelector } from '@/components/soutez/ProofTypeSelector';
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -255,6 +256,13 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                       />
                     </div>
                   </div>
+
+                  {place.type === PlaceType.PEAK && (
+                    <ProofTypeSelector
+                      value={place.proofType || ''}
+                      onChange={(type) => handleUpdatePlace(place.id, { proofType: type as 'STANDARD' | 'PEAK' | 'VOLNÁ' })}
+                    />
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">

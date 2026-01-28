@@ -27,10 +27,14 @@ import {
   Copy,
   User,
   ExternalLink,
-  Clock
+  Clock,
+  BarChart,
+  TrendingUp,
+  Camera
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cs } from 'date-fns/locale';
+import { cn } from "@/lib/utils";
 import { useAdmin } from '@/hooks/useAdmin';
 import { LoadingSkeleton, EmptyState, LoadingSpinner } from '@/components/results/LoadingSkeleton';
 import Link from 'next/link';
@@ -464,108 +468,174 @@ export default function AdminClient() {
       );
     }
 
+    // Special rendering for CustomRoute (Strakatá Cesta)
+    if (collection === 'CustomRoute') {
+      const title = record.title ? String(record.title) : 'Nepojmenovaná trasa';
+      const status = typeof record.status === 'string' ? record.status : null;
+      const createdAt = record.createdAt ? String(record.createdAt) : null;
+      const creatorId = record.creatorId ? String(record.creatorId) : null;
+      const minDistanceKm = record.minDistanceKm ? Number(record.minDistanceKm) : null;
+      const isSelected = selectedIds.has(record.id);
+
+      return (
+        <motion.div
+          key={record.id}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`border rounded-2xl overflow-hidden transition-all ${isSelected
+            ? 'ring-1 ring-amber-500 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20'
+            : 'bg-white/60 dark:bg-black/20 backdrop-blur-md border-gray-200/50 dark:border-white/10'
+            }`}
+        >
+          <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+                  className="border-gray-300 dark:border-white/20"
+                />
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">{title}</h3>
+                {status && (
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] font-black uppercase tracking-widest border-0 ${status === 'APPROVED' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400' :
+                      status === 'PENDING_REVIEW' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
+                        status === 'REJECTED' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400'
+                      }`}
+                  >
+                    {status}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-amber-500" />
+                  ID Autora: <code className="bg-gray-100 dark:bg-white/5 px-1 rounded">{creatorId?.slice(0, 8)}...</code>
+                </span>
+                {minDistanceKm && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-blue-500" />
+                    Min. Vzdálenost: <strong>{minDistanceKm} km</strong>
+                  </span>
+                )}
+                {createdAt && (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Vytvořeno: {format(new Date(createdAt), "d. MMMM yyyy", { locale: cs })}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {status === 'PENDING_REVIEW' && (
+                <div className="flex gap-2 mr-2">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Implementation of approval for CustomRoute could be separate or shared
+                      // For now let's assume unified API if possible or implement direct fetch
+                      setProcessingAction(record.id);
+                      fetch(`/api/admin/CustomRoute/${record.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'APPROVED' })
+                      }).then(() => actions.reloadForCurrentFilters())
+                        .finally(() => setProcessingAction(null));
+                    }}
+                    disabled={processingAction === record.id}
+                    className="h-9 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl px-4 gap-2"
+                  >
+                    {processingAction === record.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    Schválit
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const reason = prompt("Důvod zamítnutí:");
+                      if (!reason) return;
+                      setProcessingAction(record.id);
+                      fetch(`/api/admin/CustomRoute/${record.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'REJECTED', rejectionReason: reason })
+                      }).then(() => actions.reloadForCurrentFilters())
+                        .finally(() => setProcessingAction(null));
+                    }}
+                    disabled={processingAction === record.id}
+                    variant="outline"
+                    className="h-9 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 font-bold text-xs rounded-xl px-4 gap-2"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Zamítnout
+                  </Button>
+                </div>
+              )}
+              <Link href={`/admin/CustomRoute/${record.id}`}>
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
     // Special rendering for VisitData
     if (collection === 'VisitData') {
       const recordState = typeof record.state === 'string' ? record.state : null;
-      const routeTitle = record.routeTitle ? String(record.routeTitle) : null;
+      const routeTitle = record.routeTitle ? String(record.routeTitle) : 'Nepojmenovaná návštěva';
       const routeDescription = record.routeDescription ? String(record.routeDescription) : null;
-      const points = record.points ? Number(record.points) : null;
+      const points = record.points ? Number(record.points) : 0;
       const year = record.year ? String(record.year) : null;
       const dogNotAllowed = record.dogNotAllowed === true || record.dogNotAllowed === 'true';
-      // Handle visitedPlaces - could be string, array, or object
-      const visitedPlaces = record.visitedPlaces
-        ? (typeof record.visitedPlaces === 'object' || Array.isArray(record.visitedPlaces))
-          ? record.visitedPlaces
-          : String(record.visitedPlaces)
-        : null;
+      const visitedPlaces = record.visitedPlaces;
       const visitDate = record.visitDate ? String(record.visitDate) : null;
       const rejectionReason = record.rejectionReason ? String(record.rejectionReason) : null;
-      // Handle route - could be string, array, or object
-      const route = record.route
-        ? (typeof record.route === 'object' || Array.isArray(record.route))
-          ? record.route
-          : String(record.route)
-        : null;
-      const photos = Array.isArray(record.photos) ? record.photos : null;
+      const route = record.route;
+      const photos = Array.isArray(record.photos) ? record.photos as Array<{ url: string; title?: string }> : null;
       const dogName = record.dogName ? String(record.dogName) : null;
       const userId = record.userId ? String(record.userId) : null;
       const isSelected = selectedIds.has(record.id);
 
-      // Parse route data for map
       const routeData = normalizeRouteData(route);
+      const isMapExpanded = expandedMap.has(record.id);
 
-      // Parse visited places if it's JSON
-      let visitedPlacesArray: string[] | null = null;
-      if (visitedPlaces) {
-        try {
-          // Check if it's an array
-          if (Array.isArray(visitedPlaces)) {
-            visitedPlacesArray = visitedPlaces;
-          } else if (typeof visitedPlaces === 'string') {
-            try {
-              const trimmed = visitedPlaces.trim();
-              if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
-                (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-                const parsed = JSON.parse(visitedPlaces);
-                if (Array.isArray(parsed)) {
-                  visitedPlacesArray = parsed;
-                } else {
-                  visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean);
-                }
-              } else {
-                visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean);
-              }
-            } catch {
-              visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean);
-            }
-          }
-        } catch (e) {
-          console.error('Failed to parse visited places:', e);
-        }
+      // Parse visited places
+      let visitedPlacesArray: string[] = [];
+      if (Array.isArray(visitedPlaces)) visitedPlacesArray = visitedPlaces;
+      else if (typeof visitedPlaces === 'string') {
+        try { visitedPlacesArray = JSON.parse(visitedPlaces); if (!Array.isArray(visitedPlacesArray)) visitedPlacesArray = []; }
+        catch { visitedPlacesArray = visitedPlaces.split(',').map(p => p.trim()).filter(Boolean); }
       }
 
       const toggleMapExpand = (e: React.MouseEvent) => {
         e.stopPropagation();
         setExpandedMap(prev => {
           const newSet = new Set(prev);
-          if (newSet.has(record.id)) {
-            newSet.delete(record.id);
-          } else {
-            newSet.add(record.id);
-          }
+          if (newSet.has(record.id)) newSet.delete(record.id);
+          else newSet.add(record.id);
           return newSet;
         });
-      };
-
-      const isMapExpanded = expandedMap.has(record.id);
-
-      const handleCardClick = (e: React.MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (
-          target.closest('input[type="checkbox"]') ||
-          target.closest('button') ||
-          target.closest('a[href]')
-        ) {
-          return;
-        }
-        window.location.href = `/admin/${collection}/${record.id}`;
       };
 
       return (
         <motion.div
           key={record.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={handleCardClick}
-          className={`border rounded-2xl overflow-hidden transition-all cursor-pointer ${isSelected
-            ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
-            : 'bg-white/60 dark:bg-black/20 backdrop-blur-md border-gray-200/50 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/5'
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`border rounded-[2.5rem] overflow-hidden transition-all ${isSelected
+            ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 shadow-lg'
+            : 'bg-white/80 dark:bg-zinc-900/50 backdrop-blur-xl border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm'
             }`}
         >
-          <div className="flex flex-col gap-0">
-            {/* Map Preview - Full Width with Expand */}
+          <div className="flex flex-col">
+            {/* Map Section */}
             {routeData && routeData.length > 0 && (
-              <div className="relative w-full bg-gray-100 dark:bg-black/40 border-b border-gray-200 dark:border-white/10" style={{ height: isMapExpanded ? '400px' : '200px' }}>
+              <div className="relative w-full bg-zinc-100 dark:bg-black/40 group" style={{ height: isMapExpanded ? '450px' : '220px' }}>
                 <DynamicGpxEditor
                   onSave={() => { }}
                   initialTrack={routeData}
@@ -574,240 +644,319 @@ export default function AdminClient() {
                 />
                 <button
                   onClick={toggleMapExpand}
-                  className="absolute top-2 right-2 z-10 bg-white/80 dark:bg-black/50 hover:bg-white dark:hover:bg-black/70 border border-gray-200 dark:border-white/20 rounded-lg p-2 backdrop-blur-sm transition-all text-gray-700 dark:text-white"
-                  title={isMapExpanded ? "Zmenšit" : "Zvětšit"}
+                  className="absolute bottom-4 right-4 z-10 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-2.5 shadow-xl transition-all hover:scale-110 active:scale-95 text-zinc-600 dark:text-zinc-300"
                 >
-                  {isMapExpanded ? (
-                    <Minimize2 className="h-4 w-4" />
-                  ) : (
-                    <Expand className="h-4 w-4" />
-                  )}
+                  {isMapExpanded ? <Minimize2 className="h-5 w-5" /> : <Expand className="h-5 w-5" />}
                 </button>
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="p-3 sm:p-4 space-y-3">
-              {/* Header with checkbox, ID and actions */}
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="absolute top-4 left-4 z-10">
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
-                    className="border-gray-300 dark:border-white/20 data-[state=checked]:bg-blue-600"
+                    className="w-6 h-6 border-white/50 bg-black/20 backdrop-blur-xl rounded-lg"
                   />
-                  <Badge variant="outline" className="text-xs font-mono border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400">
-                    {String(record.id).slice(0, 8)}...
-                  </Badge>
-                  {recordState && (
-                    <Badge
-                      variant="outline"
-                      className={`text-xs border-0 ${recordState === 'APPROVED' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400' :
-                        recordState === 'PENDING_REVIEW' ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' :
-                          recordState === 'REJECTED' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400'
-                        }`}
-                    >
-                      {recordState === 'APPROVED' ? 'Schváleno' :
-                        recordState === 'PENDING_REVIEW' ? 'Čeká' :
-                          recordState === 'REJECTED' ? 'Zamítnuto' : recordState}
-                    </Badge>
-                  )}
                 </div>
-                <div className="flex gap-1">
+              </div>
+            )}
+
+            <div className="p-5 sm:p-7 space-y-6">
+              {/* Header */}
+              <div className="flex justify-between items-start gap-4">
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-zinc-100 dark:bg-white/5 text-zinc-500 border-none px-2 py-0.5">
+                      {String(record.id).slice(-6)}
+                    </Badge>
+                    <Badge
+                      className={cn(
+                        "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border-none shadow-sm",
+                        recordState === 'APPROVED' ? "bg-emerald-500 text-white" :
+                          recordState === 'PENDING_REVIEW' ? "bg-amber-500 text-white" :
+                            recordState === 'REJECTED' ? "bg-rose-500 text-white" : "bg-zinc-500 text-white"
+                      )}
+                    >
+                      {recordState === 'APPROVED' ? 'Schváleno' : recordState === 'PENDING_REVIEW' ? 'Ke schválení' : recordState === 'REJECTED' ? 'Zamítnuto' : recordState}
+                    </Badge>
+                  </div>
+                  <h3 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight">{routeTitle}</h3>
+                  <div className="flex flex-wrap items-center gap-4 pt-1">
+                    {userId && (
+                      <Link href={`/admin/User/${userId}`} className="flex items-center gap-2 group">
+                        <div className="h-6 w-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center">
+                          <User className="h-3 w-3 text-zinc-500" />
+                        </div>
+                        <span className="text-xs font-bold text-zinc-500 group-hover:text-blue-500 transition-colors">
+                          {dogName ? `${dogName} (${String(userId).slice(0, 4)})` : `Uživatel ${String(userId).slice(0, 6)}`}
+                        </span>
+                      </Link>
+                    )}
+                    {visitDate && (
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span className="text-xs font-bold">{format(new Date(visitDate), "d. MMMM yyyy", { locale: cs })}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
                   {recordState === 'PENDING_REVIEW' && (
-                    <>
+                    <div className="flex gap-2">
                       <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-500/20"
                         onClick={(e) => handleApprove(record.id, e)}
                         disabled={processingAction === record.id}
-                        title="Schválit"
+                        className="h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl px-4 shadow-lg shadow-emerald-500/20 active:scale-95"
                       >
-                        {processingAction === record.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
+                        {processingAction === record.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+                        <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">Schválit</span>
                       </Button>
                       <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20"
                         onClick={(e) => handleReject(record.id, e)}
                         disabled={processingAction === record.id}
-                        title="Zamítnout"
+                        className="h-10 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl px-4 shadow-lg shadow-rose-500/20 active:scale-95"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4 mr-2" />
+                        <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">Zamítnout</span>
                       </Button>
-                    </>
+                    </div>
                   )}
                   <Link href={`/admin/${collection}/${record.id}`}>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10">
-                      <Edit className="h-4 w-4" />
+                    <Button variant="outline" className="h-10 w-10 p-0 rounded-2xl bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 transition-all active:scale-95">
+                      <Edit className="h-4 w-4 text-zinc-500" />
                     </Button>
                   </Link>
                 </div>
               </div>
 
-              {/* Title */}
-              {routeTitle && (
-                <div className="space-y-1">
-                  <h3 className="font-bold text-base sm:text-lg line-clamp-2 text-gray-900 dark:text-white">
-                    {routeTitle}
-                  </h3>
-                  {(dogName || userId) && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      {dogName && (
-                        <span className="flex items-center gap-1">
-                          🐕 {dogName}
-                        </span>
-                      )}
-                      {userId && (
-                        <div className="flex items-center gap-1">
-                          <Badge
-                            variant="outline"
-                            className="text-xs font-mono cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 group flex items-center gap-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.location.href = `/admin/User/${userId}`;
-                            }}
-                          >
-                            <User className="h-3 w-3" />
-                            {String(userId).slice(0, 8)}...
-                            <ExternalLink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </Badge>
-                          <button
-                            onClick={(e) => handleCopyId(String(userId), e)}
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded transition-colors text-gray-500 dark:text-gray-400"
-                            title="Kopírovat ID"
-                          >
-                            {copiedId === String(userId) ? (
-                              <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                    <Award className="h-4 w-4 text-amber-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Body</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-zinc-900 dark:text-white">{points.toFixed(1)}</span>
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase">PTS</span>
+                  </div>
                 </div>
-              )}
 
-              {/* Description */}
-              {routeDescription && (
-                <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <p className="line-clamp-2">{routeDescription}</p>
+                <div className="p-4 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                    <MapPin className="h-4 w-4 text-blue-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Místa</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-zinc-900 dark:text-white">{visitedPlacesArray.length}</span>
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase">NAV</span>
+                  </div>
                 </div>
-              )}
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {points !== null && (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newPoints = prompt("Zadejte nový počet bodů:", String(points));
-                      if (newPoints !== null && !isNaN(parseFloat(newPoints))) {
-                        setProcessingAction(record.id);
-                        fetch(`/api/admin/VisitData/${record.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ points: parseFloat(newPoints) })
-                        })
-                          .then(res => {
-                            if (!res.ok) throw new Error('Failed to update points');
-                            actions.reloadForCurrentFilters();
-                          })
-                          .catch(err => {
-                            console.error(err);
-                            alert("Nepodařilo se upravit body.");
-                          })
-                          .finally(() => setProcessingAction(null));
-                      }
-                    }}
-                    className="flex items-center gap-2 p-2 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-500/10 dark:to-amber-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-lg cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-500/20 transition-colors"
-                    title="Klikněte pro úpravu bodů"
-                  >
-                    <Award className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
-                    <div>
-                      <div className="text-xs text-yellow-600 dark:text-yellow-500 font-medium">Body (Upravit)</div>
-                      <div className="text-sm font-bold text-yellow-700 dark:text-yellow-400">{points}</div>
+                {photos && (
+                  <div className="p-4 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                      <Camera className="h-4 w-4 text-purple-500" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Fotky</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-zinc-900 dark:text-white">{photos.length}</span>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase">IMG</span>
                     </div>
                   </div>
                 )}
-                {year && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg">
-                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-                    <div>
-                      <div className="text-xs text-blue-600 dark:text-blue-500 font-medium">Sezóna</div>
-                      <div className="text-sm font-bold text-blue-700 dark:text-blue-400">{year}</div>
-                    </div>
+
+                <div className="p-4 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                    {dogNotAllowed ? <X className="h-4 w-4 text-rose-500" /> : <Check className="h-4 w-4 text-emerald-500" />}
+                    <span className="text-[10px] font-black uppercase tracking-widest">Psi</span>
                   </div>
-                )}
-                {visitDate && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-500/10 dark:to-emerald-500/10 border border-green-200 dark:border-green-500/20 rounded-lg">
-                    <Calendar className="h-5 w-5 text-green-600 dark:text-green-500" />
-                    <div>
-                      <div className="text-xs text-green-600 dark:text-green-500 font-medium">Datum návštěvy</div>
-                      <div className="text-xs font-bold text-green-700 dark:text-green-400">
-                        {(() => {
-                          try {
-                            const date = new Date(visitDate);
-                            if (isNaN(date.getTime())) {
-                              return visitDate;
-                            }
-                            return format(date, "d. MMM", { locale: cs });
-                          } catch {
-                            return visitDate;
-                          }
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {dogNotAllowed && (
-                  <div className="flex items-center gap-2 p-2 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-500/10 dark:to-rose-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
-                    <X className="h-5 w-5 text-red-600 dark:text-red-500" />
-                    <div>
-                      <div className="text-xs text-red-600 dark:text-red-500 font-medium">Psi</div>
-                      <div className="text-sm font-bold text-red-700 dark:text-red-400">Zakázáni</div>
-                    </div>
-                  </div>
-                )}
+                  <span className={cn("text-xs font-black uppercase tracking-tighter", dogNotAllowed ? "text-rose-500" : "text-emerald-500")}>
+                    {dogNotAllowed ? "ZAKÁZÁNO" : "POVOLENO"}
+                  </span>
+                </div>
               </div>
 
-              {/* Visited Places */}
-              {visitedPlacesArray && visitedPlacesArray.length > 0 && (
-                <div className="space-y-2 p-3 bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-purple-600 dark:text-purple-400">
-                    <MapPin className="h-4 w-4" />
-                    <span>Návštěv míst ({visitedPlacesArray.length})</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {visitedPlacesArray.slice(0, 8).map((place, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs bg-white dark:bg-black/40 border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-500/20">
-                        {place}
-                      </Badge>
-                    ))}
-                    {visitedPlacesArray.length > 8 && (
-                      <Badge variant="outline" className="text-xs bg-purple-100 dark:bg-purple-500/20 border-purple-300 dark:border-purple-500/30 text-purple-700 dark:text-purple-300">
-                        +{visitedPlacesArray.length - 8} dalších
-                      </Badge>
-                    )}
-                  </div>
+              {/* Photos Preview */}
+              {photos && photos.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {photos.map((photo, i) => (
+                    <div
+                      key={i}
+                      onClick={(e) => { e.stopPropagation(); setSelectedPhoto(photo); }}
+                      className="relative h-20 w-20 flex-shrink-0 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:scale-105 transition-transform"
+                    >
+                      <Image src={photo.url} alt={photo.title || "Photo"} fill className="object-cover" />
+                    </div>
+                  ))}
                 </div>
               )}
+
+              {/* Rejection Reason */}
+              {rejectionReason && (
+                <div className="p-4 rounded-3xl bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10">
+                  <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Důvod zamítnutí</span>
+                  </div>
+                  <p className="text-sm text-rose-700 dark:text-rose-300 font-medium">{rejectionReason}</p>
+                </div>
+              )}
+
+              {/* Actions & Meta */}
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-white/5">
+                <div className="flex gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Export ID</span>
+                    <span className="text-xs font-mono text-zinc-500">{record.id}</span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Implementation of recalculate for this specific visit
+                    setProcessingAction(record.id);
+                    fetch('/api/admin/recalculate-points', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ visitId: record.id })
+                    }).then(() => actions.reloadForCurrentFilters())
+                      .finally(() => setProcessingAction(null));
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 hover:bg-blue-500/5 rounded-xl h-9"
+                >
+                  <TrendingUp className="h-3.5 w-3.5 mr-2" />
+                  Přepočítat body
+                </Button>
+              </div>
             </div>
           </div>
         </motion.div>
       );
     }
 
-    // Default fallback rendering... (You can add standard format here if needed)
-    return null;
+    // Special rendering for User
+    if (collection === 'User') {
+      const name = record.name ? String(record.name) : 'Nepojmenovaný uživatel';
+      const email = record.email ? String(record.email) : null;
+      const role = record.role ? String(record.role) : null;
+      const createdAt = record.createdAt ? String(record.createdAt) : null;
+      const image = record.image ? String(record.image) : null;
+      const isSelected = selectedIds.has(record.id);
+
+      return (
+        <motion.div
+          key={record.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`border rounded-2xl p-4 transition-all ${isSelected
+            ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
+            : 'bg-white/60 dark:bg-black/20 backdrop-blur-md border-gray-200/50 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20'
+            }`}
+        >
+          <div className="flex items-center gap-4">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+              className="border-gray-300 dark:border-white/20"
+            />
+
+            <div className="relative h-12 w-12 rounded-full overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex-shrink-0">
+              {image ? (
+                <Image src={image} alt={name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <User className="h-6 w-6" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-gray-900 dark:text-white truncate">{name}</h3>
+                {role && (
+                  <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-500/20">
+                    {role}
+                  </Badge>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-gray-500 dark:text-gray-400">
+                {email && <span className="truncate">{email}</span>}
+                {createdAt && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {format(new Date(createdAt), "d. MMMM yyyy", { locale: cs })}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link href={`/vysledky/${new Date().getFullYear()}/uzivatel/${record.id}`}>
+                <Button variant="outline" size="sm" className="h-9 rounded-xl border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 font-bold text-xs gap-2">
+                  <BarChart className="h-3.5 w-3.5" />
+                  Statistiky
+                </Button>
+              </Link>
+              <Link href={`/admin/${collection}/${record.id}`}>
+                <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    // Default fallback rendering
+    const isSelected = selectedIds.has(record.id);
+
+    return (
+      <motion.div
+        key={record.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`border rounded-2xl p-4 transition-all ${isSelected
+          ? 'ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
+          : 'bg-white/60 dark:bg-black/20 backdrop-blur-md border-gray-200/50 dark:border-white/10'
+          }`}
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => handleSelectRecord(record.id, checked as boolean)}
+                className="border-gray-300 dark:border-white/20"
+              />
+              <Badge variant="outline" className="text-xs font-mono text-gray-500 border-gray-200 dark:border-white/10">
+                {record.id}
+              </Badge>
+            </div>
+            <Link href={`/admin/${collection}/${record.id}`}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-gray-400">
+                <Edit className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {Object.entries(record)
+              .filter(([key]) => !['id', 'createdAt', 'updatedAt', 'userId'].includes(key))
+              .slice(0, 6)
+              .map(([key, value]) => (
+                <div key={key} className="space-y-0.5">
+                  <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider font-mono">{key}</div>
+                  <div className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate">
+                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      </motion.div>
+    );
   };
 
   return (

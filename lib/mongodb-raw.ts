@@ -33,8 +33,13 @@ async function getMongoClient() {
 export async function getRawVisitData(filters: Record<string, unknown>, options: Record<string, unknown> = {}) {
   const { db } = await getMongoClient();
 
+  const finalFilters = {
+    ...filters,
+    $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+  };
+
   const pipeline = [
-    { $match: filters },
+    { $match: finalFilters },
     {
       $lookup: {
         from: 'users',
@@ -100,7 +105,11 @@ export async function getRawVisitData(filters: Record<string, unknown>, options:
 
 export async function getRawVisitDataCount(filters: Record<string, unknown>) {
   const { db } = await getMongoClient();
-  return await db.collection('visits').countDocuments(filters);
+  const finalFilters = {
+    ...filters,
+    $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+  };
+  return await db.collection('visits').countDocuments(finalFilters);
 }
 
 export async function getRawSeasons() {
@@ -109,7 +118,10 @@ export async function getRawSeasons() {
   // Optimized: Query visits directly instead of joining seasons
   const pipeline = [
     {
-      $match: { state: 'APPROVED' }
+      $match: {
+        state: 'APPROVED',
+        $or: [{ deletedAt: null }, { deletedAt: { $exists: false } }]
+      }
     },
     {
       $group: {

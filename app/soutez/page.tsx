@@ -22,6 +22,22 @@ const Page = () => {
   const [uploadedRouteId, setUploadedRouteId] = useState<string | null>(null);
   const [initialUploadMode, setInitialUploadMode] = useState<'gpx' | 'manual' | 'gps' | null>(null);
   const [autoTest, setAutoTest] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('PEAK');
+
+  useEffect(() => {
+    // Check for Strakatá route creation
+    const strataRouteData = sessionStorage.getItem('strataRoute');
+    if (strataRouteData) {
+      try {
+        const route = JSON.parse(strataRouteData);
+        // Clean up
+        sessionStorage.removeItem('strataRoute');
+        // Logic to pre-fill would go here, for now just cleaning up
+      } catch (e) {
+        console.error('Failed to parse strata route data', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

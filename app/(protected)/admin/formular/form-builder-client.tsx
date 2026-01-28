@@ -427,37 +427,40 @@ export default function FormBuilderClient() {
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
             {/* Context Header - more compact */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl shadow-sm">
+            {/* Context Header - more compact */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-[2.5rem] shadow-sm">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white">
+                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                         <LayoutGrid className="w-6 h-6" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">Master Form Editor</h1>
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Web & Android Config</p>
+                        <h1 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight">Formuláře & Vstupy</h1>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                            System Configuration <span className="w-1 h-1 rounded-full bg-zinc-300" /> Web & Android
+                        </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                     {/* View Mode Toggle */}
-                    <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl mr-2">
+                    <div className="flex bg-zinc-100 dark:bg-white/5 p-1 rounded-2xl mr-2">
                         <button
                             onClick={() => setViewMode('builder')}
                             className={cn(
-                                "flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                viewMode === 'builder' ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                                "flex items-center px-4 py-2 rounded-xl text-xs font-black transition-all",
+                                viewMode === 'builder' ? "bg-white dark:bg-zinc-700 shadow-md text-zinc-900 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                             )}
                         >
-                            <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Editor
+                            <Settings2 className="w-4 h-4 mr-2" /> Editor
                         </button>
                         <button
                             onClick={() => setViewMode('preview')}
                             className={cn(
-                                "flex items-center px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                viewMode === 'preview' ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                                "flex items-center px-4 py-2 rounded-xl text-xs font-black transition-all",
+                                viewMode === 'preview' ? "bg-white dark:bg-zinc-700 shadow-md text-blue-600 dark:text-blue-400" : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                             )}
                         >
-                            <Eye className="w-3.5 h-3.5 mr-1.5" /> Náhled
+                            <Eye className="w-4 h-4 mr-2" /> Náhled
                         </button>
                     </div>
 
@@ -465,28 +468,28 @@ export default function FormBuilderClient() {
                         <select
                             value={activeFormSlug}
                             onChange={(e) => setActiveFormSlug(e.target.value)}
-                            className="w-full appearance-none bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2 pr-10 text-xs font-bold focus:outline-none transition-all cursor-pointer"
+                            className="w-full appearance-none bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-2xl px-5 py-2.5 pr-12 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
                         >
                             {FORM_TYPES.map(f => (
                                 <option key={f.slug} value={f.slug}>{f.name}</option>
                             ))}
                         </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                     </div>
                     <Button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="h-9 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl px-4 text-xs font-bold hover:opacity-90 transition-all shadow-lg shadow-black/5"
+                        className="h-11 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl px-6 text-xs font-black hover:opacity-90 transition-all shadow-xl shadow-black/10 active:scale-95"
                     >
-                        {isSaving ? <div className="w-3.5 h-3.5 border-2 border-current/20 border-t-current rounded-full animate-spin mr-2" /> : <Save className="w-3.5 h-3.5 mr-2" />}
+                        {isSaving ? <div className="w-4 h-4 border-2 border-current/20 border-t-current rounded-full animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         Uložit
                     </Button>
                 </div>
             </div>
 
             {viewMode === 'preview' ? (
-                <div className="bg-zinc-100 dark:bg-black/40 rounded-3xl p-8 border border-zinc-200 dark:border-white/10 min-h-[600px] max-w-2xl mx-auto">
-                    <div className="bg-white dark:bg-black p-8 rounded-[2rem] shadow-2xl border border-white/10">
+                <div className="bg-zinc-50 dark:bg-white/5 rounded-[3rem] p-12 border border-zinc-200 dark:border-white/10 min-h-[700px] flex items-center justify-center">
+                    <div className="bg-white dark:bg-zinc-950 p-10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] dark:shadow-none border border-zinc-200 dark:border-white/5 w-full max-w-xl">
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-black text-zinc-900 dark:text-white">Náhled formuláře</h2>
                             <div className="flex gap-2">
@@ -810,14 +813,22 @@ export default function FormBuilderClient() {
                         </div>
 
                         {/* Actions Row */}
-                        <div className="col-span-3 flex items-center justify-end gap-2">
-                            <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-700 scale-90">
-                                <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tighter">REQ</span>
-                                <IOSSwitch
-                                    checked={field.required}
-                                    onCheckedChange={(checked) => onUpdate(stepId, field.id, { required: checked })}
-                                />
-                            </div>
+                        <div className="col-span-3 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => onUpdate(stepId, field.id, { required: !field.required })}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all scale-90",
+                                    field.required
+                                        ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+                                        : "bg-zinc-100 dark:bg-white/5 border-zinc-200 dark:border-zinc-800 text-zinc-400"
+                                )}
+                            >
+                                <span className="text-[10px] font-black uppercase tracking-tighter">REQ</span>
+                                <div className={cn(
+                                    "w-3.5 h-3.5 rounded-full border-2 transition-all",
+                                    field.required ? "bg-blue-500 border-blue-600" : "bg-transparent border-zinc-300 dark:border-zinc-700"
+                                )} />
+                            </button>
 
                             <div className="flex items-center gap-0.5">
                                 {/* NEW: Advanced Options Toggle */}
