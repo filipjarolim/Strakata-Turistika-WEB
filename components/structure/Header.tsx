@@ -35,7 +35,6 @@ const Header = ({
     theme?: "light" | "dark";
 }) => {
     const [headerHeight, setHeaderHeight] = useState<number>(0);
-    const [isScrolled, setIsScrolled] = useState<boolean>(false);
     const [isVisible, setIsVisible] = useState<boolean>(true);
     const [lastScrollY, setLastScrollY] = useState<number>(0);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -62,7 +61,6 @@ const Header = ({
                 }
                 setLastScrollY(currentScrollY);
             }
-            setIsScrolled(currentScrollY > 20);
         };
 
         updateHeaderHeight();
@@ -87,9 +85,7 @@ const Header = ({
                     "w-[95%] sm:w-[92%] md:w-[90%] mx-auto px-4 py-3 rounded-b-xl z-50 transition-all duration-300",
                     mode !== "static" && "fixed left-1/2 -translate-x-1/2",
                     mode === "auto-hide" && !isVisible && "-translate-y-full opacity-0",
-                    isScrolled
-                        ? "bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-lg"
-                        : "bg-white/40 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/5",
+                    "bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-lg",
                     "flex items-center justify-between"
                 )}
             >
@@ -137,11 +133,6 @@ const Header = ({
                         <SheetContent side="right" className="w-full sm:w-[400px] border-none bg-white/95 dark:bg-black/95 backdrop-blur-xl p-0">
                             <SheetHeader className="p-6 border-b border-gray-100 dark:border-white/10 flex flex-row items-center justify-between">
                                 <SheetTitle className="text-xl font-bold dark:text-white">Menu</SheetTitle>
-                                <SheetClose asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-full">
-                                        <X className="h-6 w-6 text-gray-500" />
-                                    </Button>
-                                </SheetClose>
                             </SheetHeader>
                             <nav className="flex flex-col p-6 gap-2">
                                 <MobileNavLink href="/" active={pathname === "/"} onClick={() => setIsMobileMenuOpen(false)}>Domů</MobileNavLink>

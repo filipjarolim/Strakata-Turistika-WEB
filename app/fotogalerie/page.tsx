@@ -29,7 +29,7 @@ const Page = async () => {
         public_id: img.publicId,
         url: img.url,
         title: img.title || img.visit?.visitedPlaces || img.news?.title || "Bez názvu",
-        description: img.description || (img.news as any)?.content?.substring(0, 100) || "", // Basic truncation if news content used
+        description: img.description || (img.news as any)?.content?.replace(/<[^>]*>?/gm, '').substring(0, 100) || "", // Strip HTML tags and truncate
         location: img.visit?.visitedPlaces || "",
         category: "all",
         created_at: img.createdAt.toISOString(),

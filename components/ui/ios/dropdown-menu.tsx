@@ -152,8 +152,8 @@ export const IOSDropdownMenu = ({
               position === 'right' ? 'right-0' : 'left-0',
               // Ensure dropdown stays within viewport bounds
               position === 'right' ? 'sm:right-0 right-1' : 'sm:left-0 left-1',
-              "bg-white/80 backdrop-blur-2xl border border-white/40",
-              "rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)]",
+              "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border border-white/40 dark:border-white/10",
+              "rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)]",
               "p-2",
               className
             )}
@@ -186,7 +186,7 @@ export const IOSDropdownMenuItem = ({
       onClick={onClick}
       className={cn(
         "w-full px-3 py-2.5 text-left",
-        "hover:bg-white/60 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)]",
+        "hover:bg-white/60 dark:hover:bg-white/10 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)]",
         "transition-all duration-300 ease-out",
         "flex items-center justify-between",
         "text-sm font-semibold",
@@ -197,11 +197,11 @@ export const IOSDropdownMenuItem = ({
     >
       <div className="flex items-center gap-3">
         {icon && (
-          <span className="text-gray-500 group-hover:text-blue-600 transition-colors duration-300 w-4 h-4 flex items-center justify-center">
+          <span className="text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 w-4 h-4 flex items-center justify-center">
             {icon}
           </span>
         )}
-        <span className="text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{children}</span>
+        <span className="text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-300">{children}</span>
       </div>
       {shortcut && (
         <span className="text-xs text-gray-400 font-medium group-hover:text-gray-500 transition-colors duration-200">{shortcut}</span>
@@ -211,11 +211,11 @@ export const IOSDropdownMenuItem = ({
 };
 
 export const IOSDropdownMenuSeparator = () => (
-  <div className="h-px bg-gray-200/60 my-2" />
+  <div className="h-px bg-gray-200/60 dark:bg-white/10 my-2" />
 );
 
 export const IOSDropdownMenuLabel = ({ children }: { children: React.ReactNode }) => (
-  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+  <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
     {children}
   </div>
 ); 

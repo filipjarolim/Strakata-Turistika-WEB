@@ -7,8 +7,9 @@ import { Cloud, Database, HardDrive, Loader2 } from "lucide-react";
 
 interface UsageData {
     usage: number;
-    limit: number;
-    used_percent: number;
+    limit?: number;
+    used_percent?: number;
+    credits_usage?: number;
 }
 
 interface CloudinaryStats {
@@ -60,19 +61,51 @@ export function CloudinaryStatsWidget() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     };
 
+    const getPercent = (item: UsageData | undefined, creditsLimit: number = 0) => {
+        if (!item) return 0;
+        if (item.used_percent) return item.used_percent;
+        if (item.credits_usage && creditsLimit > 0) return (item.credits_usage / creditsLimit) * 100;
+        return 0;
+    };
+
+    const renderLimit = (item: UsageData | undefined, label: string) => {
+        if (!item) return null;
+        if (item.limit) {
+            return `z ${label === "objekty" ? item.limit.toLocaleString() : formatBytes(item.limit)}`;
+        }
+        if (item.credits_usage) {
+            return `(${item.credits_usage.toFixed(2)} kreditů)`;
+        }
+        return null; // Unlimited or unknown
+    };
+
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="bg-white/50 dark:bg-white/5 backdrop-blur-sm border-gray-200/50 dark:border-white/10 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Kredity</CardTitle>
+                    <Database className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{stats.credits?.usage?.toFixed(2) ?? 0}</div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                        z {stats.credits?.limit ?? 0} ({stats.credits?.used_percent?.toFixed(1) ?? 0}%)
+                    </p>
+                    <Progress value={stats.credits?.used_percent || 0} className="h-1.5" />
+                </CardContent>
+            </Card>
+
             <Card className="bg-white/50 dark:bg-white/5 backdrop-blur-sm border-gray-200/50 dark:border-white/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Úložiště</CardTitle>
                     <HardDrive className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{formatBytes(stats.storage.usage)}</div>
+                    <div className="text-2xl font-bold">{formatBytes(stats.storage?.usage || 0)}</div>
                     <p className="text-xs text-muted-foreground mb-3">
-                        z {formatBytes(stats.storage.limit)} ({stats.storage.used_percent.toFixed(1)}%)
+                        {renderLimit(stats.storage, "bytes")} ({getPercent(stats.storage, stats.credits?.limit).toFixed(2)}%)
                     </p>
-                    <Progress value={stats.storage.used_percent} className="h-1.5" />
+                    <Progress value={getPercent(stats.storage, stats.credits?.limit)} className="h-1.5" />
                 </CardContent>
             </Card>
 
@@ -82,11 +115,11 @@ export function CloudinaryStatsWidget() {
                     <Cloud className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{formatBytes(stats.bandwidth.usage)}</div>
+                    <div className="text-2xl font-bold">{formatBytes(stats.bandwidth?.usage || 0)}</div>
                     <p className="text-xs text-muted-foreground mb-3">
-                        z {formatBytes(stats.bandwidth.limit)} ({stats.bandwidth.used_percent.toFixed(1)}%)
+                        {renderLimit(stats.bandwidth, "bytes")} ({getPercent(stats.bandwidth, stats.credits?.limit).toFixed(2)}%)
                     </p>
-                    <Progress value={stats.bandwidth.used_percent} className="h-1.5" />
+                    <Progress value={getPercent(stats.bandwidth, stats.credits?.limit)} className="h-1.5" />
                 </CardContent>
             </Card>
 
@@ -96,11 +129,11 @@ export function CloudinaryStatsWidget() {
                     <Database className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{stats.objects.usage.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{(stats.objects?.usage || 0).toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground mb-3">
-                        z {stats.objects.limit.toLocaleString()} ({stats.objects.used_percent.toFixed(1)}%)
+                        {stats.objects?.limit ? `z ${stats.objects.limit.toLocaleString()}` : 'Celkem'}
                     </p>
-                    <Progress value={stats.objects.used_percent} className="h-1.5" />
+                    {/* Objects usually don't have a specific percentage in free plan unless via credits, but objects don't show credits_usage in sample */}
                 </CardContent>
             </Card>
         </div>

@@ -44,7 +44,7 @@ export async function GET() {
       return {
         public_id: resource.public_id,
         url: optimizedUrl,
-        title: resource.context?.title || 'Untitled',
+        title: resource.context?.title || 'Bez názvu',
         created_at: resource.context?.created_at || resource.created_at,
         category: 'all', // Default category since we removed categories
         description: '', // Empty description since we removed it

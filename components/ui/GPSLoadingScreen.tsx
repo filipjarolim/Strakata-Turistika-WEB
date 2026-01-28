@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  MapPin, 
+import {
+  MapPin,
   Loader2
 } from "lucide-react";
 
@@ -53,20 +53,20 @@ export const GPSLoadingScreen: React.FC<GPSLoadingScreenProps> = ({ onReady }) =
             <MapPin className="h-8 w-8 text-blue-600" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">GPS Tracker</h2>
-            <p className="text-sm text-gray-600">Loading GPS functionality...</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">GPS Sledování</h2>
+            <p className="text-sm text-gray-600">Načítání GPS...</p>
           </div>
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
           </div>
           {canSkip && (
             <Button onClick={handleSkip} variant="outline" className="w-full">
-              Skip Loading
+              Přeskočit
             </Button>
           )}
           {!canSkip && skipTimer > 0 && (
             <p className="text-xs text-gray-500">
-              Skip available in {skipTimer} seconds
+              Přeskočit za {skipTimer} sekund
             </p>
           )}
         </CardContent>

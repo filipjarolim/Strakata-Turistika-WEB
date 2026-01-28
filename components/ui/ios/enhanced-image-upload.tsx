@@ -391,10 +391,10 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
                 <p className={cn("text-sm font-bold", dark ? "text-zinc-100" : "text-gray-900")}>
                   {dragOver ? 'Pusťte pro nahrání' : 'Nahrát fotku'}
                 </p>
-                <p className={cn("text-xs mt-1", dark ? "text-zinc-500" : "text-gray-500")}>
+                <p className={cn("text-xs mt-1", dark ? "text-zinc-500" : "text-gray-700")}>
                   nebo přetáhněte sem
                 </p>
-                <p className={cn("text-[10px] uppercase tracking-wider mt-4", dark ? "text-zinc-600" : "text-gray-400")}>
+                <p className={cn("text-[10px] uppercase tracking-wider mt-4", dark ? "text-zinc-600" : "text-gray-600")}>
                   JPEG, PNG, WebP • max 10MB
                 </p>
               </div>

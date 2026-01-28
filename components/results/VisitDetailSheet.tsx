@@ -175,7 +175,7 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
         side="bottom"
-        className="h-[92vh] sm:h-[85vh] p-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white backdrop-blur-3xl shadow-2xl rounded-t-[30px] overflow-hidden"
+        className="h-[92vh] sm:h-[85vh] p-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white backdrop-blur-3xl shadow-2xl rounded-t-[30px] overflow-hidden [&>button]:hidden"
       >
         {/* Close Button & Header Actions */}
         <div className="absolute top-4 right-4 z-50 flex gap-2">

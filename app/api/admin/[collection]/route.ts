@@ -256,6 +256,15 @@ export async function GET(
                 });
                 totalCount = await db.exceptionRequest.count();
                 break;
+            case "CustomRoute":
+                records = await db.customRoute.findMany({
+                    skip,
+                    take: limit,
+                    orderBy,
+                    include: { creator: { select: { name: true, email: true } } }
+                });
+                totalCount = await db.customRoute.count();
+                break;
             default:
 
                 return new NextResponse(`Unknown collection: ${collection}`, { status: 400 });
@@ -359,6 +368,10 @@ export async function DELETE(
             case "ExceptionRequest":
                 const exceptionRequestResult = await db.exceptionRequest.deleteMany({ where: { id: { in: ids } } });
                 deletedCount = exceptionRequestResult.count;
+                break;
+            case "CustomRoute":
+                const customRouteResult = await db.customRoute.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = customRouteResult.count;
                 break;
             default:
                 return NextResponse.json({ error: `Unknown collection: ${collection}` }, { status: 400 });

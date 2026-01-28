@@ -45,7 +45,7 @@ export default function AuthLayout({
                     className="absolute inset-0 z-0"
                 >
                     <Image
-                        src={isDark ? "/images/auth/dog_dark.png" : "/images/auth/dog_light.png"}
+                        src={isDark ? "/images/whimsical_landscape_night.png" : "/images/whimsical_landscape_day.png"}
                         alt="Background"
                         fill
                         className="object-cover"

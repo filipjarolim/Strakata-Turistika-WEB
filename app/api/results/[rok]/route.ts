@@ -10,7 +10,7 @@ const resultsCache = new Map();
 export async function GET(request: Request, { params }: { params: tParams }) {
     const { rok } = await params;
     const url = new URL(request.url);
-    
+
     // Parse sorting parameters
     const sortField = url.searchParams.get('sortField') || 'visitDate';
     const sortOrder = url.searchParams.get('sortOrder') || 'desc';
@@ -33,11 +33,11 @@ export async function GET(request: Request, { params }: { params: tParams }) {
 
         if (!seasonExists) {
             return NextResponse.json(
-                { message: `No data found for year ${year}` },
+                { message: `Pro rok ${year} nebyla nalezena žádná data` },
                 { status: 404 }
             );
         }
-        
+
         // Get all data for the year
         const visitData = await db.visitData.findMany({
             where: { year },

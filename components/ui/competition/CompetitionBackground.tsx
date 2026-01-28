@@ -33,8 +33,8 @@ const CompetitionBackground = () => {
                     {/* Dark Mode Background */}
                     <div className="absolute inset-0 opacity-0 dark:opacity-100 transition-opacity duration-1000 ease-in-out">
                         <Image
-                            src="/images/soutezBackground_nature.png"
-                            alt="Soutěž pozadí noc"
+                            src="/images/whimsical_landscape_night.png"
+                            alt="Soutěž pozadí noc - Whimsical Landscape"
                             fill
                             className="object-cover select-none pointer-events-none"
                             priority
@@ -45,8 +45,8 @@ const CompetitionBackground = () => {
                     {/* Light Mode Background */}
                     <div className="absolute inset-0 opacity-100 dark:opacity-0 transition-opacity duration-1000 ease-in-out">
                         <Image
-                            src="/images/soutezBackground_nature_light.png"
-                            alt="Soutěž pozadí den"
+                            src="/images/whimsical_landscape_day.png"
+                            alt="Soutěž pozadí den - Whimsical Landscape"
                             fill
                             className="object-cover select-none pointer-events-none"
                             priority

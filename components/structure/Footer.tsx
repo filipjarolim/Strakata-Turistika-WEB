@@ -48,11 +48,7 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
                                     Domů
                                 </Link>
                             </li>
-                            <li>
-                                <Link href="/about" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
-                                    O nás
-                                </Link>
-                            </li>
+
                             <li>
                                 <Link href="/soutez" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors">
                                     Soutěžit
@@ -89,7 +85,7 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
                         <ul className="space-y-2 text-sm">
                             <li>
                                 <a
-                                    href="https://play.google.com/store/apps/details?id=com.strakataturistika.app"
+                                    href="https://play.google.com/store/apps/details?id=cz.strakata.turistika.strakataturistikaandroidapp"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors flex items-center gap-2"

@@ -23,6 +23,7 @@ import { IOSCard } from "@/components/ui/ios/card";
 import { IOSCircleIcon } from "@/components/ui/ios/circle-icon";
 import { IOSImageShowcase } from "@/components/ui/ios/image-showcase";
 import { IOSStatsCard } from "@/components/ui/ios/stats-card";
+import { GooglePlayBadge, AppStoreBadge } from "@/components/ui/app-store-badges";
 import Link from "next/link";
 
 
@@ -74,8 +75,8 @@ const Home = async () => {
 
                 {/* Original Hero Section Content */}
                 <div className="relative z-10 animate-fadeIn">
-                    <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[50vh] sm:h-[60vh] md:h-[70vh] px-3 sm:px-4 md:px-8"}>
-                        <div className={"p-3 sm:p-4 md:p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
+                    <div className={"grid grid-cols-1 md:grid-cols-[55%_45%] w-full h-[50vh] sm:h-[60vh] md:h-[70vh] px-4 sm:px-6 md:px-8"}>
+                        <div className={"p-4 sm:p-6 md:p-8 hidden md:flex z-10 w-full flex-col items-start justify-center h-full cursor-default"}>
                             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold whitespace-normal break-words text-white tracking-tight leading-none mb-2 drop-shadow-lg">
                                 {basicInfo.name}
                             </h1>
@@ -109,20 +110,8 @@ const Home = async () => {
                                         Soutěžit
                                     </IOSButton>
                                 </Link>
-                                <div className="flex gap-3">
-                                    <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" target="_blank" rel="noopener noreferrer">
-                                        <IOSButton variant="secondary" className={"h-12 px-5 text-sm font-semibold rounded-full hover:scale-105 transition-all duration-300 bg-white/20 text-white border-white/40 hover:bg-white/30 backdrop-blur-md flex items-center gap-2"}>
-                                            <Play className="w-4 h-4 fill-white" />
-                                            Google Play
-                                        </IOSButton>
-                                    </Link>
-                                    <Link href="https://apps.apple.com/cz/app/strakat%C3%A1-turistika/id6475736636" target="_blank" rel="noopener noreferrer">
-                                        <IOSButton variant="secondary" className={"h-12 px-5 text-sm font-semibold rounded-full hover:scale-105 transition-all duration-300 bg-white/20 text-white border-white/40 hover:bg-white/30 backdrop-blur-md flex items-center gap-2"}>
-                                            <Apple className="w-5 h-5 fill-white" />
-                                            App Store
-                                        </IOSButton>
-                                    </Link>
-                                </div>
+                                <GooglePlayBadge href="https://play.google.com/store/apps/details?id=cz.strakata.turistika.strakataturistikaandroidapp" />
+                                <AppStoreBadge />
                             </div>
                         </div>
                         <div className="flex flex-col items-center justify-center text-center mt-6 px-4 md:hidden z-20">
@@ -132,23 +121,13 @@ const Home = async () => {
 
                             <div className="flex flex-col w-full max-w-xs gap-3">
                                 <Link href="/soutez" className="w-full">
-                                    <button className="w-full bg-white text-black font-bold text-lg py-3.5 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all duration-300">
+                                    <button className="w-full bg-white dark:bg-zinc-800 text-black dark:text-white font-bold text-lg py-3.5 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 border border-transparent dark:border-white/10">
                                         Soutěžit
                                     </button>
                                 </Link>
                                 <div className="grid grid-cols-2 gap-3 w-full">
-                                    <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" target="_blank" rel="noopener noreferrer" className="w-full">
-                                        <button className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-xs py-3 rounded-2xl shadow-lg hover:bg-white/30 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center gap-1">
-                                            <Play className="w-4 h-4 fill-white" />
-                                            Play Store
-                                        </button>
-                                    </Link>
-                                    <Link href="https://apps.apple.com/cz/app/strakat%C3%A1-turistika/id6475736636" target="_blank" rel="noopener noreferrer" className="w-full">
-                                        <button className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-xs py-3 rounded-2xl shadow-lg hover:bg-white/30 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center gap-1">
-                                            <Apple className="w-5 h-5 fill-white" />
-                                            App Store
-                                        </button>
-                                    </Link>
+                                    <GooglePlayBadge href="https://play.google.com/store/apps/details?id=cz.strakata.turistika.strakataturistikaandroidapp" className="w-full flex justify-center" />
+                                    <AppStoreBadge className="w-full flex justify-center" />
                                 </div>
                             </div>
                         </div>
@@ -180,35 +159,36 @@ const Home = async () => {
                 </div>
             </div>
 
+
             {/* Mobile Stats Section - Below Hero */}
             <div className="md:hidden px-4 -mt-8 relative z-30">
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <span className="text-3xl font-black text-gray-900">147</span>
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-lg border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900 dark:text-white">147</span>
                         <span className="text-xs font-bold text-gray-400 uppercase mt-1">Uživatelů</span>
                     </div>
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <span className="text-3xl font-black text-gray-900">25k</span>
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-lg border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900 dark:text-white">25k</span>
                         <span className="text-xs font-bold text-gray-400 uppercase mt-1">Míst</span>
                     </div>
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <span className="text-3xl font-black text-gray-900">5</span>
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-lg border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900 dark:text-white">5</span>
                         <span className="text-xs font-bold text-gray-400 uppercase mt-1">Sezón</span>
                     </div>
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <span className="text-3xl font-black text-gray-900">28k</span>
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-lg border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-black text-gray-900 dark:text-white">28k</span>
                         <span className="text-xs font-bold text-gray-400 uppercase mt-1">Bodů</span>
                     </div>
                 </div>
             </div>
 
             {/* News Section - Moved to top */}
-            <div className="px-3 sm:px-4 md:px-8 py-6 sm:py-8 md:py-16 bg-white dark:bg-zinc-900/50 mt-6 sm:mt-8 border-y border-gray-100 dark:border-white/5">
+            <div className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-16 bg-white dark:bg-zinc-900/50 mt-6 sm:mt-8 border-y border-gray-100 dark:border-white/5">
                 <News showHeader={false} showAddButton={false} />
             </div>
 
             {/* Benefits Section */}
-            <div className="px-3 sm:px-4 md:px-8 py-12 sm:py-16 bg-gray-50 dark:bg-black/20 transition-colors duration-300">
+            <div className="px-4 sm:px-6 md:px-8 py-12 sm:py-16 bg-gray-50 dark:bg-black/20 transition-colors duration-300">
                 <div className="max-w-6xl mx-auto">
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8 sm:mb-12 text-center">Proč se připojit?</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16">
@@ -253,8 +233,8 @@ const Home = async () => {
                         {/* Šlapejte a soutěžte */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-4 mb-2">
-                                <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-2xl">
-                                    <Trophy className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                                <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-2xl">
+                                    <Trophy className="w-8 h-8 text-green-600 dark:text-green-400" />
                                 </div>
                                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Šlapejte a soutěžte</h2>
                             </div>
@@ -286,7 +266,7 @@ const Home = async () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
 
 
@@ -307,7 +287,7 @@ const Home = async () => {
 
 
 
-        </CommonPageTemplate>
+        </CommonPageTemplate >
     );
 }
 

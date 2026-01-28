@@ -87,12 +87,7 @@ const navConfig: NavConfigType = [
                 icon: User,
                 badge: "Nové"
             },
-            {
-                title: "Statistiky",
-                href: "/vysledky/statistiky",
-                description: "Podrobné statistiky návštěv a aktivit.",
-                icon: PieChart
-            }
+
         ]
     },
     {
@@ -132,7 +127,7 @@ export const Navbar = ({ className }: NavbarProps) => {
                                         </div>
                                     </NavigationMenuTrigger>
                                     <NavigationMenuContent>
-                                        <div className="w-[400px] p-2 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border border-gray-100 dark:border-white/10 rounded-2xl shadow-2xl">
+                                        <div className={cn("p-2 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border border-gray-100 dark:border-white/10 rounded-2xl shadow-2xl", navItem.columns === 2 ? "w-[650px]" : "w-[400px]")}>
                                             <ul className={cn("grid gap-1", navItem.columns === 2 ? "grid-cols-2 w-[600px]" : "grid-cols-1 w-[350px]")}>
                                                 {navItem.items?.map((item, i) => (
                                                     <ListItem

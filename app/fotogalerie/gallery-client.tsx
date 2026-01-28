@@ -356,7 +356,7 @@ export const GalleryClient = ({ initialImages = [] }: { initialImages?: GalleryI
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative max-w-4xl max-h-[90vh] bg-white rounded-3xl overflow-hidden"
+                            className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl dark:border dark:border-white/10"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="relative">
@@ -365,14 +365,14 @@ export const GalleryClient = ({ initialImages = [] }: { initialImages?: GalleryI
                                     alt={selectedImage.title}
                                     width={800}
                                     height={600}
-                                    className="w-full h-auto max-h-[70vh] object-contain"
+                                    className="w-full h-auto max-h-[70vh] object-contain bg-black/5 dark:bg-black/40"
                                 />
 
                                 {/* Close Button */}
                                 <IOSButton
                                     size="icon"
                                     variant="outline"
-                                    className="absolute top-4 right-4 h-10 w-10 bg-white/90 backdrop-blur-xl"
+                                    className="absolute top-4 right-4 h-10 w-10 bg-white/90 dark:bg-black/50 backdrop-blur-xl border-white/20 dark:border-white/10 text-gray-900 dark:text-white hover:bg-white dark:hover:bg-black/70"
                                     onClick={() => setSelectedImage(null)}
                                 >
                                     <X className="h-5 w-5" />
@@ -382,9 +382,9 @@ export const GalleryClient = ({ initialImages = [] }: { initialImages?: GalleryI
                             <div className="p-6">
                                 <div className="flex items-start justify-between mb-4">
                                     <div>
-                                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{selectedImage.title}</h3>
-                                        <p className="text-gray-600 mb-3">{selectedImage.description}</p>
-                                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{selectedImage.title}</h3>
+                                        <p className="text-gray-600 dark:text-gray-300 mb-3">{selectedImage.description}</p>
+                                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                                             <div className="flex items-center gap-1">
                                                 <MapPin className="h-4 w-4" />
                                                 <span>{selectedImage.location}</span>

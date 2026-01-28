@@ -28,10 +28,10 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
     const user = useCurrentUser();
 
     // Dynamic background styling based on dark/light mode
-    const getButtonBackground = () => "bg-white/40 backdrop-blur-xl border-white/50 hover:bg-white/60 hover:border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]";
+    const getButtonBackground = () => "bg-white/40 dark:bg-white/10 backdrop-blur-xl border-white/50 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/20 hover:border-white/80 dark:hover:border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]";
 
     // Dynamic avatar ring styling
-    const getAvatarRing = () => "ring-2 ring-gray-900/20 group-hover:ring-gray-900/30";
+    const getAvatarRing = () => "ring-2 ring-gray-900/20 dark:ring-white/20 group-hover:ring-gray-900/30 dark:group-hover:ring-white/30";
 
     return (
         <IOSDropdownMenu
@@ -55,10 +55,10 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                         )}
                     </Avatar>
                     <div className="flex flex-col items-start">
-                        <span className={cn("text-sm font-semibold leading-tight", textColor)}>
+                        <span className={cn("text-sm font-semibold leading-tight dark:text-gray-100", textColor)}>
                             {authprefix.buttons.user.label}
                         </span>
-                        <span className={cn("text-xs opacity-70 leading-tight", textColor)}>
+                        <span className={cn("text-xs opacity-70 leading-tight dark:text-gray-400", textColor)}>
                             {role === "ADMIN" ? "Administrátor" : role === "TESTER" ? "Tester" : "Uživatel"}
                         </span>
                     </div>
@@ -82,10 +82,10 @@ export const UserButton = ({ role, textColor = "text-gray-900" }: UserButtonProp
                         )}
                     </Avatar>
                     <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-sm font-semibold text-gray-900 truncate">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                             {user?.name || "Uživatel"}
                         </span>
-                        <span className="text-xs text-gray-500 truncate">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                             {user?.email || "uživatel@example.com"}
                         </span>
                     </div>

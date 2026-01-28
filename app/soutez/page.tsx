@@ -11,7 +11,9 @@ import Link from 'next/link';
 import UploadStep from './steps/UploadStep';
 import EditStep from './steps/EditStep';
 import FinishStep from './steps/FinishStep';
+
 import CompetitionBackground from "@/components/ui/competition/CompetitionBackground";
+import { GooglePlayBadge, AppStoreBadge } from "@/components/ui/app-store-badges";
 
 type Step = 'home' | 'upload' | 'gps' | 'edit' | 'finish';
 
@@ -238,16 +240,8 @@ const Page = () => {
                         Nahrávejte trasy přímo pomocí GPS a sledujte svůj postup jednodušeji než kdy dřív.
                       </p>
                       <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
-                        <Link href="https://apps.apple.com" target="_blank">
-                          <motion.div whileTap={{ scale: 0.95 }} className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-5 py-2.5 rounded-xl text-slate-900 dark:text-white font-semibold text-xs hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                            App Store
-                          </motion.div>
-                        </Link>
-                        <Link href="https://play.google.com" target="_blank">
-                          <motion.div whileTap={{ scale: 0.95 }} className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-5 py-2.5 rounded-xl text-slate-900 dark:text-white font-semibold text-xs hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">
-                            Google Play
-                          </motion.div>
-                        </Link>
+                        <AppStoreBadge href="https://apps.apple.com" />
+                        <GooglePlayBadge />
                       </div>
                     </div>
                   </motion.div>

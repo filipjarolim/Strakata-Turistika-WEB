@@ -200,22 +200,22 @@ export const transformDataToAggregated = (data: VisitData[]): AggregatedVisitDat
             acc[key] = {
                 year: item.year,
                 totalPoints: 0,
-                visitCount: 0, 
+                visitCount: 0,
                 visitedPlaces: new Set<string>(),
                 dogNotAllowed: new Set<string>(),
                 routeTitles: new Set<string>()
             };
         }
-        
+
         acc[key].totalPoints += item.points;
         acc[key].visitCount += 1;
         if (item.visitedPlaces) acc[key].visitedPlaces.add(item.visitedPlaces);
         if (item.dogNotAllowed) acc[key].dogNotAllowed.add(item.dogNotAllowed);
         if (item.routeTitle) acc[key].routeTitles.add(item.routeTitle);
-        
+
         return acc;
     }, {} as Record<string, AggregatedVisitData>);
-    
+
     return Object.values(aggregated);
 };
 
@@ -272,8 +272,8 @@ export const DataTable = <TData extends { id: string }>({
     filename,
     enableDownload = false,
     enableAggregatedView = false,
-    aggregatedViewLabel = "Aggregated View",
-    detailedViewLabel = "Detailed View",
+    aggregatedViewLabel = "Souhrnné zobrazení",
+    detailedViewLabel = "Detailní zobrazení",
     enableColumnVisibility = false,
     enableSearch = false,
     excludedColumnsInAggregatedView = [],
@@ -281,10 +281,10 @@ export const DataTable = <TData extends { id: string }>({
     summarySheetName = "Summary",
     generateSummarySheet = false,
     loading = false,
-    emptyStateMessage = "No data available"
+    emptyStateMessage = "Žádná data k dispozici"
 }: DataTableProps<TData>) => {
-    const initialSorting: SortingState = primarySortColumn 
-        ? [{ id: primarySortColumn, desc: primarySortDesc }] 
+    const initialSorting: SortingState = primarySortColumn
+        ? [{ id: primarySortColumn, desc: primarySortDesc }]
         : [];
 
     const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -306,11 +306,11 @@ export const DataTable = <TData extends { id: string }>({
 
     useEffect(() => {
         let count = 0;
-        if (activeFilters.dateFilter && 
-            filterConfig?.dateField && 
+        if (activeFilters.dateFilter &&
+            filterConfig?.dateField &&
             isColumnVisible(filterConfig.dateField as string)) count++;
-        if (activeFilters.numberFilter && 
-            filterConfig?.numberField && 
+        if (activeFilters.numberFilter &&
+            filterConfig?.numberField &&
             isColumnVisible(filterConfig.numberField as string)) count++;
         if (activeFilters.customFilterParams?.categories && activeFilters.customFilterParams.categories.length > 0) count++;
         setActiveFilterCount(count);
@@ -319,18 +319,18 @@ export const DataTable = <TData extends { id: string }>({
     const handleToggleView = () => {
         const newAggregatedState = !isAggregatedView;
         setIsAggregatedView(newAggregatedState);
-        
+
         // Clear filters for columns that will be hidden
         const updatedFilters: FilterState = { ...activeFilters };
-        
+
         if (newAggregatedState) {
-            if (filterConfig?.dateField && 
+            if (filterConfig?.dateField &&
                 excludedColumnsInAggregatedView.includes(filterConfig.dateField as string)) {
                 delete updatedFilters.dateFilter;
             }
             // Similarly for other filter types...
         }
-        
+
         setActiveFilters(updatedFilters);
         setFilteredData(data); // Reset to unfiltered data
     };
@@ -367,7 +367,7 @@ export const DataTable = <TData extends { id: string }>({
 
         // For VisitData specifically we might want to add custom columns
         const isVisitData = data.length > 0 && 'visitDate' in data[0] && 'fullName' in data[0];
-        
+
         if (isVisitData) {
             // Use full column definition to avoid type issues
             const totalVisitsColumn: ColumnDef<TData> = {
@@ -391,9 +391,9 @@ export const DataTable = <TData extends { id: string }>({
 
             // Start with base columns that are common in both views
             const baseColumns = filteredColumns.filter(
-                (col) => 'accessorKey' in col && 
-                        col.accessorKey && 
-                        !excludedColumnsInAggregatedView.includes(col.accessorKey as string)
+                (col) => 'accessorKey' in col &&
+                    col.accessorKey &&
+                    !excludedColumnsInAggregatedView.includes(col.accessorKey as string)
             );
 
             return [...baseColumns, totalVisitsColumn];
@@ -411,7 +411,7 @@ export const DataTable = <TData extends { id: string }>({
 
         const [startDate, endDate] = dates;
         const dateField = filterConfig.dateField as keyof TData;
-        
+
         // Update active filters
         setActiveFilters(prev => ({
             ...prev,
@@ -466,7 +466,7 @@ export const DataTable = <TData extends { id: string }>({
             result = result.filter((item: TData) => {
                 const value = parseFloat(String(item[numberField]));
                 if (isNaN(value)) return false;
-                
+
                 if (min !== undefined && max !== undefined) {
                     return value >= min && value <= max;
                 } else if (min !== undefined) {
@@ -481,7 +481,7 @@ export const DataTable = <TData extends { id: string }>({
         // Apply custom filter if provided
         if (filterConfig?.customFilter && filters.customFilterParams) {
             const customFilter = filterConfig.customFilter;
-            result = result.filter(item => 
+            result = result.filter(item =>
                 customFilter(item, filters.customFilterParams as Record<string, unknown>)
             );
         }
@@ -571,34 +571,34 @@ export const DataTable = <TData extends { id: string }>({
             <IOSCard variant="elevated" className="backdrop-blur-md">
                 {/* Controls Section */}
                 <div className="p-4 space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         {/* Search and Filters */}
-                    <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                        {enableSearch && (
-                            <div className="w-full sm:w-[300px]">
-                                <SearchFilterInput
-                                    placeholder="Hledat v tabulce..." 
-                                    value={globalFilter ?? ''}
-                                    onChange={(value) => setGlobalFilter(value)}
-                                    className="w-full"
-                                />
-                            </div>
-                        )}
-                        
-                        {filterConfig && !isAggregatedView && (
-                            <div className="relative w-full sm:w-auto">
-                                <FilterButton
-                                    onDateFilterChange={handleDateFilterChange}
-                                    onNumberFilterChange={handleNumberFilterChange}
-                                    onCustomFilterChange={handleCustomFilterChange}
-                                    onClearAllFilters={handleClearFilters}
-                                    year={year}
-                                    dateFieldLabel="Datum návštěvy"
-                                    numberFieldLabel="Body"
-                                    showDateFilter={filterConfig.dateField ? isColumnVisible(filterConfig.dateField as string) : false}
-                                    showNumberFilter={filterConfig.numberField ? isColumnVisible(filterConfig.numberField as string) : false}
-                                />
-                                {activeFilterCount > 0 && (
+                        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                            {enableSearch && (
+                                <div className="w-full sm:w-[300px]">
+                                    <SearchFilterInput
+                                        placeholder="Hledat v tabulce..."
+                                        value={globalFilter ?? ''}
+                                        onChange={(value) => setGlobalFilter(value)}
+                                        className="w-full"
+                                    />
+                                </div>
+                            )}
+
+                            {filterConfig && !isAggregatedView && (
+                                <div className="relative w-full sm:w-auto">
+                                    <FilterButton
+                                        onDateFilterChange={handleDateFilterChange}
+                                        onNumberFilterChange={handleNumberFilterChange}
+                                        onCustomFilterChange={handleCustomFilterChange}
+                                        onClearAllFilters={handleClearFilters}
+                                        year={year}
+                                        dateFieldLabel="Datum návštěvy"
+                                        numberFieldLabel="Body"
+                                        showDateFilter={filterConfig.dateField ? isColumnVisible(filterConfig.dateField as string) : false}
+                                        showNumberFilter={filterConfig.numberField ? isColumnVisible(filterConfig.numberField as string) : false}
+                                    />
+                                    {activeFilterCount > 0 && (
                                         <IOSBadge
                                             label={`${activeFilterCount}`}
                                             size="md"
@@ -607,14 +607,14 @@ export const DataTable = <TData extends { id: string }>({
                                                 activeFilterCount > 0 ? "bg-primary" : "bg-gray-400"
                                             )}
                                         />
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {/* View Controls */}
-                    <div className="flex flex-wrap gap-3 w-full sm:w-auto justify-end">
-                        {enableColumnVisibility && (
+                        <div className="flex flex-wrap gap-3 w-full sm:w-auto justify-end">
+                            {enableColumnVisibility && (
                                 <IOSButton
                                     variant="outline"
                                     size="sm"
@@ -625,9 +625,9 @@ export const DataTable = <TData extends { id: string }>({
                                 >
                                     Sloupce
                                 </IOSButton>
-                        )}
-                        
-                        {enableAggregatedView && (
+                            )}
+
+                            {enableAggregatedView && (
                                 <IOSButton
                                     variant="outline"
                                     size="sm"
@@ -636,9 +636,9 @@ export const DataTable = <TData extends { id: string }>({
                                 >
                                     {isAggregatedView ? detailedViewLabel : aggregatedViewLabel}
                                 </IOSButton>
-                        )}
-                        
-                        {enableDownload && (
+                            )}
+
+                            {enableDownload && (
                                 <IOSButton
                                     variant="outline"
                                     size="sm"
@@ -649,71 +649,71 @@ export const DataTable = <TData extends { id: string }>({
                                 >
                                     Stáhnout
                                 </IOSButton>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
 
                     {/* Active Filters */}
                     <AnimatePresence>
-                {(activeFilters.dateFilter || activeFilters.numberFilter || activeFilters.customFilterParams?.categories?.length) && (
+                        {(activeFilters.dateFilter || activeFilters.numberFilter || activeFilters.customFilterParams?.categories?.length) && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: "auto" }}
                                 exit={{ opacity: 0, height: 0 }}
                                 className="flex flex-wrap gap-2 items-center pt-2 border-t"
                             >
-                            <div className="mt-2 flex flex-wrap gap-2 items-center">
-                                <span className="text-sm font-medium text-muted-foreground">Aktivní filtry:</span>
-                                
-                                {activeFilters.dateFilter && (
+                                <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                    <span className="text-sm font-medium text-muted-foreground">Aktivní filtry:</span>
+
+                                    {activeFilters.dateFilter && (
                                         <IOSBadge
-                                            label={`Datum: ${activeFilters.dateFilter.type === 'before' ? 'Před ' : 
-                                         activeFilters.dateFilter.type === 'after' ? 'Po ' : 'Mezi '}
+                                            label={`Datum: ${activeFilters.dateFilter.type === 'before' ? 'Před ' :
+                                                activeFilters.dateFilter.type === 'after' ? 'Po ' : 'Mezi '}
                                                    ${activeFilters.dateFilter.startDate?.toLocaleDateString('cs-CZ')}
-                                                   ${activeFilters.dateFilter.type === 'between' && activeFilters.dateFilter.endDate ? 
-                                                   ` - ${activeFilters.dateFilter.endDate.toLocaleDateString('cs-CZ')}` : ''}`}
-                                            bgColor="bg-blue-100"
-                                            textColor="text-blue-900"
-                                            borderColor="border-blue-200"
-                                        />
-                                )}
-                                
-                                {activeFilters.numberFilter && (
-                                        <IOSBadge
-                                            label={`Body: ${activeFilters.numberFilter.min !== undefined ? 
-                                                   `min ${activeFilters.numberFilter.min}` : ''}
-                                                   ${activeFilters.numberFilter.min !== undefined && 
-                                                   activeFilters.numberFilter.max !== undefined ? ' - ' : ''}
-                                                   ${activeFilters.numberFilter.max !== undefined ? 
-                                                   `max ${activeFilters.numberFilter.max}` : ''}`}
-                                            bgColor="bg-blue-100"
-                                            textColor="text-blue-900"
-                                            borderColor="border-blue-200"
-                                        />
-                                )}
-                                
-                                {activeFilters.customFilterParams?.categories && 
-                                 activeFilters.customFilterParams.categories.length > 0 && (
-                                        <IOSBadge
-                                            label={`Kategorie: ${activeFilters.customFilterParams.categories.join(', ')}`}
+                                                   ${activeFilters.dateFilter.type === 'between' && activeFilters.dateFilter.endDate ?
+                                                    ` - ${activeFilters.dateFilter.endDate.toLocaleDateString('cs-CZ')}` : ''}`}
                                             bgColor="bg-blue-100"
                                             textColor="text-blue-900"
                                             borderColor="border-blue-200"
                                         />
                                     )}
-                                    
+
+                                    {activeFilters.numberFilter && (
+                                        <IOSBadge
+                                            label={`Body: ${activeFilters.numberFilter.min !== undefined ?
+                                                `min ${activeFilters.numberFilter.min}` : ''}
+                                                   ${activeFilters.numberFilter.min !== undefined &&
+                                                    activeFilters.numberFilter.max !== undefined ? ' - ' : ''}
+                                                   ${activeFilters.numberFilter.max !== undefined ?
+                                                    `max ${activeFilters.numberFilter.max}` : ''}`}
+                                            bgColor="bg-blue-100"
+                                            textColor="text-blue-900"
+                                            borderColor="border-blue-200"
+                                        />
+                                    )}
+
+                                    {activeFilters.customFilterParams?.categories &&
+                                        activeFilters.customFilterParams.categories.length > 0 && (
+                                            <IOSBadge
+                                                label={`Kategorie: ${activeFilters.customFilterParams.categories.join(', ')}`}
+                                                bgColor="bg-blue-100"
+                                                textColor="text-blue-900"
+                                                borderColor="border-blue-200"
+                                            />
+                                        )}
+
                                     <IOSButton
                                         variant="outline"
                                         size="sm"
-                                    onClick={handleClearFilters}
-                                >
-                                    Vymazat filtry
+                                        onClick={handleClearFilters}
+                                    >
+                                        Vymazat filtry
                                     </IOSButton>
-                            </div>
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
-            </div>
+                </div>
 
                 {/* Table Content */}
                 {!loading ? (
@@ -727,7 +727,7 @@ export const DataTable = <TData extends { id: string }>({
                                             const isSortable = header.column.getCanSort();
                                             return (
                                                 <div
-                                                key={header.id}
+                                                    key={header.id}
                                                     className={cn(
                                                         "flex-1 min-w-[150px] p-3 text-left text-sm font-medium text-gray-900",
                                                         isSortable && "cursor-pointer select-none",
@@ -770,7 +770,7 @@ export const DataTable = <TData extends { id: string }>({
                                         >
                                             {row.getVisibleCells().map(cell => (
                                                 <div
-                                                    key={cell.id} 
+                                                    key={cell.id}
                                                     className="flex-1 min-w-[150px] p-3 text-sm text-gray-900"
                                                 >
                                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -783,9 +783,9 @@ export const DataTable = <TData extends { id: string }>({
                                         <div className="flex flex-col items-center gap-3">
                                             <AlertCircle className="h-10 w-10 text-gray-400" />
                                             <p className="text-lg text-gray-500">
-                                                    {emptyStateMessage}
-                                                </p>
-                                            </div>
+                                                {emptyStateMessage}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -796,23 +796,23 @@ export const DataTable = <TData extends { id: string }>({
                         <div className="flex flex-col items-center gap-4">
                             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                             <p className="text-sm text-gray-500">Načítání dat...</p>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Pagination */}
-            {table.getRowModel().rows?.length > 0 && (
+                {/* Pagination */}
+                {table.getRowModel().rows?.length > 0 && (
                     <div className="p-4 border-t border-gray-100">
-                    <PaginationControls
-                        totalRows={table.getFilteredRowModel().rows.length}
-                        pageIndex={table.getState().pagination.pageIndex}
-                        pageSize={table.getState().pagination.pageSize}
-                        pageSizeOptions={[10, 20, 50, 100]}
-                        onPageChange={(page) => table.setPageIndex(page)}
-                        onPageSizeChange={(size) => table.setPageSize(size)}
-                    />
-                </div>
-            )}
+                        <PaginationControls
+                            totalRows={table.getFilteredRowModel().rows.length}
+                            pageIndex={table.getState().pagination.pageIndex}
+                            pageSize={table.getState().pagination.pageSize}
+                            pageSizeOptions={[10, 20, 50, 100]}
+                            onPageChange={(page) => table.setPageIndex(page)}
+                            onPageSizeChange={(size) => table.setPageSize(size)}
+                        />
+                    </div>
+                )}
             </IOSCard>
         </div>
     );

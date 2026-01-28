@@ -96,10 +96,7 @@ export default function SeasonsPage() {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-12 sm:mb-16">
                     <div className="space-y-4 max-w-2xl">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600/10 dark:bg-blue-500/10 border border-blue-600/20 dark:border-blue-500/20 text-blue-600 dark:text-blue-300 text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                            <Trophy className="w-3 h-3" />
-                            Archiv výsledků
-                        </div>
+
                         <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-gray-800 dark:text-white tracking-tight leading-none drop-shadow-sm dark:drop-shadow-2xl">
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-blue-400 dark:from-blue-400 dark:via-purple-400 dark:to-white">
                                 Výsledky

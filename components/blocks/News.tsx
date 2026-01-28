@@ -252,6 +252,7 @@ export default function News({ showHeader = true, showAddButton = true, classNam
                                     <NewsCard
                                         item={item}
                                         priority={index < 4}
+                                        view={view}
                                     />
 
                                     {isAdmin && (

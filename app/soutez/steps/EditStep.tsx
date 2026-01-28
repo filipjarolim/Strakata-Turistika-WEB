@@ -116,7 +116,7 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
           dogNotAllowed: dogNotAllowed ? "true" : "false",
           photos: images,
           places: places,
-          routeTitle: route.routeTitle || 'Untitled Route',
+          routeTitle: route.routeTitle || 'Trasa bez názvu',
           routeDescription: route.routeDescription || '',
           extraData: extraData,
           extraPoints: route.extraPoints
