@@ -239,6 +239,23 @@ export async function GET(
                 });
                 totalCount = await db.scoringConfig.count();
                 break;
+            case "StrataCategory":
+                records = await db.strataCategory.findMany({
+                    skip,
+                    take: limit,
+                    orderBy
+                });
+                totalCount = await db.strataCategory.count();
+                break;
+            case "ExceptionRequest":
+                records = await db.exceptionRequest.findMany({
+                    skip,
+                    take: limit,
+                    orderBy,
+                    include: { user: { select: { name: true, email: true } } }
+                });
+                totalCount = await db.exceptionRequest.count();
+                break;
             default:
 
                 return new NextResponse(`Unknown collection: ${collection}`, { status: 400 });
@@ -334,6 +351,14 @@ export async function DELETE(
             case "ScoringConfig":
                 const scoringConfigResult = await db.scoringConfig.deleteMany({ where: { id: { in: ids } } });
                 deletedCount = scoringConfigResult.count;
+                break;
+            case "StrataCategory":
+                const strataCategoryResult = await db.strataCategory.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = strataCategoryResult.count;
+                break;
+            case "ExceptionRequest":
+                const exceptionRequestResult = await db.exceptionRequest.deleteMany({ where: { id: { in: ids } } });
+                deletedCount = exceptionRequestResult.count;
                 break;
             default:
                 return NextResponse.json({ error: `Unknown collection: ${collection}` }, { status: 400 });

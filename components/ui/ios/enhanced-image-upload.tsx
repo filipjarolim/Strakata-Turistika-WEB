@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Camera, 
-  Upload, 
-  X, 
-  Loader2, 
-  Plus, 
-  Download, 
+import {
+  Camera,
+  Upload,
+  X,
+  Loader2,
+  Plus,
+  Download,
   Info,
   CheckCircle,
   AlertCircle,
@@ -64,6 +64,7 @@ interface EnhancedImageUploadProps {
   deleteButtonClassName?: string;
   imageContainerClassName?: string;
   placeholderClassName?: string;
+  dark?: boolean;
 }
 
 export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
@@ -79,7 +80,8 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
   uploadButtonClassName,
   deleteButtonClassName,
   imageContainerClassName,
-  placeholderClassName
+  placeholderClassName,
+  dark = false
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [title, setTitle] = useState("");
@@ -97,7 +99,7 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
   const handleDrop = async (event: React.DragEvent) => {
     event.preventDefault();
     setDragOver(false);
-    
+
     const files = Array.from(event.dataTransfer.files);
     if (files.length > 0) {
       await processFile(files[0]);
@@ -137,9 +139,9 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
 
       // Compress image
       const compressedResult = await compressImage(file);
-      
-      setUploadProgress(prev => prev ? { 
-        ...prev, 
+
+      setUploadProgress(prev => prev ? {
+        ...prev,
         progress: 50,
         status: 'uploading',
         compressedResult
@@ -152,7 +154,7 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
       }
 
       await onUpload(compressedResult.file, title || file.name);
-      
+
       setUploadProgress({
         file,
         progress: 100,
@@ -171,12 +173,12 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
 
     } catch (error) {
       console.error("Upload failed:", error);
-      setUploadProgress(prev => prev ? { 
-        ...prev, 
+      setUploadProgress(prev => prev ? {
+        ...prev,
         status: 'error',
         error: error instanceof Error ? error.message : 'Upload failed'
       } : null);
-      
+
       setTimeout(() => {
         setUploadProgress(null);
         setIsUploading(false);
@@ -215,7 +217,7 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
     landscape: "aspect-[16/9]"
   }[aspectRatio];
 
-  const gridClass = stackingStyle === "grid" ? "grid grid-cols-2 gap-4" : "flex flex-col gap-4";
+  const gridClass = stackingStyle === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "flex flex-col gap-4";
 
   const ImageInfoModal = ({ source }: { source: ImageSource }) => (
     <Dialog open={showImageInfo === source.public_id} onOpenChange={() => setShowImageInfo(null)}>
@@ -303,7 +305,7 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
               imageContainerClassName
             )}
           >
-            <AspectRatio ratio={aspectRatio === "square" ? 1 : aspectRatio === "video" ? 16/9 : 16/9}>
+            <AspectRatio ratio={aspectRatio === "square" ? 1 : aspectRatio === "video" ? 16 / 9 : 16 / 9}>
               <Image
                 src={source.url}
                 alt={source.title || 'Obrázek'}
@@ -311,7 +313,7 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
                 className="object-cover rounded-lg"
               />
             </AspectRatio>
-            
+
             {/* Overlay with actions */}
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
               <div className="flex gap-2">
@@ -359,9 +361,11 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className={cn(
-              "relative border-2 border-dashed border-gray-300 rounded-lg",
-              "hover:border-blue-500 transition-colors cursor-pointer",
-              dragOver && "border-blue-500 bg-blue-50",
+              "relative border-2 border-dashed rounded-xl h-full min-h-[160px]",
+              dark ? "border-zinc-800 bg-[#09090b] hover:border-indigo-500 hover:bg-zinc-900"
+                : "border-gray-200 bg-gray-50 hover:border-blue-500/50 hover:bg-gray-100",
+              "transition-all duration-200 cursor-pointer ease-in-out",
+              dragOver && "border-indigo-500 bg-indigo-500/10 scale-[0.99]",
               aspectRatioClass,
               placeholderClassName
             )}
@@ -381,16 +385,16 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
                       <FileImage className="w-12 h-12 text-blue-500 mx-auto" />
                     </motion.div>
                   ) : (
-                    <Plus className="w-12 h-12 text-gray-400 mx-auto" />
+                    <Plus className={cn("w-10 h-10 mx-auto", dark ? "text-muted-foreground/30" : "text-gray-400")} />
                   )}
                 </div>
-                <p className="text-sm text-gray-600 font-medium">
-                  {dragOver ? 'Přetáhněte obrázek sem' : 'Přidat fotku'}
+                <p className={cn("text-sm font-bold", dark ? "text-zinc-100" : "text-gray-900")}>
+                  {dragOver ? 'Pusťte pro nahrání' : 'Nahrát fotku'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  nebo klikněte pro výběr
+                <p className={cn("text-xs mt-1", dark ? "text-zinc-500" : "text-gray-500")}>
+                  nebo přetáhněte sem
                 </p>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className={cn("text-[10px] uppercase tracking-wider mt-4", dark ? "text-zinc-600" : "text-gray-400")}>
                   JPEG, PNG, WebP • max 10MB
                 </p>
               </div>
@@ -406,7 +410,10 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="mt-4 p-4 bg-gray-50 rounded-lg border"
+            className={cn(
+              "mt-4 p-4 rounded-lg border",
+              dark ? "bg-zinc-900 border-white/10" : "bg-gray-50 border-gray-100"
+            )}
           >
             <div className="flex items-center gap-3 mb-3">
               {uploadProgress.status === 'compressing' && (
@@ -421,36 +428,36 @@ export const EnhancedImageUpload: React.FC<EnhancedImageUploadProps> = ({
               {uploadProgress.status === 'error' && (
                 <AlertCircle className="w-5 h-5 text-red-500" />
               )}
-              
+
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">
+                <p className={cn("text-sm font-medium", dark ? "text-white" : "text-gray-900")}>
                   {uploadProgress.file.name}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className={cn("text-xs", dark ? "text-white/40" : "text-gray-500")}>
                   {uploadProgress.status === 'compressing' && 'Komprimace...'}
                   {uploadProgress.status === 'uploading' && 'Nahrávání...'}
                   {uploadProgress.status === 'completed' && 'Dokončeno'}
                   {uploadProgress.status === 'error' && uploadProgress.error}
                 </p>
               </div>
-              
+
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
+                <p className={cn("text-sm font-medium", dark ? "text-white" : "text-gray-900")}>
                   {uploadProgress.progress}%
                 </p>
                 {uploadProgress.compressedResult && (
-                  <p className="text-xs text-gray-500">
+                  <p className={cn("text-xs", dark ? "text-white/40" : "text-gray-500")}>
                     {formatFileSize(uploadProgress.compressedResult.compressedSize)}
                   </p>
                 )}
               </div>
             </div>
-            
+
             <Progress value={uploadProgress.progress} className="h-2" />
-            
+
             {uploadProgress.compressedResult && (
-              <div className="mt-2 text-xs text-gray-600">
-                Komprese: {formatFileSize(uploadProgress.compressedResult.originalSize)} → {formatFileSize(uploadProgress.compressedResult.compressedSize)} 
+              <div className={cn("mt-2 text-xs", dark ? "text-white/40" : "text-gray-600")}>
+                Komprese: {formatFileSize(uploadProgress.compressedResult.originalSize)} → {formatFileSize(uploadProgress.compressedResult.compressedSize)}
                 ({uploadProgress.compressedResult.compressionRatio}% úspora)
               </div>
             )}

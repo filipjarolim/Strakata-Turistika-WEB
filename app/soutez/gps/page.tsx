@@ -31,7 +31,7 @@ import { convertToGPX, downloadGPX, convertToTrackPoints } from '@/lib/gpx-utils
 // Import GPX Editor dynamically
 const DynamicGpxEditor = dynamic(
   () => import('@/components/editor/GpxEditor').then(mod => mod.default),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -49,10 +49,10 @@ const GPSPage = () => {
   const [routeDescription, setRouteDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const currentUser = useCurrentUser();
   const currentRole = useCurrentRole();
-  
+
   // Use custom GPS tracking hook
   const {
     isGPSReady,
@@ -81,9 +81,9 @@ const GPSPage = () => {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [isFullscreen]);
 
-  const mapTrackPoints = currentSession?.positions.map(pos => ({ 
-    lat: pos.latitude, 
-    lng: pos.longitude 
+  const mapTrackPoints = currentSession?.positions.map(pos => ({
+    lat: pos.latitude,
+    lng: pos.longitude
   })) || [];
 
   // Handle stop tracking
@@ -97,7 +97,7 @@ const GPSPage = () => {
   // Handle GPX export
   const handleExportGPX = () => {
     if (!currentSession || currentSession.positions.length === 0) return;
-    
+
     try {
       const gpxContent = convertToGPX(currentSession, routeName || 'GPS Track');
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -118,7 +118,7 @@ const GPSPage = () => {
 
     try {
       const trackPoints = convertToTrackPoints(currentSession.positions);
-      
+
       // Create new VisitData (route)
       const response = await fetch('/api/visitData', {
         method: 'POST',
@@ -151,7 +151,7 @@ const GPSPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save route');
       }
-      
+
       const data = await response.json();
       // Navigate to the edit page
       router.push(`/soutez/edit/${data.id}`);
@@ -165,7 +165,7 @@ const GPSPage = () => {
   // Post-tracking view
   if (showPostTracking && currentSession) {
     const trackPoints = convertToTrackPoints(currentSession.positions);
-    
+
     return (
       <CommonPageTemplate currentUser={currentUser} currentRole={currentRole} className="px-6">
         <div className="container mx-auto py-6 space-y-6 max-w-5xl">
@@ -205,23 +205,23 @@ const GPSPage = () => {
             >
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 bg-blue-50 rounded-xl">
-                    <div className="text-lg font-bold text-blue-600">
+                  <div className="text-center p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl">
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                       {currentSession.totalDistance.toFixed(2)}
                     </div>
-                    <div className="text-xs text-gray-600">km</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">km</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 rounded-xl">
-                    <div className="text-lg font-bold text-green-600">
+                  <div className="text-center p-3 bg-green-50 dark:bg-green-500/10 rounded-xl">
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
                       {formatTime(currentSession.totalTime)}
                     </div>
-                    <div className="text-xs text-gray-600">time</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">time</div>
                   </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-xl">
-                    <div className="text-lg font-bold text-purple-600">
+                  <div className="text-center p-3 bg-purple-50 dark:bg-purple-500/10 rounded-xl">
+                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
                       {currentSession.positions.length}
                     </div>
-                    <div className="text-xs text-gray-600">points</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">points</div>
                   </div>
                 </div>
                 <IOSButton
@@ -246,7 +246,7 @@ const GPSPage = () => {
               <div className="h-64">
                 <DynamicGpxEditor
                   initialTrack={trackPoints}
-                  onSave={() => {}}
+                  onSave={() => { }}
                   readOnly
                   hideControls={['add', 'delete', 'undo', 'redo', 'simplify']}
                 />
@@ -273,7 +273,7 @@ const GPSPage = () => {
               </div>
               <div className="space-y-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Popis trasy</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Popis trasy</label>
                   <IOSTextarea
                     placeholder="Popište svoji trasu, zajímavá místa a zážitky z cesty. Nezapomeňte zmínit zajímavé body, obtížnost a případná omezení..."
                     value={routeDescription}
@@ -310,7 +310,7 @@ const GPSPage = () => {
         </div>
       ) : (
         <motion.div className={cn("w-full h-full", isFullscreen && "fixed inset-0 z-[2000] bg-black/70 flex items-center justify-center")}>
-          <motion.div className={cn("w-full h-full", isFullscreen && "max-w-6xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden")}>
+          <motion.div className={cn("w-full h-full", isFullscreen && "max-w-6xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden")}>
             {/* Map Background */}
             <div className="absolute inset-0 z-0">
               <div className="flex-1 relative">
@@ -331,10 +331,10 @@ const GPSPage = () => {
                 </ClientOnly>
               </div>
             </div>
-            
+
             {/* Status Bar */}
             <div className="absolute top-4 left-4 right-4 z-10">
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">GPS Status</span>
                   <IOSButton
@@ -347,18 +347,18 @@ const GPSPage = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Live Stats Overlay */}
             <AnimatePresence mode="wait">
               {isTracking && (
-                <motion.div 
+                <motion.div
                   className="absolute top-20 left-4 right-4 z-10"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+                  <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600">{formatTime(elapsedTime)}</div>
@@ -373,15 +373,15 @@ const GPSPage = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             {/* Control Buttons */}
-            <motion.div 
+            <motion.div
               className="absolute bottom-6 left-4 right-4 z-10"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
             >
-              <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
                 <div className="flex gap-3 justify-center">
                   {!isTracking ? (
                     <IOSButton

@@ -47,12 +47,6 @@ export default function SeasonResultsPage({ params }: { params: Promise<{ rok: s
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         Zpět na přehled sezón
                     </Link>
-
-                    {/* Share Button Placeholder (can be functional later) */}
-                    <button className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:hover:text-white transition-colors">
-                        <Share2 className="w-4 h-4" />
-                        Sdílet výsledky
-                    </button>
                 </div>
 
                 {/* Title Section */}
@@ -62,9 +56,6 @@ export default function SeasonResultsPage({ params }: { params: Promise<{ rok: s
                     </div>
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider backdrop-blur">
-                                Oficiální výsledky
-                            </span>
                             {year === new Date().getFullYear() && (
                                 <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wider backdrop-blur">
                                     Probíhající

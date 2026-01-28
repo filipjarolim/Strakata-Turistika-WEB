@@ -23,8 +23,8 @@ export const ColumnVisibilityMenu = <TData,>({
     return (
         <>
             <IOSButton
-                    variant="outline"
-                    size="sm"
+                variant="outline"
+                size="sm"
                 onClick={() => setIsOpen(true)}
                 className={className}
             >
@@ -47,16 +47,16 @@ export const ColumnVisibilityMenu = <TData,>({
                         .filter(column => column.getCanHide())
                         .map(column => {
                             const columnLabel = column.columnDef.header?.toString() || column.id;
-                        return (
-                                <div key={column.id} className="flex items-center justify-between py-2">
+                            return (
+                                <div key={column.id} className="flex items-center justify-between py-2 px-2 hover:bg-muted/50 rounded-md transition-colors">
+                                    <span className="text-sm text-foreground">{columnLabel}</span>
                                     <IOSSwitch
-                                        label={columnLabel}
-                                checked={column.getIsVisible()}
+                                        checked={column.getIsVisible()}
                                         onCheckedChange={value => column.toggleVisibility(!!value)}
                                     />
                                 </div>
-                        );
-                    })}
+                            );
+                        })}
                 </div>
 
                 <div className="p-4 border-t">

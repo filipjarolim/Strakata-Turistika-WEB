@@ -4,13 +4,8 @@ import { AdminPageTemplate } from "@/components/admin/AdminPageTemplate";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { AdminToolbar } from "@/components/admin/AdminToolbar";
+import { AdminFilter } from "@/components/ui/admin-filter";
 import { Loader2, Database } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
@@ -114,26 +109,20 @@ export default function DatabasePage() {
             backLabel="Zpět do administrace"
         >
             <div className="space-y-6">
-                <div className="flex items-center gap-4">
+                <AdminToolbar>
                     <div className="w-full sm:w-64">
-                        <Select
+                        <AdminFilter
                             value={selectedCollection}
                             onValueChange={setSelectedCollection}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Vyberte kolekci" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {collections.map(c => (
-                                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            options={collections.map(c => ({ value: c, label: c }))}
+                            placeholder="Vyberte kolekci"
+                            className="w-full"
+                        />
                     </div>
                     <Badge variant="outline" className="h-9 px-4">
                         {loadingData ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : data.length} záznamů
                     </Badge>
-                </div>
+                </AdminToolbar>
 
                 <Card>
                     <CardHeader className="py-4 border-b">

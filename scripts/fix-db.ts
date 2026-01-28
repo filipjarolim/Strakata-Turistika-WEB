@@ -20,7 +20,7 @@ async function main() {
         const updateData: any = {};
 
         if (!news.slug) {
-            let slug = simpleSlugify(news.title);
+            const slug = simpleSlugify(news.title);
             let counter = 1;
             let finalSlug = slug;
             while (await prisma.news.findFirst({ where: { slug: finalSlug, id: { not: news.id } } })) {
@@ -50,7 +50,7 @@ async function main() {
     console.log(`Checking ${formFields.length} form fields...`);
     for (const field of formFields) {
         if (!field.name) {
-            let baseName = simpleSlugify(field.label || 'field');
+            const baseName = simpleSlugify(field.label || 'field');
             let counter = 1;
             let finalName = baseName;
 

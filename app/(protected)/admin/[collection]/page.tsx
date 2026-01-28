@@ -20,13 +20,5 @@ export default function CollectionPage() {
         );
     }
 
-    return (
-        <AdminPageTemplate
-            title={collection}
-            description="Správa záznamů kolekce"
-            icon="Database"
-        >
-            <AdminClient key={collection} />
-        </AdminPageTemplate>
-    );
+    return <AdminClient key={collection} />;
 }

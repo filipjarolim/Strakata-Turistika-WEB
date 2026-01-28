@@ -9,12 +9,10 @@ import {
     NavigationMenuLink,
     NavigationMenuList,
     NavigationMenuTrigger,
-    navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/Icon";
-import { LucideIcon, Home, Info, AtSign, Image, FileText, BarChart, List, User, PieChart, Award, Plus, RefreshCw, Calendar } from "lucide-react";
-import { motion } from "framer-motion";
+import { LucideIcon, Home, Info, AtSign, Image, FileText, BarChart, List, User, PieChart, Award } from "lucide-react";
 
 type BadgeType = "Nové" | "Aktualizace" | "Událost";
 
@@ -106,108 +104,63 @@ const navConfig: NavConfigType = [
 ];
 
 interface NavbarProps {
-    textColor?: string;
-    textColorHover?: string;
+    className?: string;
 }
 
-export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:text-black" }: NavbarProps) => {
+export const Navbar = ({ className }: NavbarProps) => {
     const pathname = usePathname();
 
-    // Enhanced hover states with proper contrast
-    const getHoverStyles = () => ({
-        hoverBg: "hover:bg-gray-900/10",
-        activeBg: "active:bg-gray-900/20",
-        focusBg: "focus:bg-gray-900/10",
-        hoverText: "hover:text-gray-900",
-        activeText: "active:text-gray-900"
-    });
-
-    const hoverStyles = getHoverStyles();
+    const triggerBaseClasses = "group inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 outline-none";
+    const itemIdleClasses = "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-white/10";
+    const itemActiveClasses = "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400";
 
     return (
-        <nav className="w-full flex justify-center h-full" style={{ zIndex: 100 }}>
-            <NavigationMenu className="max-w-none w-full justify-center h-full">
-                <NavigationMenuList className="flex flex-nowrap justify-center gap-x-1 whitespace-nowrap mx-auto h-full">
+        <div className={cn("flex justify-center", className)}>
+            <NavigationMenu className="max-w-none">
+                <NavigationMenuList className="flex items-center gap-1.5 p-1 bg-white/30 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10 rounded-2xl shadow-sm">
                     {navConfig.map((navItem, index) => {
                         const isActive = navItem.type === "odkaz" && pathname === navItem.href;
 
-                        return navItem.type === "roletka" ? (
-                            <NavigationMenuItem key={index} className="cursor-pointer">
-                                <NavigationMenuTrigger
-                                    className={cn(
-                                        "text-sm transition-all duration-300 ease-out px-4 py-2 rounded-xl",
-                                        "bg-white/40 backdrop-blur-xl font-semibold h-full",
-                                        "border border-white/50 hover:border-white/80",
-                                        textColor,
-                                        "hover:bg-white/60 hover:scale-[1.03] active:scale-[0.98]",
-                                        "shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
-                                        hoverStyles.activeBg,
-                                        hoverStyles.focusBg,
-                                        hoverStyles.hoverText,
-                                        hoverStyles.activeText,
-                                        "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
-                                        navItem.badge && "group"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-1.5">
-                                        {navItem.icon && (
-                                            <Icon
-                                                icon={navItem.icon}
-                                                className={cn(
-                                                    "w-4 h-4 transition-opacity duration-200",
-                                                    "opacity-70 group-hover:opacity-100"
-                                                )}
-                                            />
-                                        )}
-                                        <span>{navItem.title}</span>
-                                        {navItem.badge && (
-                                            <StyledBadge type={navItem.badge} className="ml-1" />
-                                        )}
-                                    </div>
-                                </NavigationMenuTrigger>
-                                <NavigationMenuContent>
-                                    <div className={cn(
-                                        "min-w-[400px] w-max max-w-[calc(100vw-40px)] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-white/40 bg-white/80 backdrop-blur-2xl",
-                                        "animate-in fade-in zoom-in-95 duration-300"
-                                    )}>
-                                        <ul className={cn("grid gap-1.5 p-4 w-full", `grid-cols-${navItem.columns || 1}`)}>
-                                            {navItem.items?.map((item, i) => (
-                                                <ListItem
-                                                    key={i}
-                                                    title={item.title}
-                                                    href={item.href}
-                                                    icon={item.icon}
-                                                    badge={item.badge}
-                                                >
-                                                    {item.description}
-                                                </ListItem>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </NavigationMenuContent>
-                            </NavigationMenuItem>
-                        ) : (
-                            <NavigationMenuItem key={index} className="cursor-pointer">
+                        if (navItem.type === "roletka") {
+                            return (
+                                <NavigationMenuItem key={index}>
+                                    <NavigationMenuTrigger className={cn(triggerBaseClasses, itemIdleClasses, "data-[state=open]:bg-white/50 dark:data-[state=open]:bg-white/10")}>
+                                        <div className="flex items-center gap-2">
+                                            {navItem.icon && <navItem.icon size={16} className="opacity-70 group-hover:opacity-100 transition-opacity" />}
+                                            <span>{navItem.title}</span>
+                                            {navItem.badge && <StyledBadge type={navItem.badge} className="ml-1" />}
+                                        </div>
+                                    </NavigationMenuTrigger>
+                                    <NavigationMenuContent>
+                                        <div className="w-[400px] p-2 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border border-gray-100 dark:border-white/10 rounded-2xl shadow-2xl">
+                                            <ul className={cn("grid gap-1", navItem.columns === 2 ? "grid-cols-2 w-[600px]" : "grid-cols-1 w-[350px]")}>
+                                                {navItem.items?.map((item, i) => (
+                                                    <ListItem
+                                                        key={i}
+                                                        title={item.title}
+                                                        href={item.href}
+                                                        icon={item.icon}
+                                                        badge={item.badge}
+                                                    >
+                                                        {item.description}
+                                                    </ListItem>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </NavigationMenuContent>
+                                </NavigationMenuItem>
+                            );
+                        }
+
+                        return (
+                            <NavigationMenuItem key={index}>
                                 <NavigationMenuLink asChild>
-                                    <Link href={navItem.href as string}>
-                                        <div
-                                            className={cn(
-                                                "flex items-center gap-1.5 text-sm transition-all duration-300 ease-out px-4 py-2 rounded-xl h-full backdrop-blur-xl font-semibold",
-                                                "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
-                                                isActive
-                                                    ? "bg-white/60 text-gray-950 border border-white/80 scale-[1.03]"
-                                                    : cn(textColor, "bg-white/40 hover:bg-white/60 border border-white/50 hover:border-white/80 hover:scale-[1.03] active:scale-[0.98]", hoverStyles.activeBg, hoverStyles.hoverText, hoverStyles.activeText)
-                                            )}
-                                        >
-                                            {navItem.icon && (
-                                                <Icon
-                                                    icon={navItem.icon}
-                                                    className={cn(
-                                                        "w-4 h-4 transition-opacity duration-200",
-                                                        isActive ? "opacity-100" : "opacity-70"
-                                                    )}
-                                                />
-                                            )}
+                                    <Link
+                                        href={navItem.href || "#"}
+                                        className={cn(triggerBaseClasses, isActive ? itemActiveClasses : itemIdleClasses)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {navItem.icon && <navItem.icon size={16} className={cn(isActive ? "opacity-100" : "opacity-70 group-hover:opacity-100 transition-opacity")} />}
                                             <span>{navItem.title}</span>
                                             {navItem.badge && <StyledBadge type={navItem.badge} className="ml-1" />}
                                         </div>
@@ -218,71 +171,60 @@ export const Navbar = ({ textColor = "text-black/80", textColorHover = "hover:te
                     })}
                 </NavigationMenuList>
             </NavigationMenu>
-        </nav>
+        </div>
     );
 };
 
 const ListItem = React.forwardRef<
     React.ElementRef<"a">,
     React.ComponentPropsWithoutRef<"a"> & { icon?: LucideIcon; badge?: BadgeType }
->(({ className, title, children, icon, badge, ...props }, ref) => {
-    return (
-        <li>
-            <NavigationMenuLink asChild>
-                <Link
-                    href={props.href ?? "#"}
-                    ref={ref}
-                    className={cn(
-                        "group flex flex-col gap-2 rounded-xl p-3.5 transition-all duration-300 ease-out",
-                        "hover:bg-white/60 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-[1.02]",
-                        "border border-transparent hover:border-white/60",
-                        "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
-                        className
-                    )}
-                    {...props}
-                >
-                    <div className="flex items-center gap-3">
-                        {icon && (
-                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100/50 group-hover:bg-white group-hover:shadow-sm transition-all duration-300 border border-transparent group-hover:border-gray-200/50">
-                                <Icon icon={icon} className="w-5 h-5 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
-                            </div>
-                        )}
-                        <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[15px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors duration-200">{title}</span>
-                                {badge && <StyledBadge type={badge} />}
-                            </div>
-                            {children && (
-                                <p className="text-[13px] text-gray-500 line-clamp-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-200">{children}</p>
-                            )}
+>(({ className, title, children, icon, badge, ...props }, ref) => (
+    <li>
+        <NavigationMenuLink asChild>
+            <Link
+                href={props.href ?? "#"}
+                ref={ref}
+                className={cn(
+                    "group block select-none space-y-1 rounded-xl p-3 leading-none no-underline outline-none transition-colors",
+                    "hover:bg-gray-100/80 dark:hover:bg-white/5",
+                    className
+                )}
+                {...props}
+            >
+                <div className="flex items-center gap-3">
+                    {icon && (
+                        <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <Icon icon={icon} size={18} />
                         </div>
+                    )}
+                    <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold leading-none text-gray-900 dark:text-white">{title}</span>
+                            {badge && <StyledBadge type={badge} />}
+                        </div>
+                        {children && (
+                            <p className="line-clamp-1 text-xs leading-snug text-gray-500 dark:text-gray-400">
+                                {children}
+                            </p>
+                        )}
                     </div>
-                </Link>
-            </NavigationMenuLink>
-        </li>
-    );
-});
+                </div>
+            </Link>
+        </NavigationMenuLink>
+    </li>
+));
+ListItem.displayName = "ListItem";
 
 const StyledBadge = ({ type, className }: { type: BadgeType; className?: string }) => {
-    const badgeConfig = {
-        Nové: { color: "bg-emerald-100 text-emerald-700", icon: Plus },
-        Aktualizace: { color: "bg-blue-100 text-blue-700", icon: RefreshCw },
-        Událost: { color: "bg-amber-100 text-amber-700", icon: Calendar }
+    const config = {
+        Nové: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400",
+        Aktualizace: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
+        Událost: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"
     };
 
     return (
-        <Badge
-            variant="outline"
-            className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium flex items-center gap-1",
-                badgeConfig[type].color,
-                className
-            )}
-        >
-            <Icon icon={badgeConfig[type].icon} className="w-2.5 h-2.5" />
+        <Badge variant="outline" className={cn("rounded-full px-1.5 py-0 text-[9px] font-bold border-none", config[type], className)}>
             {type}
         </Badge>
     );
 };
-
-ListItem.displayName = "ListItem";

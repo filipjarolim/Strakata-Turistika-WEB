@@ -119,8 +119,8 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
     const mainImage = news.images && news.images.length > 0 ? news.images[0].url : null;
 
     return (
-        <div className="min-h-screen bg-black text-white selection:bg-blue-500/30 font-sans">
-            <Header user={user} role={role} mode="fixed" theme="dark" showGap={false} />
+        <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30 font-sans transition-colors duration-300">
+            <Header user={user} role={role} mode="fixed" showGap={false} />
 
             {/* Hero Image Background (Parallax-ish) */}
             <div className="fixed inset-0 top-0 h-[60vh] w-full z-0 pointer-events-none">
@@ -133,9 +133,9 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
                         priority
                     />
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-blue-900/20" />
+                    <div className="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-blue-50 dark:from-gray-900 dark:via-black dark:to-blue-900/20" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-50 via-gray-50/80 to-transparent dark:from-black dark:via-black/80 dark:to-transparent" />
             </div>
 
             <main className="relative z-10 pt-[30vh] pb-20 px-4 sm:px-8 lg:px-16 container mx-auto">
@@ -148,31 +148,31 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
                         className="mb-12"
                     >
                         {/* Back Link */}
-                        <Link href="/aktuality" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group">
+                        <Link href="/aktuality" className="inline-flex items-center gap-2 text-gray-700 hover:text-black dark:text-gray-400 dark:hover:text-white transition-colors mb-8 group">
                             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
                             Zpět na aktuality
                         </Link>
 
                         {/* Meta */}
-                        <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-blue-300 mb-6">
+                        <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-blue-600 dark:text-blue-300 mb-6">
                             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur">
                                 <Calendar className="w-4 h-4" />
                                 {formatDate(news.createdAt)}
                             </div>
-                            <div className="flex items-center gap-2 opacity-80">
+                            <div className="flex items-center gap-2 opacity-80 decoration-slate-900 dark:text-gray-300">
                                 <Clock className="w-4 h-4" />
                                 {formatTime(news.createdAt)}
                             </div>
                             {news.author && (
-                                <div className="flex items-center gap-2 opacity-80 pl-4 border-l border-white/20">
+                                <div className="flex items-center gap-2 opacity-80 pl-4 border-l border-gray-300 dark:border-white/20 dark:text-gray-300">
                                     <User className="w-4 h-4" />
                                     {news.author.name || "Strakatá Turistika"}
                                 </div>
                             )}
                         </div>
 
-                        {/* Title */}
-                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight tracking-tight text-white mb-8 drop-shadow-2xl">
+                        {/* Title - Keep dark/light aware but ensure contrast over potential image if needed */}
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight tracking-tight text-gray-900 dark:text-white mb-8 drop-shadow-sm dark:drop-shadow-2xl">
                             {news.title}
                         </h1>
 
@@ -180,8 +180,8 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
                         {news.tags && news.tags.length > 0 && (
                             <div className="flex gap-2 flex-wrap mb-8">
                                 {news.tags.map((tag, i) => (
-                                    <span key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all cursor-default">
-                                        <Tag className="w-3 h-3 text-blue-400" />
+                                    <span key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 transition-all cursor-default">
+                                        <Tag className="w-3 h-3 text-blue-500 dark:text-blue-400" />
                                         {tag}
                                     </span>
                                 ))}
@@ -190,7 +190,7 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
 
                         {/* Summary */}
                         {news.summary && (
-                            <p className="text-xl sm:text-2xl text-gray-300 font-light leading-relaxed border-l-4 border-blue-500 pl-6 py-2 bg-blue-500/5 rounded-r-xl">
+                            <p className="text-xl sm:text-2xl text-gray-700 dark:text-gray-300 font-light leading-relaxed border-l-4 border-blue-500 pl-6 py-2 bg-blue-50 dark:bg-blue-500/5 rounded-r-xl">
                                 {news.summary}
                             </p>
                         )}
@@ -201,30 +201,19 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.4, duration: 0.8 }}
-                        className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-10 md:p-14 shadow-2xl"
+                        className="bg-white/80 dark:bg-black/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 sm:p-10 md:p-14 shadow-xl dark:shadow-2xl"
                     >
                         {/* Edit Button for Admin */}
                         {isAdmin && (
                             <div className="flex justify-end mb-6">
-                                {/* We reuse the modal from main page? Or simple redirect? 
-                                    Redirect to main page with open param might be complex.
-                                    For now, let's just show an "Edit" button that goes back to list with edit param, 
-                                    OR implement inline editing page later.
-                                    The previous implementation used `?edit=true` on THIS page. But the editing UI was embedded.
-                                    We can keep it embedded or separate.
-                                    For simplicity in this step, I will redirect to main page admin list (where we added edit support).
-                                    Actually, better to implement edit logic here or remove it if not critical. 
-                                    The task was "redesign". 
-                                    I will add a simple placeholder action or link to admin dashboard.
-                                */}
-                                <button className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-white transition-colors">
+                                <button className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                                     <Pencil className="w-3 h-3" />
                                     SPRAVOVAT (Admin)
                                 </button>
                             </div>
                         )}
 
-                        <div className="prose prose-lg prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-blue-400 prose-img:rounded-2xl prose-img:shadow-xl">
+                        <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-img:rounded-2xl prose-img:shadow-xl">
                             {news.content ? (
                                 <div dangerouslySetInnerHTML={{ __html: news.content }} />
                             ) : (
@@ -234,8 +223,8 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
 
                         {/* Gallery Grid for Extra Images */}
                         {news.images && news.images.length > 1 && (
-                            <div className="mt-16 pt-16 border-t border-white/10">
-                                <h3 className="text-2xl font-bold mb-8">Galerie</h3>
+                            <div className="mt-16 pt-16 border-t border-gray-200 dark:border-white/10">
+                                <h3 className="text-2xl font-bold mb-8 text-gray-900 dark:text-white">Galerie</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     {news.images.slice(1).map((img, idx) => (
                                         <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
@@ -253,12 +242,12 @@ export default function NewsDetail({ params }: { params: Promise<{ aktualita: st
                         )}
 
                         {/* Footer Actions */}
-                        <div className="mt-16 flex items-center justify-between border-t border-white/10 pt-8 text-sm text-gray-500">
+                        <div className="mt-16 flex items-center justify-between border-t border-gray-200 dark:border-white/10 pt-8 text-sm text-gray-500">
                             <div>
                                 Strakatá Turistika © {new Date().getFullYear()}
                             </div>
                             <div className="flex gap-4">
-                                <button className="flex items-center gap-2 hover:text-white transition-colors">
+                                <button className="flex items-center gap-2 hover:text-gray-900 dark:hover:text-white transition-colors">
                                     <Share2 className="w-4 h-4" />
                                     Sdílet
                                 </button>

@@ -28,6 +28,14 @@ const Footer: React.FC<{ user?: ExtendedUser | null; role?: string }> = ({ user 
                             >
                                 <Facebook className="h-5 w-5" />
                             </a>
+                            <a
+                                href="http://www.spolekstrakacu.cz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors text-sm font-medium flex items-center"
+                            >
+                                Klub českých strakáčů
+                            </a>
                         </div>
                     </div>
 

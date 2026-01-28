@@ -41,11 +41,13 @@ export const VisitDataForm: React.FC<VisitDataFormProps> = ({
         placeholder="Zadejte navštívená místa"
       />
 
-      <IOSSwitch
-        checked={formData.dogNotAllowed === "true"}
-        onCheckedChange={(checked) => handleChange('dogNotAllowed', checked ? "true" : "false")}
-        label="Psi nejsou povoleni"
-      />
+      <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 transition-all hover:bg-white/50 dark:hover:bg-white/5 hover:border-indigo-500/50 backdrop-blur-xl">
+        <span className="text-sm font-medium text-gray-900 dark:text-white">Psi nejsou povoleni</span>
+        <IOSSwitch
+          checked={formData.dogNotAllowed === "true"}
+          onCheckedChange={(checked) => handleChange('dogNotAllowed', checked ? "true" : "false")}
+        />
+      </div>
 
       {user?.dogName && (
         <IOSTextInput

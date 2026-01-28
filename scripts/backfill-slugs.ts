@@ -30,7 +30,7 @@ async function main() {
 
     for (const news of newsItems) {
         if (!news.slug) {
-            let slug = simpleSlugify(news.title);
+            const slug = simpleSlugify(news.title);
             // Ensure unique
             let counter = 1;
             let finalSlug = slug;

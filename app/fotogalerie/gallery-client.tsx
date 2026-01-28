@@ -74,31 +74,15 @@ interface GalleryImage {
     aspectRatio?: string;
 }
 
-export const GalleryClient = () => {
+export const GalleryClient = ({ initialImages = [] }: { initialImages?: GalleryImage[] }) => {
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("all");
     const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
     const [loading, setLoading] = useState(false);
-    const [images, setImages] = useState<GalleryImage[]>([]);
+    const [images, setImages] = useState<GalleryImage[]>(initialImages);
     const [viewMode, setViewMode] = useState<'grid' | 'masonry'>('grid');
 
-    useEffect(() => {
-        fetchImages();
-    }, []);
-
-    const fetchImages = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch('/api/gallery');
-            if (!response.ok) throw new Error('Failed to fetch images');
-            const data = await response.json();
-            setImages(data.resources || []);
-        } catch (error) {
-            console.error('Error fetching images:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Filter images based on search and category
 
     // Filter images based on search and category
     const filteredImages = images.filter(img => {

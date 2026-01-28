@@ -190,59 +190,7 @@ const ContactForm = () => {
     );
 };
 
-const FaqSection = () => {
-    const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-    return (
-        <IOSSection title="Často kladené otázky">
-            <div className="space-y-4">
-                {FAQ_ITEMS.map((faq, index) => (
-                    <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                    >
-                        <IOSCard
-                            variant="outlined"
-                            className="cursor-pointer hover:shadow-lg transition-all duration-200"
-                            onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                        >
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex items-start gap-3">
-                                    <IOSCircleIcon variant="amber" size="sm">
-                                        <HelpCircle className="h-4 w-4" />
-                                    </IOSCircleIcon>
-                                    <div className="flex-1">
-                                        <h4 className="font-semibold text-gray-900 mb-2">{faq.question}</h4>
-                                        <AnimatePresence>
-                                            {openFaq === index && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    exit={{ opacity: 0, height: 0 }}
-                                                    className="text-gray-600 text-sm leading-relaxed"
-                                                >
-                                                    {faq.answer}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
-                                <ChevronRight
-                                    className={cn(
-                                        "h-5 w-5 text-gray-400 transition-transform duration-200 mt-1",
-                                        openFaq === index && "rotate-90"
-                                    )}
-                                />
-                            </div>
-                        </IOSCard>
-                    </motion.div>
-                ))}
-            </div>
-        </IOSSection>
-    );
-};
 
 export const ContactClient = () => {
     return (
@@ -277,14 +225,7 @@ export const ContactClient = () => {
                 <ContactForm />
             </motion.div>
 
-            {/* FAQ Section */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.6 }}
-            >
-                <FaqSection />
-            </motion.div>
+
         </div>
     );
 }; 

@@ -20,7 +20,7 @@ import { IOSTextarea } from '@/components/ui/ios/textarea';
 import { IOSTagInput } from "@/components/ui/ios/tag-input";
 import { IOSCard } from "@/components/ui/ios/card";
 import { IOSImageShowcase } from '@/components/ui/ios/image-showcase';
-import { IOSSwitch } from '@/components/ui/ios/switch';
+
 import { ImageSource } from '@/types';
 import { IOSCalendar } from '@/components/ui/ios/calendar';
 import { cn } from '@/lib/utils';
@@ -94,8 +94,8 @@ function downsampleTrack(points: { lat: number; lng: number }[], maxPoints = 100
 
 const InfoSection = ({ label, value }: { label: string; value: string | number | null | undefined }) => (
   <div className="space-y-1">
-    <div className="text-sm text-gray-500">{label}</div>
-    <div className="text-base font-medium text-gray-900">{value || '—'}</div>
+    <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
+    <div className="text-base font-medium text-gray-900 dark:text-white">{value || '—'}</div>
   </div>
 );
 
@@ -111,8 +111,8 @@ const StatsCard = ({ route }: { route: Route }) => {
       title="Statistiky trasy"
       subtitle="Přehled základních údajů o trase"
       icon={<BarChart className="h-5 w-5" />}
-      iconBackground="bg-purple-100"
-      iconColor="text-purple-600"
+      iconBackground="bg-purple-100 dark:bg-purple-500/20"
+      iconColor="text-purple-600 dark:text-purple-400"
       variant="elevated"
     >
       <div className="grid grid-cols-2 gap-6">
@@ -142,8 +142,8 @@ const RouteDetailsCard = ({ route, dogNotAllowed }: { route: Route; dogNotAllowe
     title="Základní informace"
     subtitle="Detaily o trase"
     icon={<BarChart className="h-5 w-5" />}
-    iconBackground="bg-purple-100"
-    iconColor="text-purple-600"
+    iconBackground="bg-purple-100 dark:bg-purple-500/20"
+    iconColor="text-purple-600 dark:text-purple-400"
     variant="elevated"
   >
     <div className="space-y-6">
@@ -160,13 +160,13 @@ const RouteDetailsCard = ({ route, dogNotAllowed }: { route: Route; dogNotAllowe
         }) : '—'}
       />
       <div className="space-y-1">
-        <div className="text-sm text-gray-500">Popis trasy</div>
-        <div className="text-base text-gray-900 whitespace-pre-wrap">
+        <div className="text-sm text-gray-500 dark:text-gray-400">Popis trasy</div>
+        <div className="text-base text-gray-900 dark:text-white whitespace-pre-wrap">
           {route.routeDescription || '—'}
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <div className="text-sm text-gray-500">Zákaz vstupu se psy:</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">Zákaz vstupu se psy:</div>
         <div className={cn(
           "text-sm font-medium px-2 py-0.5 rounded-full",
           dogNotAllowed === "true"
@@ -423,8 +423,8 @@ export default function FinishRoutePage() {
             title="Náhled trasy"
             subtitle="Finální podoba trasy"
             icon={<MapPin className="h-5 w-5" />}
-            iconBackground="bg-blue-100"
-            iconColor="text-blue-600"
+            iconBackground="bg-blue-100 dark:bg-blue-500/20"
+            iconColor="text-blue-600 dark:text-blue-400"
             variant="elevated"
           >
             <div className="h-[400px]">
@@ -444,8 +444,8 @@ export default function FinishRoutePage() {
             title="Fotografie"
             subtitle="Fotografie z trasy"
             icon={<Camera className="w-5 h-5" />}
-            iconBackground="bg-amber-100"
-            iconColor="text-amber-600"
+            iconBackground="bg-amber-100 dark:bg-amber-500/20"
+            iconColor="text-amber-600 dark:text-amber-400"
             variant="elevated"
           >
             <IOSImageShowcase

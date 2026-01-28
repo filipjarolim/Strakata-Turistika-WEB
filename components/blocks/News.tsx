@@ -8,39 +8,30 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Input } from "@/components/ui/input";
 import { EnhancedImageUpload, ImageSource } from "@/components/ui/ios/enhanced-image-upload";
 import { RichTextEditor } from "@/components/ui/ios/rich-text-editor";
-import { Loader2, Plus, AlertCircle, ChevronDown } from "lucide-react";
+import { Loader2, Plus, AlertCircle, ChevronDown, Trash2, Calendar as CalendarIcon, Eye, EyeOff } from "lucide-react";
 import { useCurrentRole } from "@/hooks/use-current-role";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-import { NewsService, NewsItem } from "@/lib/news-service";
+import { NewsItem } from "@/lib/news-service";
 import { deleteNews } from "@/actions/news-actions";
-import { Trash2, Calendar as CalendarIcon, Eye, EyeOff } from "lucide-react"; // Renamed Calendar to CalendarIcon to avoid conflict if I use Calendar component
 import { Switch } from "@/components/ui/switch";
-import { format } from "date-fns";
-
-// NewsItem is imported now
-
 
 interface NewsProps {
     showHeader?: boolean;
     showAddButton?: boolean;
-    variant?: "light" | "dark";
     className?: string;
+    variant?: "light" | "dark" | "default"; // Architectural fix: Added variant prop to support visual variants expected by consumers
 }
 
-export default function News({ showHeader = true, showAddButton = true, variant = "light", className }: NewsProps) {
+export default function News({ showHeader = true, showAddButton = true, className, variant }: NewsProps) {
     // Data State
     const [news, setNews] = useState<NewsItem[]>([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-    // Import actions dynamically or assume they are available
-    // Since this is a client component, we need to pass actions or import them.
-    // I added imports at the top below.
 
     // Filter State
     const [search, setSearch] = useState("");
@@ -61,7 +52,6 @@ export default function News({ showHeader = true, showAddButton = true, variant 
 
     const role = useCurrentRole();
     const isAdmin = role === "ADMIN";
-    const isDark = variant === "dark";
     const limit = 8; // Items per page
 
     // Fetch News
@@ -70,29 +60,16 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             if (reset) setIsLoading(true);
             else setIsLoadingMore(true);
 
-            // Build query params
             const params = new URLSearchParams();
             params.append("page", pageNum.toString());
             params.append("limit", limit.toString());
             if (searchQuery) params.append("search", searchQuery);
-            // Include non-published for admins? Maybe later. For now public API usually shows published.
-            // If we want admin view, we'd add logic here.
 
-            const url = `/api/news?${params.toString()}`;
-            console.log("[NewsClient] Fetching:", url);
-            const res = await fetch(url);
+            const res = await fetch(`/api/news?${params.toString()}`);
 
             if (!res.ok) {
-                let errorMsg = "Failed to fetch";
-                try {
-                    const errorData = await res.json();
-                    errorMsg = errorData.error || errorData.message || "Failed to fetch";
-                } catch (e) {
-                    const text = await res.text();
-                    console.error("[NewsClient] Failed to parse error json:", text);
-                }
-                console.error("[NewsClient] Error response:", res.status, errorMsg);
-                throw new Error(errorMsg);
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to fetch");
             }
 
             const response = await res.json();
@@ -100,7 +77,7 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             if (response.success && response.data) {
                 const newItems = response.data;
                 setNews(prev => reset ? newItems : [...prev, ...newItems]);
-                setHasMore(newItems.length === limit); // Simple check, or use response.pagination.page < totalPages
+                setHasMore(newItems.length === limit);
                 setPage(pageNum);
             } else {
                 if (reset) setNews([]);
@@ -113,12 +90,12 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             setIsLoading(false);
             setIsLoadingMore(false);
         }
-    }, [limit]); // Removed 'page' from dependencies to avoid loop, passed as arg
+    }, [limit]);
 
     // Initial Load & Search Effect
     useEffect(() => {
         fetchNews(1, true, search);
-    }, [search, fetchNews]); // Re-fetch when search changes (debounced in Filter component)
+    }, [search, fetchNews]);
 
     const handleLoadMore = () => {
         if (!isLoadingMore && hasMore) {
@@ -172,7 +149,7 @@ export default function News({ showHeader = true, showAddButton = true, variant 
             toast.success(editId ? "Aktualita upravena" : "Aktualita přidána");
             setOpen(false);
             resetForm();
-            fetchNews(1, true, search); // Refresh list
+            fetchNews(1, true, search);
         } catch (error) {
             console.error(error);
             toast.error("Chyba při ukládání");
@@ -218,15 +195,13 @@ export default function News({ showHeader = true, showAddButton = true, variant 
         setFormData(prev => ({ ...prev, images: [...prev.images, { url: data.url, public_id: data.public_id, title: data.title }] }));
     };
 
-    // Render
     return (
-        <div className={cn("w-full max-w-7xl mx-auto space-y-8", className)}>
-            {/* Header & Controls */}
+        <div className={cn("w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-6 lg:px-8", className)}>
             {(showHeader || isAdmin) && (
                 <div className="space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         {showHeader && (
-                            <h2 className={cn("text-3xl font-bold", isDark ? "text-white" : "text-gray-900")}>
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                                 Aktuality
                             </h2>
                         )}
@@ -245,21 +220,16 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                     <NewsFilter
                         onSearchChange={setSearch}
                         onViewChange={setView}
-                        variant={variant}
                     />
                 </div>
             )}
 
-            {/* Content Grid */}
             {isLoading ? (
                 <div className="flex justify-center py-20">
-                    <Loader2 className={cn("w-8 h-8 animate-spin", isDark ? "text-white/30" : "text-gray-300")} />
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-300 dark:text-white/30" />
                 </div>
             ) : news.length === 0 ? (
-                <div className={cn(
-                    "flex flex-col items-center justify-center py-20 rounded-3xl border",
-                    isDark ? "bg-black/20 border-white/5 text-gray-400" : "bg-gray-50 border-gray-100 text-gray-500"
-                )}>
+                <div className="flex flex-col items-center justify-center py-20 rounded-3xl border bg-gray-50 dark:bg-black/20 border-gray-100 dark:border-white/5 text-gray-500 dark:text-gray-400">
                     <AlertCircle className="w-12 h-12 mb-4 opacity-50" />
                     <p className="text-lg font-medium">Nebyly nalezeny žádné aktuality</p>
                 </div>
@@ -281,25 +251,23 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                                 <div className="relative group h-full">
                                     <NewsCard
                                         item={item}
-                                        variant={variant}
                                         priority={index < 4}
                                     />
 
-                                    {/* Admin Overlay Controls */}
                                     {isAdmin && (
                                         <div className="absolute top-2 left-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                             <button
                                                 onClick={(e) => { e.preventDefault(); handleEdit(item); }}
-                                                className="bg-black/75 backdrop-blur text-white text-xs px-2 py-1 rounded hover:bg-black"
+                                                className="bg-black/75 backdrop-blur text-white text-xs px-2 py-1 rounded-lg hover:bg-black transition-colors"
                                             >
-                                                Editovat
+                                                Upravit
                                             </button>
                                             <button
                                                 onClick={(e) => handleDelete(item.id, e)}
-                                                className="bg-red-600/90 backdrop-blur text-white p-1 rounded hover:bg-red-700"
+                                                className="bg-red-600/90 backdrop-blur text-white p-1.5 rounded-lg hover:bg-red-700 transition-colors"
                                                 title="Smazat"
                                             >
-                                                <Trash2 className="w-3 h-3" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     )}
@@ -310,14 +278,13 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                 </div>
             )}
 
-            {/* Load More */}
             {hasMore && !isLoading && (
                 <div className="flex justify-center pt-8">
                     <IOSButton
                         variant="ghost"
                         onClick={handleLoadMore}
                         loading={isLoadingMore}
-                        className={cn(isDark ? "text-white/70 hover:text-white hover:bg-white/10" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100")}
+                        className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
                         icon={<ChevronDown className="w-4 h-4" />}
                     >
                         Načíst další
@@ -325,32 +292,36 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                 </div>
             )}
 
-            {/* Admin Dialog (Simplified for now, can be expanded) */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className={cn("max-w-3xl max-h-[90vh] overflow-y-auto", isDark ? "bg-gray-900 border-gray-800 text-white" : "bg-white")}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-950 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white">
                     <DialogTitle>{editId ? "Upravit aktualitu" : "Nová aktualita"}</DialogTitle>
-                    <DialogDescription className="hidden">Formulář aktuality</DialogDescription>
+                    <DialogDescription className="text-gray-500 dark:text-gray-400">
+                        {editId ? "Zde můžete upravit stávající aktualitu." : "Přidejte novou aktualitu pro vaše uživatele."}
+                    </DialogDescription>
 
                     <div className="space-y-4 mt-4">
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                             <div className="flex-1">
+                                <label className="text-sm font-medium mb-1.5 block">Nadpis</label>
                                 <Input
-                                    placeholder="Nadpis"
+                                    placeholder="Nadpis aktuality"
                                     value={formData.title}
                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                    className={isDark ? "bg-black/40 border-gray-700" : ""}
+                                    className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10"
                                 />
                             </div>
-                            <div className="w-48">
+                            <div className="sm:w-64">
+                                <label className="text-sm font-medium mb-1.5 block">Datum zveřejnění</label>
                                 <Input
                                     type="datetime-local"
                                     value={formData.createdAt}
                                     onChange={e => setFormData({ ...formData, createdAt: e.target.value })}
-                                    className={isDark ? "bg-black/40 border-gray-700" : ""}
+                                    className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10"
                                 />
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 pb-2">
+
+                        <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
                             <Switch
                                 checked={formData.published}
                                 onCheckedChange={(checked) => setFormData({ ...formData, published: checked })}
@@ -358,46 +329,59 @@ export default function News({ showHeader = true, showAddButton = true, variant 
                             />
                             <label
                                 htmlFor="published-mode"
-                                className={cn("text-sm font-medium cursor-pointer flex items-center gap-2", isDark ? "text-gray-300" : "text-gray-700")}
+                                className="text-sm font-medium cursor-pointer flex items-center gap-2 text-gray-700 dark:text-gray-300"
                             >
                                 {formData.published ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4 text-gray-500" />}
-                                {formData.published ? "Publikováno" : "Skryto (Draft)"}
+                                {formData.published ? "Publikováno (veřejné)" : "Skryto (koncept)"}
                             </label>
                         </div>
-                        <Input
-                            placeholder="Krátký souhrn (max 500 znaků)"
-                            value={formData.summary}
-                            onChange={e => setFormData({ ...formData, summary: e.target.value })}
-                            className={isDark ? "bg-black/40 border-gray-700" : ""}
-                        />
-                        <div className={cn("border rounded-md min-h-[200px]", isDark ? "border-gray-700 bg-white text-black" : "border-gray-200")}>
-                            <RichTextEditor
-                                value={formData.content}
-                                onChange={val => setFormData({ ...formData, content: val })}
-                                placeholder="Obsah..."
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">Krátký souhrn</label>
+                            <Input
+                                placeholder="Stručný popis pro náhled (max 500 znaků)"
+                                value={formData.summary}
+                                onChange={e => setFormData({ ...formData, summary: e.target.value })}
+                                className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10"
                             />
                         </div>
-                        <EnhancedImageUpload
-                            sources={formData.images}
-                            onUpload={handleImageUpload}
-                            onDelete={async (pid) => setFormData(p => ({ ...p, images: p.images.filter(i => i.public_id !== pid) }))}
-                            count={1} // For now limit to 1 main image for simplicity of card, or update card to slideshow
-                        />
-                        <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-800">
-                            {editId && (
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">Obsah aktuality</label>
+                            <div className="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-black/20">
+                                <RichTextEditor
+                                    value={formData.content}
+                                    onChange={val => setFormData({ ...formData, content: val })}
+                                    placeholder="Napište obsah aktuality..."
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-1.5 block">Obrázek</label>
+                            <EnhancedImageUpload
+                                sources={formData.images}
+                                onUpload={handleImageUpload}
+                                onDelete={async (pid) => setFormData(p => ({ ...p, images: p.images.filter(i => i.public_id !== pid) }))}
+                                count={1}
+                            />
+                        </div>
+
+                        <div className="flex justify-between items-center pt-6 mt-6 border-t border-gray-100 dark:border-white/10">
+                            {editId ? (
                                 <IOSButton
                                     variant="outline"
-                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20"
+                                    className="text-red-500 border-red-200 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-900/20"
                                     onClick={() => handleDelete(editId)}
                                     loading={isSubmitting}
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Smazat
                                 </IOSButton>
-                            )}
-                            <div className="flex gap-2 ml-auto">
+                            ) : <div></div>}
+                            <div className="flex gap-2">
                                 <IOSButton variant="ghost" onClick={() => setOpen(false)}>Zrušit</IOSButton>
-                                <IOSButton onClick={handleSubmit} loading={isSubmitting}>Uložit</IOSButton>
+                                <IOSButton onClick={handleSubmit} loading={isSubmitting}>Uložit aktualitu</IOSButton>
                             </div>
                         </div>
                     </div>

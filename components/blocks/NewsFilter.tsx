@@ -2,23 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, LayoutGrid, List } from "lucide-react";
-import { IOSButton } from "@/components/ui/ios/button";
+import { Search, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDebounce } from "@/hooks/use-debounce";
-// Assuming use-debounce hook exists, or I will implement simple timeout
 
 interface NewsFilterProps {
     onSearchChange: (query: string) => void;
-    onViewChange?: (view: "grid" | "list") => void; // Optional if we implement view toggle
-    variant?: "light" | "dark";
+    onViewChange?: (view: "grid" | "list") => void;
     className?: string;
 }
 
-export const NewsFilter = ({ onSearchChange, onViewChange, variant = "light", className }: NewsFilterProps) => {
+export const NewsFilter = ({ onSearchChange, onViewChange, className }: NewsFilterProps) => {
     const [search, setSearch] = useState("");
     const [view, setView] = useState<"grid" | "list">("grid");
-    const isDark = variant === "dark";
 
     // Debounce search
     useEffect(() => {
@@ -30,57 +25,50 @@ export const NewsFilter = ({ onSearchChange, onViewChange, variant = "light", cl
 
     return (
         <div className={cn(
-            "flex flex-col sm:flex-row gap-4 items-center justify-between p-4 rounded-2xl border backdrop-blur-md mb-8",
-            isDark ? "bg-black/40 border-white/10" : "bg-white/80 border-gray-200/50",
+            "flex flex-col sm:flex-row gap-4 items-center justify-between p-4 rounded-3xl border transition-all duration-300 mb-8",
+            "bg-white/80 dark:bg-black/40 border-gray-100 dark:border-white/10 backdrop-blur-md",
             className
         )}>
             {/* Search Input */}
-            <div className="relative w-full sm:w-72 md:w-96">
-                <Search className={cn(
-                    "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4",
-                    isDark ? "text-gray-400" : "text-gray-500"
-                )} />
+            <div className="relative w-full sm:w-72 md:w-96 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                 <Input
                     placeholder="Hledat v aktualitách..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className={cn(
-                        "pl-10 h-10 rounded-xl border-0 ring-offset-0 focus-visible:ring-2 transition-all",
-                        isDark
-                            ? "bg-white/10 text-white placeholder:text-gray-400 focus-visible:ring-blue-500/50"
-                            : "bg-gray-100 text-gray-900 placeholder:text-gray-500 focus-visible:ring-blue-500/30"
+                        "pl-10 h-11 rounded-2xl border-none transition-all",
+                        "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+                        "focus-visible:ring-2 focus-visible:ring-blue-500/50"
                     )}
                 />
             </div>
 
-            {/* Controls (View Toggle / Filter) */}
+            {/* Controls (View Toggle) */}
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 {onViewChange && (
-                    <div className={cn(
-                        "flex items-center p-1 rounded-lg border",
-                        isDark ? "bg-white/5 border-white/5" : "bg-gray-100 border-gray-200"
-                    )}>
+                    <div className="flex items-center p-1 rounded-xl bg-gray-100 dark:bg-white/5 border border-transparent dark:border-white/5">
                         <button
                             onClick={() => { setView("grid"); onViewChange("grid"); }}
                             className={cn(
-                                "p-1.5 rounded-md transition-all",
+                                "p-2 rounded-lg transition-all",
                                 view === "grid"
-                                    ? (isDark ? "bg-white/20 text-white shadow-sm" : "bg-white text-gray-900 shadow-sm")
-                                    : (isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900")
+                                    ? "bg-white dark:bg-white/10 text-blue-600 dark:text-white shadow-sm"
+                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                             )}
                         >
-                            <LayoutGrid className="w-4 h-4" />
+                            <LayoutGrid className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => { setView("list"); onViewChange("list"); }}
                             className={cn(
-                                "p-1.5 rounded-md transition-all",
+                                "p-2 rounded-lg transition-all",
                                 view === "list"
-                                    ? (isDark ? "bg-white/20 text-white shadow-sm" : "bg-white text-gray-900 shadow-sm")
-                                    : (isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900")
+                                    ? "bg-white dark:bg-white/10 text-blue-600 dark:text-white shadow-sm"
+                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                             )}
                         >
-                            <List className="w-4 h-4" />
+                            <List className="w-5 h-5" />
                         </button>
                     </div>
                 )}
@@ -88,3 +76,4 @@ export const NewsFilter = ({ onSearchChange, onViewChange, variant = "light", cl
         </div>
     );
 };
+

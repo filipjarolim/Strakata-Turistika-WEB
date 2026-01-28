@@ -16,7 +16,7 @@ import Showcase1 from "@/assets/img/showcase/1.png";
 import Showcase2 from "@/assets/img/showcase/3.png";
 import Showcase3 from "@/assets/img/showcase/2.png";
 import News from "@/components/blocks/News";
-import { MapPin, Calendar, Award, Users, Trophy, Camera } from "lucide-react";
+import { MapPin, Calendar, Award, Users, Trophy, Camera, Apple, Play } from "lucide-react";
 import { IOSButton } from "@/components/ui/ios/button";
 import { IOSBadge } from "@/components/ui/ios/badge";
 import { IOSCard } from "@/components/ui/ios/card";
@@ -28,18 +28,18 @@ import Link from "next/link";
 
 const benefits = [
     {
-        title: "Objevujte nov&aacute; m&iacute;sta",
-        description: "Prozkoumejte nezn&aacute;m&aacute; m&iacute;sta s vaš&iacute;m ps&iacute;m parť&aacute;kem.",
+        title: "Objevujte nová místa",
+        description: "Prozkoumejte neznámá místa s vaším psím parťákem.",
         icon: <MapPin className="w-10 h-10" style={{ color: '#4CAF50' }} />
     },
     {
-        title: "Pl&aacute;nujte v&yacute;lety",
-        description: "Jednoduše napl&aacute;nujte a zaznamenejte vaše dobrodružstv&iacute;.",
+        title: "Plánujte výlety",
+        description: "Jednoduše naplánujte a zaznamenejte vaše dobrodružství.",
         icon: <Calendar className="w-10 h-10" style={{ color: '#4CAF50' }} />
     },
     {
-        title: "Z&iacute;skejte odměny",
-        description: "Sb&iacute;rejte body a z&iacute;skejte oceněn&iacute; za vaše cesty.",
+        title: "Získejte odměny",
+        description: "Sbírejte body a získejte ocenění za vaše cesty.",
         icon: <Award className="w-10 h-10" style={{ color: '#4CAF50' }} />
     }
 ];
@@ -109,11 +109,20 @@ const Home = async () => {
                                         Soutěžit
                                     </IOSButton>
                                 </Link>
-                                <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" target="_blank" rel="noopener noreferrer">
-                                    <IOSButton variant="secondary" className={"h-12 px-6 text-base font-semibold rounded-full hover:scale-105 transition-all duration-300 bg-white/20 text-white border-white/40 hover:bg-white/30 backdrop-blur-md"}>
-                                        Stáhnout aplikaci
-                                    </IOSButton>
-                                </Link>
+                                <div className="flex gap-3">
+                                    <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" target="_blank" rel="noopener noreferrer">
+                                        <IOSButton variant="secondary" className={"h-12 px-5 text-sm font-semibold rounded-full hover:scale-105 transition-all duration-300 bg-white/20 text-white border-white/40 hover:bg-white/30 backdrop-blur-md flex items-center gap-2"}>
+                                            <Play className="w-4 h-4 fill-white" />
+                                            Google Play
+                                        </IOSButton>
+                                    </Link>
+                                    <Link href="https://apps.apple.com/cz/app/strakat%C3%A1-turistika/id6475736636" target="_blank" rel="noopener noreferrer">
+                                        <IOSButton variant="secondary" className={"h-12 px-5 text-sm font-semibold rounded-full hover:scale-105 transition-all duration-300 bg-white/20 text-white border-white/40 hover:bg-white/30 backdrop-blur-md flex items-center gap-2"}>
+                                            <Apple className="w-5 h-5 fill-white" />
+                                            App Store
+                                        </IOSButton>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                         <div className="flex flex-col items-center justify-center text-center mt-6 px-4 md:hidden z-20">
@@ -127,11 +136,20 @@ const Home = async () => {
                                         Soutěžit
                                     </button>
                                 </Link>
-                                <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" className="w-full" target="_blank" rel="noopener noreferrer">
-                                    <button className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-lg py-3.5 rounded-2xl shadow-lg hover:bg-white/30 active:scale-95 transition-all duration-300">
-                                        Stáhnout aplikaci
-                                    </button>
-                                </Link>
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    <Link href="https://play.google.com/store/apps/details?id=com.strakataturistika.app" target="_blank" rel="noopener noreferrer" className="w-full">
+                                        <button className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-xs py-3 rounded-2xl shadow-lg hover:bg-white/30 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center gap-1">
+                                            <Play className="w-4 h-4 fill-white" />
+                                            Play Store
+                                        </button>
+                                    </Link>
+                                    <Link href="https://apps.apple.com/cz/app/strakat%C3%A1-turistika/id6475736636" target="_blank" rel="noopener noreferrer" className="w-full">
+                                        <button className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-xs py-3 rounded-2xl shadow-lg hover:bg-white/30 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center gap-1">
+                                            <Apple className="w-5 h-5 fill-white" />
+                                            App Store
+                                        </button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -185,26 +203,87 @@ const Home = async () => {
             </div>
 
             {/* News Section - Moved to top */}
-            <div className="px-3 sm:px-4 md:px-8 py-6 sm:py-8 md:py-16 bg-gray-50 mt-6 sm:mt-8">
+            <div className="px-3 sm:px-4 md:px-8 py-6 sm:py-8 md:py-16 bg-white dark:bg-zinc-900/50 mt-6 sm:mt-8 border-y border-gray-100 dark:border-white/5">
                 <News showHeader={false} showAddButton={false} />
             </div>
 
             {/* Benefits Section */}
-            <div className="px-3 sm:px-4 md:px-8 py-12 sm:py-16 bg-white">
+            <div className="px-3 sm:px-4 md:px-8 py-12 sm:py-16 bg-gray-50 dark:bg-black/20 transition-colors duration-300">
                 <div className="max-w-6xl mx-auto">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-8 sm:mb-12 text-center">Proč se připojit?</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8 sm:mb-12 text-center">Proč se připojit?</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16">
                         {benefits.map((benefit, index) => (
                             <div key={index} className="text-center">
-                                <div className="bg-gray-50 rounded-2xl p-4 sm:p-6 md:p-8">
+                                <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 sm:p-6 md:p-8 border border-transparent dark:border-white/10 transition-colors duration-300">
                                     <div className="mb-3 sm:mb-4 flex justify-center items-center">
                                         {benefit.icon}
                                     </div>
-                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3" dangerouslySetInnerHTML={{ __html: benefit.title }} />
-                                    <p className="text-sm md:text-base text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: benefit.description }} />
+                                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3" dangerouslySetInnerHTML={{ __html: benefit.title }} />
+                                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 leading-relaxed" dangerouslySetInnerHTML={{ __html: benefit.description }} />
                                 </div>
                             </div>
                         ))}
+                    </div>
+
+                    <Separator className="my-12 bg-gray-200 dark:bg-white/10" />
+
+                    {/* Víte že... Section */}
+                    <div className="mb-16">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8 text-center">Víte že...</h2>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-3xl p-8 sm:p-12 border border-blue-100 dark:border-blue-500/20">
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg text-gray-700 dark:text-gray-300">
+                                {[
+                                    "... nespočet vrcholů, kopců, hor, na které se můžete vydat",
+                                    "... nespočet zřícenin hradů",
+                                    "... plno jeskyň",
+                                    "... spousty míst s neobvyklým názvem a u některých se od srdce zasmějete",
+                                    "... a strakáči na svých výletech zanechávají stopu",
+                                    "... a že rok má 12 měsíců :-)"
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-start gap-3">
+                                        <span className="text-blue-500 font-bold">•</span>
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
+                        {/* Šlapejte a soutěžte */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-2xl">
+                                    <Trophy className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Šlapejte a soutěžte</h2>
+                            </div>
+                            <div className="prose prose-lg dark:prose-invert">
+                                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                                    Oproti minulým ročníkům jsme udělali změnu: bude se soutěžit ve zdolaných kilometrech, které jste zdolali <strong className="text-gray-900 dark:text-white">CHŮZÍ</strong> (žádné auto, kolo, lyže, loď) + v navštívených místech.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Odměna pro vítěze */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-2xl">
+                                    <Award className="w-8 h-8 text-green-600 dark:text-green-400" />
+                                </div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Odměna pro vítěze</h2>
+                            </div>
+                            <ul className="space-y-4">
+                                <li className="flex gap-4 items-start p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
+                                    <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-green-500 text-white rounded-full font-bold text-sm">1</span>
+                                    <span className="text-gray-700 dark:text-gray-300 pt-1">Prvních 5 nejzdatnějších bude oceněno při listopadové schůzi Spolku.</span>
+                                </li>
+                                <li className="flex gap-4 items-start p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
+                                    <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-400 text-white rounded-full font-bold text-sm">2</span>
+                                    <span className="text-gray-700 dark:text-gray-300 pt-1">Všichni ostatní obdrží malou upomínku.</span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

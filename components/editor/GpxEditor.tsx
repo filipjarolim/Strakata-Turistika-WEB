@@ -175,16 +175,16 @@ function IOSMapControls({
       >
         {/* Controls: left-aligned, horizontal row, responsive size */}
         <div className={cn('flex flex-row flex-wrap items-center', IOS_MAP_CONTROLS_STYLE.barGap)}>
-          <Control onClick={onToggleFullscreen} icon={isFullscreen ? <X className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Maximize2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={isFullscreen ? 'Zavřít' : 'Zvětšit'} id="fullscreen" />
+          <Control onClick={onToggleFullscreen} icon={isFullscreen ? <X className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, "font-bold")} /> : <Maximize2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label={isFullscreen ? 'Zavřít' : 'Zvětšit'} id="fullscreen" />
           {/* Edit mode: Pencil icon from lucide-react */}
-          {!readOnly && <Control onClick={onToggleEditMode} icon={<Pencil className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={editMode ? 'Upravit' : 'Zobrazit'} id="editMode" />}
-          {!readOnly && <Control onClick={onUndo} disabled={!canUndo || !editMode} icon={<RotateCcw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Zpět" id="undo" />}
-          {!readOnly && <Control onClick={onRedo} disabled={!canRedo || !editMode} icon={<RotateCw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Znovu" id="redo" />}
-          {!readOnly && <Control onClick={onAddPoint} disabled={!editMode || !selectedSegment} icon={<Plus className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Přidat" id="add" />}
-          {!readOnly && <Control onClick={onDeletePoint} disabled={!canDelete || !editMode} icon={<Trash2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Smazat" id="delete" />}
-          {!readOnly && <Control onClick={onSimplify} disabled={!editMode} icon={<span className="font-bold text-lg">S</span>} label="Zjednodušit" id="simplify" />}
-          <Control onClick={onHidePoints} icon={hidePoints ? <EyeOff className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} /> : <Eye className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label={hidePoints ? 'Zobrazit' : 'Skrýt'} id="hidePoints" />
-          <Control onClick={onZoomToSelected} disabled={!canZoomToSelected} icon={<MapPin className={cn(IOS_MAP_CONTROLS_STYLE.iconSize, IOS_MAP_CONTROLS_STYLE.iconSizeSm)} />} label="Přiblížit" id="zoom" />
+          {!readOnly && <Control onClick={onToggleEditMode} icon={<Pencil className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label={editMode ? 'Upravit' : 'Zobrazit'} id="editMode" />}
+          {!readOnly && <Control onClick={onUndo} disabled={!canUndo || !editMode} icon={<RotateCcw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label="Zpět" id="undo" />}
+          {!readOnly && <Control onClick={onRedo} disabled={!canRedo || !editMode} icon={<RotateCw className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label="Znovu" id="redo" />}
+          {!readOnly && <Control onClick={onAddPoint} disabled={!editMode || !selectedSegment} icon={<Plus className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label="Přidat" id="add" />}
+          {!readOnly && <Control onClick={onDeletePoint} disabled={!canDelete || !editMode} icon={<Trash2 className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label="Smazat" id="delete" />}
+          {!readOnly && <Control onClick={onSimplify} disabled={!editMode} icon={<span className="font-bold text-base">S</span>} label="Zjednodušit" id="simplify" />}
+          <Control onClick={onHidePoints} icon={hidePoints ? <EyeOff className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} /> : <Eye className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label={hidePoints ? 'Zobrazit' : 'Skrýt'} id="hidePoints" />
+          <Control onClick={onZoomToSelected} disabled={!canZoomToSelected} icon={<MapPin className={cn(IOS_MAP_CONTROLS_STYLE.iconSize)} />} label="Přiblížit" id="zoom" />
         </div>
         {/* Stats: right-aligned */}
         <div className="flex flex-col items-end text-xs sm:text-sm px-2 select-none">
@@ -654,19 +654,20 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
               className: 'custom-marker',
               html: renderToString(
                 <div className={cn(
-                  'flex items-center justify-center rounded-full bg-white shadow-lg border-2',
-                  isStartPoint ? 'border-green-500' : 'border-red-500',
-                  isSelected ? 'scale-125 transition-transform' : ''
+                  'flex items-center justify-center rounded-2xl border-2 shadow-2xl transition-all duration-300',
+                  isStartPoint ? 'bg-emerald-500 border-white/40' : 'bg-rose-500 border-white/40',
+                  isSelected ? 'scale-110 ring-4 ring-white/20' : 'scale-100',
+                  'w-10 h-10'
                 )}>
                   {isStartPoint ? (
-                    <Play className="h-6 w-6 text-green-500" />
+                    <Play className="h-5 w-5 text-white fill-white/20" />
                   ) : (
-                    <Flag className="h-6 w-6 text-red-500" />
+                    <Flag className="h-5 w-5 text-white fill-white/20" />
                   )}
                 </div>
               ),
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
+              iconSize: [40, 40],
+              iconAnchor: [20, 20]
             })}
             eventHandlers={canEdit ? {
               click: () => handleMarkerClick(index),
@@ -690,8 +691,8 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
           radius={isSelected || isSegmentEnd ? 8 : 6}
           pathOptions={{
             color: '#fff',
-            weight: 2,
-            fillColor: isSelected || isSegmentEnd ? '#1e40af' : '#3b82f6',
+            weight: 3,
+            fillColor: isSelected || isSegmentEnd ? '#3b82f6' : '#2563eb',
             fillOpacity: 1,
           }}
           eventHandlers={canEdit ? {
@@ -732,8 +733,16 @@ export default function GpxEditor({ onSave, initialTrack = [], readOnly = false,
 
   return (
     <TooltipProvider>
-      <div className={cn('relative w-full h-full', isFullscreen && 'fixed inset-0 z-[2000] bg-black/70 flex items-center justify-center')} onClick={handleOverlayClick}>
-        <div className={cn('w-full h-full', isFullscreen && 'max-w-6xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex items-center justify-center')}>
+      <div className={cn('relative w-full h-full group/map', isFullscreen && 'fixed inset-0 z-[10000] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-8')} onClick={handleOverlayClick}>
+        <div className={cn('w-full h-full relative border border-white/10 rounded-3xl overflow-hidden shadow-2xl transition-all duration-500', isFullscreen ? 'scale-100 opacity-100' : 'scale-100')}>
+          {isFullscreen && (
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="absolute top-6 right-6 z-[10001] bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/20 text-white p-3 rounded-full transition-all active:scale-95 shadow-2xl"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          )}
           <MapContainer
             center={displayPoints[0] || [50.0755, 14.4378]}
             zoom={13}

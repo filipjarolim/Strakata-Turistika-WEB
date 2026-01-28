@@ -12,9 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Edit, Trash2, Search, ChevronLeft, Newspaper, Calendar, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
+import { AdminToolbar, AdminToolbarGroup } from '@/components/admin/AdminToolbar';
+import { AdminSearch } from '@/components/ui/admin-search';
+import { DataTableRowActions } from '@/components/admin/DataTableRowActions';
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
+
+import { AdminPageTemplate } from "@/components/admin/AdminPageTemplate";
 
 interface NewsItem {
     id: string;
@@ -117,47 +123,32 @@ export const NewsClient = ({ initialNews }: { initialNews: unknown[] }) => {
     );
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Header Section */}
-            <div className="space-y-6 pt-6">
-                <div className="flex flex-col gap-4">
-                    <Link
-                        href="/admin"
-                        className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white inline-flex items-center gap-1 transition-colors"
-                    >
-                        <ChevronLeft className="h-4 w-4" /> Zpět na admin dashboard
-                    </Link>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-2xl bg-purple-100 dark:bg-white/5 border border-purple-200 dark:border-white/10">
-                                <Newspaper className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-500 dark:from-white dark:to-gray-400">
-                                    Aktuality
-                                </h1>
-                                <p className="text-gray-500 dark:text-gray-400 mt-1">
-                                    Správa novinek a článků pro uživatele
-                                </p>
-                            </div>
-                        </div>
-                        <Button onClick={handleCreate} className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20">
-                            <Plus className="mr-2 h-4 w-4" /> Nová aktualita
-                        </Button>
-                    </div>
+        <AdminPageTemplate
+            title="Aktuality"
+            subtitle="Obsah & Komunikace"
+            category="Web & Social"
+            description="Správa novinek a článků pro uživatele"
+            icon="FileText"
+            backHref="/admin"
+            actions={
+                <Button
+                    onClick={handleCreate}
+                    className="h-11 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl px-6 text-xs font-black hover:opacity-90 transition-all shadow-xl shadow-black/10 active:scale-95"
+                >
+                    <Plus className="mr-2 h-4 w-4" /> Nová aktualita
+                </Button>
+            }
+            search={
+                <div className="w-full min-w-[200px]">
+                    <AdminSearch
+                        value={searchTerm}
+                        onSearch={setSearchTerm}
+                        placeholder="Hledat aktuality..."
+                    />
                 </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                    placeholder="Hledat aktuality..."
-                    className="pl-10 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+            }
+            containerClassName="bg-transparent border-none shadow-none backdrop-blur-none p-0 sm:p-0"
+        >
 
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -205,22 +196,17 @@ export const NewsClient = ({ initialNews }: { initialNews: unknown[] }) => {
                             </div>
 
                             <div className="px-5 py-3 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 flex justify-end gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEdit(item)}
-                                    className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20"
-                                >
-                                    <Edit className="h-4 w-4 mr-2" /> Upravit
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDelete(item.id)}
-                                    className="text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" /> Smazat
-                                </Button>
+                                <DataTableRowActions>
+                                    <DropdownMenuItem onClick={() => handleEdit(item)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Upravit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => handleDelete(item.id)}
+                                        className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" /> Smazat
+                                    </DropdownMenuItem>
+                                </DataTableRowActions>
                             </div>
                         </motion.div>
                     ))}
@@ -290,6 +276,6 @@ export const NewsClient = ({ initialNews }: { initialNews: unknown[] }) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </AdminPageTemplate>
     );
 };

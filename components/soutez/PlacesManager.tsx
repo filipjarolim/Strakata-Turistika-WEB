@@ -200,9 +200,10 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
           <p className="text-sm mb-4">Zatím jste nepřidali žádná bodovaná místa</p>
           <IOSButton
             variant="blue"
-            size="sm"
+            size="md"
             onClick={handleAddPlace}
             icon={<Plus className="h-4 w-4" />}
+            className="px-8 rounded-full shadow-lg shadow-blue-500/20"
           >
             Přidat první místo
           </IOSButton>
@@ -226,66 +227,71 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                 titleClassName={cn("text-base sm:text-lg", dark && "text-white")}
                 subtitleClassName={cn("text-xs sm:text-sm", dark && "text-white/70")}
               >
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <IOSTextInput
-                      label="Název místa"
-                      placeholder="např. Sněžka"
-                      value={place.name}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        handleUpdatePlace(place.id, { name: e.target.value })
-                      }
-                      dark={dark}
-                    />
-
-                    <div className="space-y-1.5">
-                      <label className={cn(
-                        "text-sm font-medium",
-                        dark ? "text-white/90" : "text-gray-700"
-                      )}>
-                        Typ místa
-                      </label>
-                      <IOSSelect
-                        value={place.type}
-                        onChange={(value: string) => handleUpdatePlace(place.id, { type: value as PlaceType })}
-                        options={placeTypes.map(pt => ({
-                          value: pt.name,
-                          label: `${pt.label} (+${pt.points} ${pt.points === 1 ? 'bod' : pt.points < 5 ? 'body' : 'bodů'})`,
-                        }))}
-                        placeholder="Vyberte typ"
+                <div className="space-y-8">
+                  {/* SECTION 1: IDENTITY */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                      <h4 className={cn("text-xs font-bold uppercase tracking-widest", dark ? "text-blue-400" : "text-blue-600")}>Základní informace</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <IOSTextInput
+                        label="Název místa"
+                        placeholder="např. Sněžka"
+                        value={place.name}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleUpdatePlace(place.id, { name: e.target.value })
+                        }
                         dark={dark}
                       />
+
+                      <div className="space-y-1.5">
+                        <label className={cn(
+                          "text-sm font-medium",
+                          dark ? "text-white/90" : "text-gray-700"
+                        )}>
+                          Typ místa
+                        </label>
+                        <IOSSelect
+                          value={place.type}
+                          onChange={(value: string) => handleUpdatePlace(place.id, { type: value as PlaceType })}
+                          options={placeTypes.map(pt => ({
+                            value: pt.name,
+                            label: `${pt.label} (+${pt.points} ${pt.points === 1 ? 'bod' : pt.points < 5 ? 'body' : 'bodů'})`,
+                          }))}
+                          placeholder="Vyberte typ"
+                          dark={dark}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {place.type === PlaceType.PEAK && (
-                    <ProofTypeSelector
-                      value={place.proofType || ''}
-                      onChange={(type) => handleUpdatePlace(place.id, { proofType: type as 'STANDARD' | 'PEAK' | 'VOLNÁ' })}
-                    />
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
-                        Typ doložení
-                      </label>
-                      <IOSSelect
-                        value={place.proofType || 'STANDARD'}
-                        onChange={(value: string) => handleUpdatePlace(place.id, { proofType: value as 'STANDARD' | 'PEAK' | 'VOLNÁ' })}
-                        options={[
-                          { value: 'STANDARD', label: 'Standardní (foto s označníkem)' },
-                          { value: 'PEAK', label: 'Vrchol (foto s výhledem/mapou)' },
-                          { value: 'VOLNÁ', label: 'Volná (bez omezení stezky)' }
-                        ]}
-                        dark={dark}
-                      />
+                  {/* SECTION 2: PROOF & LOCATION */}
+                  <div className="space-y-4 pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-amber-500 rounded-full" />
+                      <h4 className={cn("text-xs font-bold uppercase tracking-widest", dark ? "text-amber-400" : "text-amber-600")}>Doložení a Poloha</h4>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1.5">
+                        <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
+                          Typ doložení
+                        </label>
+                        <IOSSelect
+                          value={place.proofType || 'STANDARD'}
+                          onChange={(value: string) => handleUpdatePlace(place.id, { proofType: value as 'STANDARD' | 'PEAK' | 'VOLNÁ' })}
+                          options={[
+                            { value: 'STANDARD', label: 'Standardní (foto s označníkem)' },
+                            { value: 'PEAK', label: 'Vrchol (foto s výhledem/mapou)' },
+                            { value: 'VOLNÁ', label: 'Volná (bez omezení stezky)' }
+                          ]}
+                          dark={dark}
+                        />
+                      </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <label className={cn("text-xs sm:text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
+                          <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
                             GPS Souřadnice
                           </label>
                           <button
@@ -299,21 +305,21 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                                 });
                               }
                             }}
-                            className="text-[9px] sm:text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300"
+                            className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300 transition-colors"
                           >
-                            Moje poloha
+                            Použít moji polohu
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                           <IOSTextInput
-                            placeholder="Lat"
+                            placeholder="Zeměpisná šířka (Lat)"
                             type="number"
                             value={place.lat || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lat: parseFloat(e.target.value) })}
                             dark={dark}
                           />
                           <IOSTextInput
-                            placeholder="Lng"
+                            placeholder="Zeměpisná délka (Lng)"
                             type="number"
                             value={place.lng || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdatePlace(place.id, { lng: parseFloat(e.target.value) })}
@@ -324,91 +330,103 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className={cn(
-                      "text-sm font-medium",
-                      dark ? "text-white/90" : "text-gray-700"
-                    )}>
-                      Popis
-                    </label>
-                    <IOSTextarea
-                      placeholder="Popište místo (nadmořská výška, zajímavosti...)"
-                      value={place.description}
-                      onChange={(value: string) => handleUpdatePlace(place.id, { description: value })}
-                      colors={dark ? {
-                        background: 'bg-white/10 backdrop-blur-sm',
-                        text: 'text-white',
-                        placeholder: 'text-white/40',
-                        border: 'border-white/20',
-                        focus: 'border-blue-400'
-                      } : undefined}
-                    />
-                  </div>
+                  {/* SECTION 3: DETAILS & PHOTOS */}
+                  <div className="space-y-4 pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-4 bg-emerald-500 rounded-full" />
+                      <h4 className={cn("text-xs font-bold uppercase tracking-widest", dark ? "text-emerald-400" : "text-emerald-600")}>Popis a Fotografie</h4>
+                    </div>
 
-                  <div className="space-y-1.5">
-                    <label className={cn(
-                      "text-sm font-medium",
-                      dark ? "text-white/90" : "text-gray-700"
-                    )}>
-                      Fotografie místa
-                    </label>
-                    <EnhancedImageUpload
-                      sources={place.photos.map(photo => ({
-                        url: photo.url,
-                        public_id: photo.public_id || '',
-                        title: photo.title || '',
-                      }))}
-                      onUpload={(file, title) => handleImageUpload(place.id, file, title)}
-                      onDelete={async (public_id) => {
-                        const photo = place.photos.find(p => p.public_id === public_id);
-                        if (photo) await handleImageDelete(place.id, photo.id);
-                      }}
-                      stackingStyle="grid"
-                      aspectRatio="landscape"
-                      count={5}
-                    />
+                    <div className="space-y-1.5">
+                      <label className={cn(
+                        "text-sm font-medium",
+                        dark ? "text-white/90" : "text-gray-700"
+                      )}>
+                        Vlastní popis místa
+                      </label>
+                      <IOSTextarea
+                        placeholder="Popište místo, náročnost, nebo zajímavosti..."
+                        value={place.description}
+                        onChange={(value: string) => handleUpdatePlace(place.id, { description: value })}
+                        colors={dark ? {
+                          background: 'bg-black/40 backdrop-blur-sm',
+                          text: 'text-white',
+                          placeholder: 'text-white/40',
+                          border: 'border-white/20',
+                          focus: 'border-blue-400'
+                        } : undefined}
+                      />
+                    </div>
 
-                    {/* Photo descriptions */}
-                    {place.photos.length > 0 && (
-                      <div className="space-y-2 mt-3">
-                        <label className={cn(
-                          "text-xs font-medium",
-                          dark ? "text-white/80" : "text-gray-600"
-                        )}>
-                          Popisy fotek
-                        </label>
-                        {place.photos.map((photo, photoIdx) => (
-                          <div key={photo.id} className="flex items-start gap-2">
-                            <div className="flex-shrink-0 w-12 h-12 rounded overflow-hidden border border-white/10">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={photo.url}
-                                alt={`Foto ${photoIdx + 1}`}
-                                className="w-full h-full object-cover"
+                    <div className="space-y-1.5">
+                      <label className={cn(
+                        "text-sm font-medium",
+                        dark ? "text-white/90" : "text-gray-700"
+                      )}>
+                        Fotografie (důkaz o návštěvě)
+                      </label>
+                      <EnhancedImageUpload
+                        sources={place.photos.map(photo => ({
+                          url: photo.url,
+                          public_id: photo.public_id || '',
+                          title: photo.title || '',
+                        }))}
+                        onUpload={(file, title) => handleImageUpload(place.id, file, title)}
+                        onDelete={async (public_id) => {
+                          const photo = place.photos.find(p => p.public_id === public_id);
+                          if (photo) await handleImageDelete(place.id, photo.id);
+                        }}
+                        stackingStyle="grid"
+                        aspectRatio="landscape"
+                        count={5}
+                        dark={dark}
+                      />
+
+                      {/* Photo descriptions */}
+                      {place.photos.length > 0 && (
+                        <div className="space-y-3 mt-4 p-4 rounded-2xl bg-black/20 border border-white/5">
+                          <label className={cn(
+                            "text-[10px] font-bold uppercase tracking-widest opacity-50",
+                            dark ? "text-white" : "text-gray-900"
+                          )}>
+                            Popisy fotografií
+                          </label>
+                          {place.photos.map((photo, photoIdx) => (
+                            <div key={photo.id} className="flex items-center gap-3">
+                              <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-white/10 shadow-sm">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={photo.url}
+                                  alt={`Foto ${photoIdx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <IOSTextInput
+                                placeholder={`Popis fotky ${photoIdx + 1}`}
+                                value={photo.description || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                  handleUpdatePhotoDescription(place.id, photo.id, e.target.value)
+                                }
+                                dark={dark}
+                                className="flex-1 h-10 text-xs"
                               />
                             </div>
-                            <IOSTextInput
-                              placeholder={`Popis fotky ${photoIdx + 1}`}
-                              value={photo.description || ''}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                handleUpdatePhotoDescription(place.id, photo.id, e.target.value)
-                              }
-                              dark={dark}
-                              className="flex-1"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex justify-end pt-2 border-t border-white/10">
+                  <div className="flex justify-end pt-4 border-t border-white/5">
                     <IOSButton
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeletePlace(place.id)}
                       icon={<Trash2 className="h-4 w-4" />}
-                      className="text-red-500 hover:bg-red-500/10"
+                      className={cn(
+                        "text-red-500 border-red-500/20 hover:text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all rounded-xl",
+                        dark ? "bg-red-500/10" : "bg-red-50"
+                      )}
                     >
                       Smazat místo
                     </IOSButton>
@@ -418,12 +436,13 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
             ))}
           </div>
 
-          <div className="flex justify-center pt-2">
+          <div className="flex justify-center pt-4">
             <IOSButton
               variant="blue"
-              size="md"
+              size="lg"
               onClick={handleAddPlace}
-              icon={<Plus className="h-4 w-4" />}
+              icon={<Plus className="h-5 w-5" />}
+              className="px-12 py-6 text-lg rounded-2xl shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               Přidat další místo
             </IOSButton>
@@ -433,11 +452,16 @@ export default function PlacesManager({ places, onChange, dark = false }: Places
 
       {places.length > 0 && places.some(p => !p.name.trim()) && (
         <div className={cn(
-          "flex items-start gap-2 p-3 rounded-lg",
-          dark ? "bg-yellow-900/20 text-yellow-300" : "bg-yellow-50 text-yellow-800"
+          "flex items-center gap-4 p-4 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300",
+          dark ? "bg-red-500/10 border border-red-500/20 text-red-200" : "bg-red-50 border border-red-100 text-red-900"
         )}>
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">
+          <div className={cn(
+            "p-2 rounded-full",
+            dark ? "bg-red-500/20" : "bg-white shadow-sm"
+          )}>
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          </div>
+          <p className="text-sm font-semibold tracking-tight">
             Vyplňte prosím názvy všech míst před pokračováním
           </p>
         </div>

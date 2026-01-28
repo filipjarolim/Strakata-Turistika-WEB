@@ -356,8 +356,8 @@ export default function NahratPage() {
             title="Nahrát trasu"
             subtitle="Nahrajte soubor s GPS trasou závodu (GPX, KML, TCX a další formáty)"
             icon={<Upload className="h-5 w-5" />}
-            iconBackground="bg-blue-100"
-            iconColor="text-blue-600"
+            iconBackground="bg-blue-100 dark:bg-blue-500/20"
+            iconColor="text-blue-600 dark:text-blue-400"
             variant="elevated"
           >
             <div className="space-y-4">
@@ -366,8 +366,8 @@ export default function NahratPage() {
                   htmlFor="gpx-upload"
                   className={cn(
                     "flex flex-col items-center justify-center w-full h-48 sm:h-64 border-2 border-dashed rounded-xl cursor-pointer",
-                    "bg-white/50 backdrop-blur-sm hover:bg-white/70 transition-colors",
-                    "border-gray-200 hover:border-blue-500/50",
+                    "bg-white/50 dark:bg-white/5 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-white/10 transition-colors",
+                    "border-gray-200 dark:border-white/10 hover:border-blue-500/50 dark:hover:border-blue-500/50",
                     "focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   )}
                 >
@@ -405,8 +405,8 @@ export default function NahratPage() {
               title="Náhled trasy"
               subtitle="Zkontrolujte nahranou trasu"
               icon={<MapPin className="h-5 w-5" />}
-              iconBackground="bg-green-100"
-              iconColor="text-green-600"
+              iconBackground="bg-green-100 dark:bg-green-500/20"
+              iconColor="text-green-600 dark:text-green-400"
               variant="elevated"
             >
               <div className="h-48 sm:h-64">
@@ -426,8 +426,8 @@ export default function NahratPage() {
             title="Typ aktivity"
             subtitle="O jaký typ aktivity se jedná?"
             icon={<MapPin className="h-5 w-5" />}
-            iconBackground="bg-orange-100"
-            iconColor="text-orange-600"
+            iconBackground="bg-orange-100 dark:bg-orange-500/20"
+            iconColor="text-orange-600 dark:text-orange-400"
             variant="elevated"
           >
             <div className="space-y-4">
@@ -462,10 +462,10 @@ export default function NahratPage() {
               {activityType === 'visit' && warnings.length > 0 && (
                 <div className="space-y-2">
                   {warnings.map((w, i) => (
-                    <Alert key={i} variant="default" className="bg-yellow-50 border-yellow-200">
-                      <AlertCircle className="h-4 w-4 text-yellow-600" />
-                      <AlertTitle className="text-yellow-800">Upozornění</AlertTitle>
-                      <AlertDescription className="text-yellow-700">{w}</AlertDescription>
+                    <Alert key={i} variant="default" className="bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20">
+                      <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                      <AlertTitle className="text-yellow-800 dark:text-yellow-200">Upozornění</AlertTitle>
+                      <AlertDescription className="text-yellow-700 dark:text-yellow-300">{w}</AlertDescription>
                     </Alert>
                   ))}
                 </div>
@@ -479,8 +479,8 @@ export default function NahratPage() {
             title="Základní informace"
             subtitle="Vyplňte základní informace o trase"
             icon={<BarChart className="h-5 w-5" />}
-            iconBackground="bg-purple-100"
-            iconColor="text-purple-600"
+            iconBackground="bg-purple-100 dark:bg-purple-500/20"
+            iconColor="text-purple-600 dark:text-purple-400"
             variant="elevated"
           >
             <div className="space-y-4">
@@ -494,7 +494,7 @@ export default function NahratPage() {
               </div>
               <div className="space-y-2">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Popis trasy</Label>
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Popis trasy</Label>
                   <IOSTextarea
                     placeholder="Popište svoji trasu, zajímavá místa a zážitky z cesty. Nezapomeňte zmínit zajímavé body, obtížnost a případná omezení..."
                     value={routeDescription}

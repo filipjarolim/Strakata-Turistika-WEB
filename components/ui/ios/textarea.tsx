@@ -29,11 +29,11 @@ export const IOSTextarea = ({
     className,
     readOnly = false,
     colors = {
-        background: 'bg-white/50 backdrop-blur-sm',
-        text: 'text-gray-900',
-        placeholder: 'text-gray-400',
-        border: 'border-gray-200',
-        focus: 'border-blue-500'
+        background: 'bg-background/50 backdrop-blur-sm',
+        text: 'text-foreground',
+        placeholder: 'text-muted-foreground',
+        border: 'border-input',
+        focus: 'ring-ring'
     }
 }: IOSTextareaProps) => {
     const editor = useEditor({
@@ -75,11 +75,11 @@ export const IOSTextarea = ({
             attributes: {
                 class: cn(
                     'prose prose-sm max-w-none focus:outline-none',
-                    colors.text,
-                    'min-h-[100px] w-full px-4 py-3 rounded-xl',
-                    'transition-all duration-200 ease-in-out',
-                    'placeholder:text-gray-400',
-                    readOnly ? 'bg-gray-100/50 cursor-not-allowed' : 'focus:ring-2 focus:ring-blue-500/20',
+                    'text-slate-900 dark:text-white',
+                    'min-h-[100px] w-full px-5 py-3 rounded-xl',
+                    'transition-all duration-300 ease-in-out',
+                    'placeholder:text-gray-500 dark:placeholder:text-white/40',
+                    readOnly ? 'bg-muted/50 cursor-not-allowed' : '',
                     className
                 )
             }
@@ -94,13 +94,12 @@ export const IOSTextarea = ({
 
     return (
         <div className={cn(
-            'relative w-full rounded-xl',
-            'transition-all duration-200 ease-in-out',
+            'relative w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-black/40 transition-all duration-300 backdrop-blur-xl',
+            'transition-all duration-300 ease-in-out',
             colors.background,
             colors.border,
-            'border-0 shadow-sm',
-            'focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-white/50',
-            'focus-within:ring-blue-500/50',
+            'shadow-sm',
+            'focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/50 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:shadow-lg focus-within:shadow-indigo-500/10',
             className
         )}>
             <EditorContent editor={editor} />
@@ -121,14 +120,14 @@ export const IOSTextarea = ({
                     font-size: 1.5rem;
                     font-weight: 600;
                     margin: 1rem 0;
-                    color: #1a1a1a;
+                    color: inherit;
                 }
                 
                 .ProseMirror h2 {
                     font-size: 1.25rem;
                     font-weight: 600;
                     margin: 0.75rem 0;
-                    color: #1a1a1a;
+                    color: inherit;
                 }
                 
                 .ProseMirror h3 {
@@ -203,8 +202,8 @@ export const IOSTextarea = ({
                 .ProseMirror p.is-editor-empty:first-child::before {
                     content: attr(data-placeholder);
                     float: left;
-                    color: inherit;
-                    opacity: 0.4;
+                    color: #64748b;
+                    opacity: 1;
                     pointer-events: none;
                     height: 0;
                 }

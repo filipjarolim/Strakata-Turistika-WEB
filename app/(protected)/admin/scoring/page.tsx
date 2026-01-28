@@ -6,6 +6,8 @@ export default function ScoringPage() {
     return (
         <AdminPageTemplate
             title="Správa bodování"
+            subtitle="Pravidla & Algoritmy"
+            category="Výpočty"
             description="Centrální konfigurace bodování a typů míst."
             icon="Sliders"
         >

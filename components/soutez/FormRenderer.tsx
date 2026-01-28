@@ -8,7 +8,7 @@ import PlacesManager, { Place } from '@/components/soutez/PlacesManager';
 import { EnhancedImageUpload, ImageSource } from "@/components/ui/ios/enhanced-image-upload";
 import { cn } from "@/lib/utils";
 import dynamic from 'next/dynamic';
-
+import { IOSFormField } from "@/components/ui/ios/form-field";
 const DynamicGpxEditor = dynamic(
     () => import('@/components/editor/GpxEditor').then(mod => mod.default),
     { ssr: false }
@@ -109,90 +109,71 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                 // Standard Inputs
                 if (field.type === 'text' || field.type === 'email') {
                     return (
-                        <IOSTextInput
-                            key={field.id}
-                            label={field.label}
-                            value={String(val ?? '')}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
-                            required={field.required}
-                            dark={dark}
-                            placeholder={field.placeholder || ''}
-                        />
+                        <IOSFormField key={field.id} label={field.label} required={field.required} dark={dark}>
+                            <IOSTextInput
+                                value={String(val ?? '')}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || ''}
+                                dark={dark}
+                            />
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'number') {
                     return (
-                        <IOSTextInput
-                            key={field.id}
-                            label={field.label}
-                            type="number"
-                            value={String(val ?? '')}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, parseFloat(e.target.value) || 0)}
-                            required={field.required}
-                            dark={dark}
-                            placeholder={field.placeholder || ''}
-                        />
+                        <IOSFormField key={field.id} label={field.label} required={field.required} dark={dark}>
+                            <IOSTextInput
+                                type="number"
+                                value={String(val ?? '')}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, parseFloat(e.target.value) || 0)}
+                                placeholder={field.placeholder || ''}
+                                dark={dark}
+                            />
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'textarea') {
                     return (
-                        <div key={field.id} className="space-y-2">
-                            <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
-                                {field.label} {field.required && <span className="text-red-500">*</span>}
-                            </label>
+                        <IOSFormField key={field.id} label={field.label} required={field.required} dark={dark}>
                             <IOSTextarea
                                 value={String(val ?? '')}
                                 onChange={(v: string) => handleChange(field.name, v)}
-                                colors={{
-                                    background: dark ? 'bg-black/40' : 'bg-white',
-                                    text: dark ? 'text-white' : 'text-gray-900',
-                                    placeholder: dark ? 'text-white/40' : 'text-gray-500',
-                                    border: dark ? 'border-zinc-800' : 'border-gray-300',
-                                    focus: 'border-blue-500'
-                                }}
                                 placeholder={field.placeholder || ''}
                             />
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'select') {
                     return (
-                        <div key={field.id} className="space-y-2">
-                            <label className={cn("text-sm font-medium", dark ? "text-white/90" : "text-gray-700")}>
-                                {field.label} {field.required && <span className="text-red-500">*</span>}
-                            </label>
-                            <div className="relative">
+                        <IOSFormField key={field.id} label={field.label} required={field.required} dark={dark}>
+                            <div className="relative group">
                                 <select
                                     value={String(val ?? '')}
                                     onChange={(e) => handleChange(field.name, e.target.value)}
                                     className={cn(
-                                        "w-full appearance-none h-12 rounded-2xl px-4 text-sm font-medium focus:outline-none transition-all cursor-pointer border",
-                                        dark ? "bg-black/40 text-white border-zinc-800 focus:border-blue-500" : "bg-white text-gray-900 border-gray-300 focus:border-blue-500"
+                                        "w-full appearance-none h-12 rounded-xl px-4 text-sm font-medium focus:outline-none transition-all cursor-pointer border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur-xl",
+                                        val ? "text-gray-900 dark:text-white" : "text-gray-400 dark:text-white/40",
+                                        "focus-visible:border-indigo-500/50 focus-visible:ring-4 focus-visible:ring-indigo-500/10 focus-visible:shadow-lg focus-visible:shadow-indigo-500/10"
                                     )}
                                 >
                                     <option value="" disabled>Vyberte...</option>
                                     {field.options?.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        <option key={opt.value} value={opt.value} className="text-gray-900 dark:text-white bg-white dark:bg-[#09090b]">{opt.label}</option>
                                     ))}
                                 </select>
-                                <ChevronDown className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none", dark ? "text-white/50" : "text-gray-400")} />
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-500 group-hover:text-gray-400 transition-colors" />
                             </div>
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'checkbox') {
                     return (
-                        <div key={field.id} className={cn(
-                            "flex items-center justify-between py-4 px-5 rounded-2xl border transition-colors",
-                            dark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                        )}>
-                            <div className="space-y-1">
-                                <span className={cn("text-sm font-medium block", dark ? "text-white" : "text-gray-900")}>{field.label}</span>
-                            </div>
+                        <div key={field.id} className="flex items-center justify-between py-4 px-5 rounded-xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur-xl transition-all hover:bg-white/50 dark:hover:bg-white/5 hover:border-indigo-500/50 group cursor-pointer" onClick={() => handleChange(field.name, !val)}>
+                            <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{field.label}</span>
                             <IOSSwitch
                                 checked={Boolean(val)}
                                 onCheckedChange={(checked) => handleChange(field.name, checked)}
@@ -203,26 +184,22 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
 
                 if (field.type === 'date') {
                     return (
-                        <IOSTextInput
-                            key={field.id}
-                            label={field.label}
-                            type="date"
-                            value={String(val ?? '')}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
-                            required={field.required}
-                            dark={dark}
-                            icon={<Calendar className="w-4 h-4 text-amber-500" />}
-                        />
+                        <IOSFormField key={field.id} label={field.label} required={field.required} dark={dark}>
+                            <IOSTextInput
+                                type="date"
+                                value={String(val ?? '')}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
+                                icon={<Calendar className="w-4 h-4" />}
+                                dark={dark}
+                            />
+                        </IOSFormField>
                     );
                 }
 
                 // Specialized Widgets
                 if (field.type === 'gpx_upload' && context) {
                     return (
-                        <div key={field.id} className="space-y-4">
-                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
-                                <FileText className="w-4 h-4" /> {field.label}
-                            </label>
+                        <IOSFormField key={field.id} label={field.label} labelIcon={<FileText className="w-4 h-4" />} dark={dark}>
                             <label className={cn(
                                 "flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-3xl transition-all duration-300 group cursor-pointer",
                                 context.selectedFile ? "bg-green-500/10 border-green-500/30" : (dark ? "bg-black/40 border-white/10 hover:border-blue-500/50 hover:bg-black/50" : "bg-gray-50 border-gray-200 hover:border-blue-500/50 hover:bg-gray-100")
@@ -249,17 +226,14 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                     <span className="text-[11px] text-blue-100 font-medium">Nahráno {context.route.track.length} bodů trasy</span>
                                 </div>
                             )}
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
-                if (field.type === 'map_preview' && context?.route?.track) {
+                if (field.type === 'map_preview' && context?.route?.track && context.route.track.length > 0) {
                     return (
-                        <div key={field.id} className="space-y-4">
-                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
-                                <MapPin className="w-4 h-4" /> {field.label}
-                            </label>
-                            <div className={cn("h-64 sm:h-96 rounded-3xl overflow-hidden border relative", dark ? "border-white/10" : "border-gray-200 shadow-sm")}>
+                        <IOSFormField key={field.id} label={field.label} labelIcon={<MapPin className="w-4 h-4" />} dark={dark}>
+                            <div className={cn("h-64 sm:h-96 rounded-md overflow-hidden border relative", dark ? "border-white/10" : "border-gray-200 shadow-sm")}>
                                 <DynamicGpxEditor
                                     initialTrack={context.route.track as { lat: number; lng: number }[]}
                                     onSave={() => { }}
@@ -267,17 +241,14 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                     hideControls={['add', 'delete', 'undo', 'redo', 'simplify']}
                                 />
                             </div>
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'image_upload' && context) {
                     return (
-                        <div key={field.id} className="space-y-4">
-                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
-                                <Camera className="w-4 h-4" /> {field.label}
-                            </label>
-                            <div className={cn("p-6 rounded-3xl border", dark ? "bg-black/20 border-white/5" : "bg-gray-50 border-gray-200")}>
+                        <IOSFormField key={field.id} label={field.label} labelIcon={<Camera className="w-4 h-4" />} dark={dark}>
+                            <div className={cn("p-6 rounded-xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur-xl")}>
                                 <EnhancedImageUpload
                                     sources={context.photos || []}
                                     onUpload={context.handleImageUpload!}
@@ -285,96 +256,84 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
                                     stackingStyle="grid"
                                     aspectRatio="landscape"
                                     count={10}
+                                    dark={dark}
                                 />
                             </div>
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'places_manager' && context) {
                     return (
-                        <div key={field.id} className="space-y-4">
-                            <label className={cn("text-sm font-semibold uppercase tracking-widest flex items-center gap-2", dark ? "text-white/50" : "text-gray-500")}>
-                                <Mountain className="w-4 h-4" /> {field.label}
-                            </label>
+                        <IOSFormField key={field.id} label={field.label} labelIcon={<Mountain className="w-4 h-4" />} dark={dark}>
                             <PlacesManager
                                 places={context.places || []}
                                 onChange={context.onPlacesChange!}
                                 dark={dark}
                             />
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'title_input' && context) {
                     return (
-                        <IOSTextInput
-                            key={field.id}
-                            label={field.label || "Název trasy"}
-                            value={context.route?.routeTitle || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => context.onRouteUpdate?.({ routeTitle: e.target.value })}
-                            required={field.required}
-                            dark={dark}
-                            icon={<FileText className="w-4 h-4 text-blue-400" />}
-                        />
+                        <IOSFormField key={field.id} label={field.label || "Název trasy"} required={field.required} dark={dark}>
+                            <IOSTextInput
+                                value={context.route?.routeTitle || ''}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => context.onRouteUpdate?.({ routeTitle: e.target.value })}
+                                placeholder={field.placeholder || "Např. Večerní procházka"}
+                                icon={<FileText className="w-4 h-4" />}
+                                dark={dark}
+                            />
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'description_input' && context) {
                     return (
-                        <div key={field.id} className="space-y-2">
-                            <label className={cn("text-sm font-medium flex items-center gap-2", dark ? "text-white/90" : "text-gray-700")}>
-                                <Info className="w-4 h-4 text-blue-400" /> {field.label || "Popis trasy"}
-                            </label>
+                        <IOSFormField key={field.id} label={field.label || "Popis trasy"} dark={dark}>
                             <IOSTextarea
                                 value={context.route?.routeDescription || ''}
                                 onChange={(v: string) => context.onRouteUpdate?.({ routeDescription: v })}
-                                colors={{
-                                    background: dark ? 'bg-black/40' : 'bg-white',
-                                    text: dark ? 'text-white' : 'text-gray-900',
-                                    placeholder: dark ? 'text-white/40' : 'text-gray-500',
-                                    border: dark ? 'border-zinc-800' : 'border-gray-300',
-                                    focus: 'border-blue-500'
-                                }}
+                                placeholder={field.placeholder || "Popište svou trasu..."}
                             />
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'calendar' && context) {
                     return (
-                        <div key={field.id} className="space-y-3">
-                            <label className={cn("text-sm font-medium flex items-center gap-2", dark ? "text-white/90" : "text-gray-700")}>
-                                <Calendar className="w-4 h-4 text-orange-400" /> {field.label || "Datum absolvování"}
-                            </label>
-                            <div className={cn("rounded-2xl p-4 border", dark ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200")}>
+                        <IOSFormField key={field.id} label={field.label || "Datum absolvování"} dark={dark}>
+                            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 p-4 backdrop-blur-xl transition-all hover:bg-white/50 dark:hover:bg-white/5 hover:border-indigo-500/50">
                                 <IOSCalendar
                                     selectedDate={context.route?.visitDate || new Date()}
                                     onDateChange={(date: Date) => context.onRouteUpdate?.({ visitDate: date })}
-                                    className={cn("w-full", dark ? "text-white" : "text-gray-900")}
+                                    className="w-full text-gray-900 dark:text-white"
+                                    dark={dark}
                                 />
                             </div>
-                        </div>
+                        </IOSFormField>
                     );
                 }
 
                 if (field.type === 'dog_switch' && context) {
                     return (
-                        <div key={field.id} className={cn(
-                            "flex items-center justify-between py-4 px-5 rounded-2xl border transition-colors",
-                            dark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                        )}>
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-red-400" />
-                                    <span className={cn("text-base font-medium block", dark ? "text-white" : "text-gray-900")}>{field.label || "Zákaz vstupu se psy"}</span>
+                        <div key={field.id} className="rounded-xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 p-5 mt-4 transition-all hover:bg-white/50 dark:hover:bg-white/5 hover:border-indigo-500/50 backdrop-blur-xl cursor-pointer" onClick={() => context.onRouteUpdate?.({ dogNotAllowed: !context.route?.dogNotAllowed })}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2.5 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-500">
+                                        <AlertCircle className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{field.label || "Zákaz vstupu se psy"}</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">Bylo na trase nějaké omezení pro psy?</span>
+                                    </div>
                                 </div>
-                                <span className={cn("text-xs block ml-6", dark ? "text-white/50" : "text-gray-500")}>Bylo na trase nějaké omezení pro psy?</span>
+                                <IOSSwitch
+                                    checked={context.route?.dogNotAllowed || false}
+                                    onCheckedChange={(checked) => context.onRouteUpdate?.({ dogNotAllowed: checked })}
+                                />
                             </div>
-                            <IOSSwitch
-                                checked={context.route?.dogNotAllowed || false}
-                                onCheckedChange={(checked) => context.onRouteUpdate?.({ dogNotAllowed: checked })}
-                            />
                         </div>
                     );
                 }
@@ -401,6 +360,6 @@ export default function FormRenderer({ slug, stepId, values, onChange, context, 
 
                 return null;
             })}
-        </div>
+        </div >
     );
 }

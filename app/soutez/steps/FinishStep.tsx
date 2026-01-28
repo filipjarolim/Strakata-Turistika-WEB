@@ -76,18 +76,18 @@ export default function FinishStep({ routeId, onComplete, user }: { routeId: str
         >
           <Check className="h-10 w-10 text-green-400" />
         </motion.div>
-        <div className="space-y-2">
-          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter italic">
-            SKVĚLÁ <span className="text-white/30">PRÁCE.</span>
+        <div className="space-y-3">
+          <h2 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white tracking-tight italic">
+            Skvělá <span className="text-slate-400 dark:text-white/50">práce.</span>
           </h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.4em]">TRASA JE PŘIPRAVENA K ODESLÁNÍ</p>
+          <p className="text-sm font-semibold text-slate-500 dark:text-white/50 uppercase tracking-widest">Trasa je připravena k odeslání</p>
         </div>
       </div>
 
-      <div className="bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl space-y-10">
-        <div className="pb-8 border-b border-white/5">
-          <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">REKAPITULACE</h3>
-          <h4 className="text-2xl font-black text-white uppercase tracking-tighter italic">{route?.routeTitle || 'BEZ NÁZVU'}</h4>
+      <div className="bg-white/80 dark:bg-white/5 backdrop-blur-3xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 md:p-10 shadow-xl space-y-8">
+        <div className="pb-6 border-b border-slate-200 dark:border-white/10">
+          <h3 className="text-xs font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mb-2">Rekapitulace</h3>
+          <h4 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{route?.routeTitle || 'Bez názvu'}</h4>
         </div>
 
         <FormRenderer
@@ -109,15 +109,15 @@ export default function FinishStep({ routeId, onComplete, user }: { routeId: str
           }}
         />
 
-        <div className="flex flex-col sm:flex-row gap-6 justify-end pt-10 border-t border-white/5">
+        <div className="flex flex-col sm:flex-row gap-4 justify-end pt-8 border-t border-slate-200 dark:border-white/10">
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => onComplete()}
-            className="h-16 px-10 rounded-2xl border border-white/5 bg-white/5 text-[10px] font-black text-white/40 hover:text-white uppercase tracking-[0.2em] transition-all"
+            className="h-12 px-8 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-xs font-bold text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white uppercase tracking-widest transition-all hover:bg-slate-200 dark:hover:bg-white/10"
           >
             <div className="flex items-center gap-2">
-              <Save className="w-3.5 h-3.5" />
-              ULOŽIT JAKO KONCEPT
+              <Save className="w-4 h-4" />
+              Uložit koncept
             </div>
           </motion.button>
 
@@ -126,13 +126,13 @@ export default function FinishStep({ routeId, onComplete, user }: { routeId: str
             onClick={handlePublish}
             disabled={isPublishing}
             className={cn(
-              "px-12 h-16 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl",
+              "px-8 h-12 rounded-xl flex items-center justify-center gap-2 transition-all font-bold text-sm shadow-lg",
               isPublishing
-                ? "bg-white/5 text-white/10 cursor-not-allowed"
-                : "bg-white text-black hover:bg-slate-200 shadow-white/5"
+                ? "bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/30 cursor-not-allowed"
+                : "bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-200 shadow-slate-900/5 dark:shadow-white/5"
             )}
           >
-            {isPublishing ? <Loader2 className="animate-spin w-5 h-5" /> : <><Send className="w-5 h-5" /> ODESLAT KE SCHVÁLENÍ</>}
+            {isPublishing ? <Loader2 className="animate-spin w-4 h-4" /> : <><Send className="w-4 h-4" /> Odeslat ke schválení</>}
           </motion.button>
         </div>
       </div>

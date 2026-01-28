@@ -17,13 +17,5 @@ export default async function NewsAdminPage() {
         include: { author: { select: { name: true, image: true } } }
     });
 
-    return (
-        <AdminPageTemplate
-            title="Správa aktualit"
-            description="Vytvářejte a upravujte novinky pro uživatele."
-            icon="FileText"
-        >
-            <NewsClient initialNews={news} />
-        </AdminPageTemplate>
-    );
+    return <NewsClient initialNews={news} />;
 }

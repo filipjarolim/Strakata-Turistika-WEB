@@ -5,7 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radix-accordion-content-height: 100px; /* Define the custom property with a default value */
+  --radix-accordion-content-height: 100px;
+  /* Define the custom property with a default value */
 }
 
 [data-scroll-locked][data-scroll-locked] {
@@ -146,41 +147,50 @@
     from {
       height: 0;
     }
+
     to {
       height: var(--radix-accordion-content-height);
     }
   }
+
   @keyframes accordion-up {
     from {
       height: var(--radix-accordion-content-height);
     }
+
     to {
       height: 0;
     }
   }
+
   @keyframes fadeIn {
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
   }
+
   @keyframes slideUp {
     from {
       transform: translateY(100%);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
     }
   }
+
   @keyframes slideDown {
     from {
       transform: translateY(0);
       opacity: 1;
     }
+
     to {
       transform: translateY(100%);
       opacity: 0;
@@ -197,6 +207,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -210,35 +221,35 @@
   body {
     font-family: 'SF Pro Display', var(--font-sf-pro), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  
+
   .animate-fadeIn {
     animation: var(--animate-fade-in);
   }
-  
+
   .animate-slideUp {
     animation: slideUp 0.5s ease-out forwards;
   }
-  
+
   .animate-slideDown {
     animation: slideDown 0.5s ease-out forwards;
   }
-  
+
   .animation-delay-300 {
     animation-delay: 300ms;
   }
-  
+
   .animation-delay-600 {
     animation-delay: 600ms;
   }
-  
+
   .animation-delay-900 {
     animation-delay: 900ms;
   }
-  
+
   .animation-delay-1200 {
     animation-delay: 1200ms;
   }
-  
+
   .animation-delay-1500 {
     animation-delay: 1500ms;
   }
@@ -280,6 +291,7 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -320,6 +332,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -329,14 +342,36 @@ body {
   overflow-x: hidden;
 }
 
+/* Leaflet Dark Mode */
+.dark .leaflet-tile-container {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.dark .leaflet-container {
+  background: #1a1a1a !important;
+}
+
+.dark .leaflet-control-zoom-in,
+.dark .leaflet-control-zoom-out,
+.dark .leaflet-bar a {
+  background-color: #262626 !important;
+  color: #fff !important;
+  border-bottom: 1px solid #404040 !important;
+}
+
+.dark .leaflet-bar a:hover {
+  background-color: #404040 !important;
+}
+
 .hamburger {
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 12px; /* Adjusted height for two lines */
+  height: 12px;
+  /* Adjusted height for two lines */
   width: 24px;
-  z-index:10;
+  z-index: 10;
 }
 
 .hamburger span {
@@ -359,7 +394,8 @@ body {
 /* Create a smooth scroll with offset for anchor links */
 html {
   scroll-behavior: smooth;
-  scroll-padding-bottom: 200px; /* Adjust based on your footer height */
+  scroll-padding-bottom: 200px;
+  /* Adjust based on your footer height */
 }
 
 /* Footer gradient animation */
@@ -367,9 +403,11 @@ html {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -380,4 +418,3 @@ html {
   background-size: 200% 200%;
   animation: gradientFlow 15s ease infinite;
 }
-

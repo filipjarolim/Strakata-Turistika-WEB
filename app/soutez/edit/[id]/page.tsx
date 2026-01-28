@@ -502,8 +502,8 @@ export default function EditRoutePage() {
             title="Upravit trasu"
             subtitle="Upravte trasu podle potřeby"
             icon={<MapPin className="h-5 w-5" />}
-            iconBackground="bg-blue-100"
-            iconColor="text-blue-600"
+            iconBackground="bg-blue-100 dark:bg-blue-500/20"
+            iconColor="text-blue-600 dark:text-blue-400"
             variant="elevated"
           >
             <div className="h-[400px]">
@@ -519,8 +519,8 @@ export default function EditRoutePage() {
             title="Základní informace"
             subtitle="Upravte základní informace o trase"
             icon={<BarChart className="h-5 w-5" />}
-            iconBackground="bg-purple-100"
-            iconColor="text-purple-600"
+            iconBackground="bg-purple-100 dark:bg-purple-500/20"
+            iconColor="text-purple-600 dark:text-purple-400"
             variant="elevated"
           >
             <div className="space-y-4">
@@ -533,7 +533,7 @@ export default function EditRoutePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Datum absolvování trasy</Label>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Datum absolvování trasy</Label>
                 <IOSCalendar
                   selectedDate={visitDate}
                   onDateChange={(date) => {
@@ -548,16 +548,16 @@ export default function EditRoutePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Popis trasy</Label>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Popis trasy</Label>
                 <IOSTextarea
                   placeholder="Popište svoji trasu, zajímavá místa a zážitky z cesty. Nezapomeňte zmínit zajímavé body, obtížnost a případná omezení..."
                   value={route?.routeDescription || ''}
                   onChange={(value: string) => setRoute(route ? { ...route, routeDescription: value } : null)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 transition-all hover:bg-white/50 dark:hover:bg-white/5 hover:border-indigo-500/50 backdrop-blur-xl">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Zákaz vstupu se psy</span>
                 <IOSSwitch
-                  label="Zákaz vstupu se psy"
                   checked={formData.dogNotAllowed === "true"}
                   onCheckedChange={(checked) => setFormData({ ...formData, dogNotAllowed: checked ? "true" : "false" })}
                 />
@@ -569,8 +569,8 @@ export default function EditRoutePage() {
             title="Fotografie"
             subtitle="Přidejte fotografie z trasy"
             icon={<Camera className="h-5 w-5" />}
-            iconBackground="bg-amber-100"
-            iconColor="text-amber-600"
+            iconBackground="bg-amber-100 dark:bg-amber-500/20"
+            iconColor="text-amber-600 dark:text-amber-400"
             variant="elevated"
           >
             <ImageUpload

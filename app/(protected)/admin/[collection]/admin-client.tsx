@@ -50,6 +50,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AdminToolbar, AdminToolbarGroup } from '@/components/admin/AdminToolbar';
+import { AdminSearch } from '@/components/ui/admin-search';
+import { AdminFilter } from '@/components/ui/admin-filter';
+import { AdminPageTemplate } from '@/components/admin/AdminPageTemplate';
 
 // Dynamically import GpxEditor to avoid SSR issues
 const DynamicGpxEditor = dynamic(
@@ -960,23 +964,121 @@ export default function AdminClient() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-
+    <AdminPageTemplate
+      title={collection === 'VisitData' ? 'Návštěvy' :
+        collection === 'User' ? 'Uživatelé' :
+          collection === 'News' ? 'Aktuality' :
+            collection.charAt(0).toUpperCase() + collection.slice(1)}
+      subtitle="Databáze & Struktury"
+      category={collection}
+      description={collection === 'VisitData' ? 'Správa turistických návštěv' :
+        collection === 'User' ? 'Správa uživatelských účtů' :
+          collection === 'News' ? 'Správa novinek a článků' :
+            `Správa záznamů v kolekci ${collection}`}
+      icon="Database"
+      actions={
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+              className="h-10 bg-red-500 hover:bg-red-600 text-white rounded-2xl px-4 shadow-lg shadow-red-500/20 active:scale-95"
+              size="sm"
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              <span className="text-xs font-black uppercase tracking-widest">Smazat ({selectedIds.size})</span>
+            </Button>
+          )}
+        </div>
+      }
+      search={
+        <div className="w-full min-w-[200px]">
+          <AdminSearch
+            value={state.searchQuery}
+            onSearch={actions.onSearchChanged}
+            placeholder="Vyhledat záznamy..."
+          />
+        </div>
+      }
+      filters={
+        collection === 'VisitData' && (
+          <div className="flex items-center gap-2">
+            <AdminFilter
+              value={state.stateFilter || "all"}
+              onValueChange={(val) => actions.changeStateFilter(val === "all" ? "" : val)}
+              placeholder="Stav"
+              options={[
+                { value: "all", label: "Všechny stavy" },
+                { value: "PENDING_REVIEW", label: "🕒 Čeká" },
+                { value: "APPROVED", label: "✅ Schváleno" },
+                { value: "REJECTED", label: "❌ Zamítnuto" },
+                { value: "DRAFT", label: "📝 Koncept" }
+              ]}
+              className="w-[140px]"
+            />
+            <AdminFilter
+              value={state.seasonFilter || "all"}
+              onValueChange={(val) => actions.changeSeasonFilter(val === "all" ? "" : val)}
+              placeholder="Sezóna"
+              options={[
+                { value: "all", label: "Všechny sezóny" },
+                ...seasons.map((season) => ({
+                  value: season.id,
+                  label: season.name || `Sezóna ${season.year}`
+                }))
+              ]}
+              className="w-[140px]"
+            />
+          </div>
+        )
+      }
+      sorting={
+        <div className="flex items-center gap-2 bg-white/50 dark:bg-zinc-800/50 p-1 rounded-xl border border-zinc-200/50 dark:border-white/5">
+          {state.records.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 border-r border-zinc-200 dark:border-white/10">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={handleSelectAll}
+                className={cn(
+                  "border-zinc-300 dark:border-white/20",
+                  (allSelected || someSelected) && "data-[state=checked]:bg-blue-600"
+                )}
+              />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                {selectedIds.size > 0 ? `Vybráno (${selectedIds.size})` : 'Vše'}
+              </span>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              const currentDesc = state.sortDescending;
+              actions.changeSort('id', !currentDesc);
+            }}
+            className="flex items-center px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          >
+            <ArrowUpDown className="h-3 w-3 mr-1.5" />
+            {state.sortDescending ? 'Novější' : 'Starší'}
+          </button>
+        </div>
+      }
+      containerClassName="bg-transparent border-none shadow-none backdrop-blur-none p-0 sm:p-0"
+    >
       {/* Stats for VisitData */}
       {collection === 'VisitData' && visitStats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 pt-2">
           {[
-            { label: "Celkem", value: visitStats.total, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-500/5", icon: MapPin },
-            { label: "Čekající", value: visitStats.pending, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-500/5", icon: Clock },
-            { label: "Schváleno", value: visitStats.approved, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-500/5", icon: Check },
-            { label: "Zamítnuto", value: visitStats.rejected, color: "text-rose-600 dark:text-rose-400", bgColor: "bg-rose-500/5", icon: AlertCircle },
+            { label: "Celkem", value: visitStats.total, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-500/10", icon: MapPin },
+            { label: "Čekající", value: visitStats.pending, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-500/10", icon: Clock },
+            { label: "Schváleno", value: visitStats.approved, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-500/10", icon: Check },
+            { label: "Zamítnuto", value: visitStats.rejected, color: "text-rose-600 dark:text-rose-400", bgColor: "bg-rose-500/10", icon: AlertCircle },
           ].map((stat, i) => (
             <div key={i} className="group relative">
-              <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 flex flex-col items-start transition-all duration-300 hover:border-zinc-300 dark:hover:border-zinc-700 shadow-sm">
-                <div className={`p-2 rounded-xl mb-4 ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 flex flex-col items-start transition-all duration-300 hover:border-blue-500/30 hover:shadow-xl shadow-sm">
+                <div className={`p-2.5 rounded-xl mb-4 ${stat.bgColor}`}>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{stat.label}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-1">{stat.label}</span>
                 <span className={`text-2xl font-black tracking-tight ${stat.color}`}>
                   {new Intl.NumberFormat('cs-CZ').format(stat.value)}
                 </span>
@@ -985,114 +1087,6 @@ export default function AdminClient() {
           ))}
         </div>
       )}
-
-      {/* Header Controls */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg sm:text-xl font-bold truncate text-gray-900 dark:text-white">
-              {collection === 'VisitData' ? 'Návštěvy' :
-                collection === 'User' ? 'Uživatelé' :
-                  collection === 'News' ? 'Aktuality' : collection}
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              {collection === 'VisitData' ? 'Správa turistických návštěv' :
-                collection === 'User' ? 'Správa uživatelských účtů' :
-                  collection === 'News' ? 'Správa novinek a článků' :
-                    `Správa záznamů kolekce ${collection}`}
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            {selectedIds.size > 0 && (
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-                className="flex items-center gap-2 bg-red-100 dark:bg-red-600/20 text-red-600 dark:text-red-500 hover:bg-red-200 dark:hover:bg-red-600/30 border border-red-200 dark:border-red-500/20"
-                size="sm"
-                disabled={isDeleting}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Smazat ({selectedIds.size})</span>
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Select All */}
-        {state.records.length > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-white/60 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 rounded-lg">
-            <Checkbox
-              checked={allSelected}
-              onCheckedChange={handleSelectAll}
-              className={`border-gray-300 dark:border-white/20 data-[state=checked]:bg-blue-600 ${someSelected ? 'data-[state=checked]:bg-blue-500' : ''}`}
-            />
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {selectedIds.size > 0
-                ? `Vybráno: ${selectedIds.size} z ${state.records.length}`
-                : 'Vybrat vše'}
-            </span>
-          </div>
-        )}
-
-        {/* Search, Sort and Filters */}
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1 transition-all duration-200">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 transition-colors duration-200" />
-              <Input
-                placeholder="Hledat..."
-                value={state.searchQuery}
-                onChange={(e) => actions.onSearchChanged(e.target.value)}
-                className="pl-10 bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 transition-all duration-200 focus:scale-[1.01] focus:shadow-sm focus:border-blue-500 focus:bg-white dark:focus:bg-white/10"
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                const currentDesc = state.sortDescending;
-                actions.changeSort('id', !currentDesc);
-              }}
-              size="sm"
-              className="min-w-[120px] bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white"
-            >
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              {state.sortDescending ? '↓ Novější' : '↑ Starší'}
-            </Button>
-          </div>
-
-          {/* Filters for VisitData */}
-          {collection === 'VisitData' && (
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={state.stateFilter}
-                onChange={(e) => actions.changeStateFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-200 dark:border-white/10 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-black/40 text-gray-700 dark:text-gray-300"
-              >
-                <option value="">Všechny stavy</option>
-                <option value="PENDING_REVIEW">🕒 Čeká</option>
-                <option value="APPROVED">✅ Schváleno</option>
-                <option value="REJECTED">❌ Zamítnuto</option>
-                <option value="DRAFT">📝 Koncept</option>
-              </select>
-
-              <select
-                value={state.seasonFilter}
-                onChange={(e) => actions.changeSeasonFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-200 dark:border-white/10 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-black/40 text-gray-700 dark:text-gray-300"
-                disabled={loadingSeasons}
-              >
-                <option value="">Všechny sezóny</option>
-                {seasons.map((season) => (
-                  <option key={season.id} value={season.id}>
-                    {season.name || `Sezóna ${season.year}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Error State */}
       {state.error && (
@@ -1212,6 +1206,6 @@ export default function AdminClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminPageTemplate>
   );
 }

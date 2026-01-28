@@ -127,6 +127,8 @@ model News {
   authorId  String?
   author    User?    @relation("UserNews", fields: [authorId], references: [id])
 
+  galleryImages Image[]
+
   @@map("news")
 }
 
@@ -176,6 +178,8 @@ model VisitData {
   // Relation to CustomRoute
   customRouteId String?
   customRoute   CustomRoute? @relation(fields: [customRouteId], references: [id])
+
+  galleryImages Image[]
 
   @@map("visits")
 }
@@ -324,4 +328,26 @@ model ExceptionRequest {
   user User @relation(fields: [userId], references: [id])
   
   @@map("exception_requests")
+}
+
+model Image {
+  id               String   @id @default(cuid()) @map("_id")
+  url              String
+  publicId         String
+  title            String?
+  description      String?
+  createdAt        DateTime @default(now())
+  
+  // Relations
+  visitId          String?
+  visit            VisitData? @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  
+  newsId           String?
+  news             News?      @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  
+  // Gallery Management
+  isGalleryVisible Boolean  @default(false)
+  order            Int      @default(0)
+
+  @@map("images")
 }

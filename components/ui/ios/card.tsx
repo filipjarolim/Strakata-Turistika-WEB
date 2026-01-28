@@ -38,9 +38,9 @@ export const IOSCard = React.forwardRef<HTMLDivElement, IOSCardProps>(
     const cardRef = useRef<HTMLDivElement>(null);
 
     const baseStyles = {
-      default: "bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border border-gray-200/30 dark:border-white/10 shadow-xl shadow-black/5",
-      elevated: "bg-white/98 dark:bg-zinc-900/98 backdrop-blur-2xl shadow-2xl border border-gray-200/20 dark:border-white/10",
-      outlined: "border-2 border-gray-200/50 dark:border-white/10 bg-transparent backdrop-blur-sm"
+      default: "bg-white/80 dark:bg-black/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-xl shadow-black/5",
+      elevated: "bg-white/98 dark:bg-zinc-900/98 backdrop-blur-2xl shadow-2xl border border-gray-200 dark:border-white/10",
+      outlined: "border-2 border-gray-200 dark:border-white/10 bg-transparent backdrop-blur-sm"
     };
 
     const iconContainerStyles = cn(

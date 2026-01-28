@@ -155,42 +155,42 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
   }
 
   return (
-    <div className="space-y-12 max-w-6xl mx-auto px-6 py-12 pb-32">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
-        <div className="space-y-4">
+    <div className="space-y-8 max-w-6xl mx-auto px-6 py-10 pb-32">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 dark:border-white/10 pb-8">
+        <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-400/10">
               <Navigation className="h-4 w-4 text-blue-400" />
             </div>
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">KROK 02: VERIFIKACE</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-widest">Krok 2: Verifikace</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter italic">
-            UPRAVIT <span className="text-white/30">DETAILY TRASY.</span>
+          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Upravit <span className="text-slate-400 dark:text-white/50">detaily trasy.</span>
           </h2>
         </div>
-        <p className="max-w-xs text-[10px] font-bold text-white/20 uppercase tracking-widest leading-loose italic">
-          ZKONTROLUJTE SPRÁVNOST DAT A PŘIDEJTE DOPLŇUJÍCÍ INFORMACE.
+        <p className="max-w-xs text-xs text-slate-500 dark:text-white/40 font-medium leading-relaxed">
+          Zkontrolujte správnost dat a přidejte doplňující informace.
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-1 gap-10">
+      <div className="grid lg:grid-cols-1 gap-8">
         {error && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-6 rounded-3xl bg-red-500/5 backdrop-blur-xl border border-red-500/10 flex items-start gap-4"
+            className="p-5 rounded-3xl bg-red-500/10 backdrop-blur-xl border border-red-500/20 flex items-start gap-4"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-1" />
-            <div className="space-y-2">
-              <h4 className="text-[10px] font-black text-red-500 uppercase tracking-widest italic">CHYBA PŘI UKLÁDÁNÍ</h4>
-              <p className="text-[10px] text-red-200/40 uppercase font-bold tracking-widest leading-loose">
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-red-500">Chyba při ukládání</h4>
+              <p className="text-xs text-red-200/60 font-medium leading-relaxed">
                 {error}
               </p>
             </div>
           </motion.div>
         )}
 
-        <div className="bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
+        <div className="bg-white/80 dark:bg-white/5 backdrop-blur-3xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 md:p-10 shadow-xl">
           <FormRenderer
             slug={
               route?.extraPoints?.source === 'screenshot'
@@ -227,19 +227,19 @@ export default function EditStep({ routeId, onComplete, user }: EditStepProps) {
             }}
           />
 
-          <div className="flex justify-end mt-16 pt-10 border-t border-white/5">
+          <div className="flex justify-end mt-12 pt-8 border-t border-white/5">
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={handleSave}
               disabled={isSaving}
               className={cn(
-                "px-12 h-16 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl",
+                "px-8 h-12 rounded-xl flex items-center justify-center gap-2 transition-all font-bold text-sm shadow-lg",
                 isSaving
-                  ? "bg-white/5 text-white/10 cursor-not-allowed"
-                  : "bg-white text-black hover:bg-slate-200 shadow-white/5"
+                  ? "bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/30 cursor-not-allowed"
+                  : "bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-200 shadow-slate-900/5 dark:shadow-white/5"
               )}
             >
-              {isSaving ? <Loader2 className="animate-spin w-5 h-5" /> : <><ArrowRight className="w-5 h-5" /> POKRAČOVAT K DOKONČENÍ</>}
+              {isSaving ? <Loader2 className="animate-spin w-4 h-4" /> : <><ArrowRight className="w-4 h-4" /> Pokračovat k dokončení</>}
             </motion.button>
           </div>
         </div>

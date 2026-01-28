@@ -54,12 +54,26 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (!file.name.toLowerCase().endsWith('.gpx')) {
+        setError('Nepodporovaný formát. Nahrajte prosím .gpx soubor.');
+        return;
+      }
+
       setSelectedFile(file);
+      setError(null);
+
       try {
         const text = await file.text();
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(text, "text/xml");
         const trkpts = Array.from(xmlDoc.getElementsByTagName("trkpt"));
+
+        if (trkpts.length === 0) {
+          setError('GPX soubor neobsahuje žádné body trasy.');
+          setTrackPoints([]);
+          return;
+        }
+
         const points = trkpts.slice(0, 1000).map(p => ({
           lat: parseFloat(p.getAttribute("lat") || "0"),
           lng: parseFloat(p.getAttribute("lon") || "0")
@@ -67,6 +81,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
         setTrackPoints(points);
       } catch (e) {
         setError("Nepodařilo se zpracovat soubor");
+        setTrackPoints([]);
       }
     }
   };
@@ -124,10 +139,10 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
     return (
       <div className="space-y-12 max-w-5xl mx-auto py-12 px-6">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter italic leading-none">
-            ZAČNĚTE <span className="text-white/30">CESTU.</span>
+          <h2 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white tracking-tight leading-none">
+            Začněte <span className="text-slate-400 dark:text-white/50">cestu.</span>
           </h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">REKORDNÍ VÝKON ZAČÍNÁ JEDNÍM NAHRÁNÍM</p>
+          <p className="text-xs font-semibold text-slate-500 dark:text-white/60 uppercase tracking-widest">Rekordní výkon začíná jedním nahráním</p>
         </div>
 
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
@@ -135,38 +150,38 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
             {
               id: 'gpx',
               icon: FileText,
-              title: 'GPX SOUBOR',
-              desc: 'PŘÍMÝ IMPORT ZE ZAŘÍZENÍ NEBO APKY',
+              title: 'GPX Soubor',
+              desc: 'Přímý import ze zařízení nebo aplikace',
               color: 'text-blue-400',
               bg: 'bg-blue-400/5'
             },
             {
               id: 'manual',
               icon: Camera,
-              title: 'SCREENSHOT',
-              desc: 'DOKLAD Z JINÉ APLIKACE (MAPY.CZ, STRAVA)',
+              title: 'Screenshot',
+              desc: 'Doklad z jiné aplikace (Mapy.cz, Strava)',
               color: 'text-purple-400',
               bg: 'bg-purple-400/5'
             }
           ].map((mode) => (
             <motion.div
               key={mode.id}
-              whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.05)' }}
+              whileHover={{ y: -5, backgroundColor: 'rgba(255,255,255,0.08)' }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setUploadMode(mode.id as 'gpx' | 'manual' | 'gps')}
-              className="group cursor-pointer p-10 rounded-[2.5rem] bg-white/5 backdrop-blur-3xl border border-white/5 hover:border-white/20 transition-all flex flex-col justify-between min-h-[280px]"
+              className="group cursor-pointer p-8 rounded-[2rem] bg-white/80 dark:bg-white/5 backdrop-blur-3xl border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 transition-all flex flex-col justify-between min-h-[240px]"
             >
               <div className="space-y-6">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors shadow-2xl", mode.bg)}>
+                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors shadow-lg", mode.bg)}>
                   <mode.icon className={cn("h-7 w-7", mode.color)} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">{mode.title}</h3>
-                  <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest leading-loose mt-2">{mode.desc}</p>
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{mode.title}</h3>
+                  <p className="text-sm text-slate-500 dark:text-white/60 font-medium leading-relaxed mt-2">{mode.desc}</p>
                 </div>
               </div>
               <div className="flex justify-end pr-2">
-                <ArrowRight className="w-6 h-6 text-white/10 group-hover:text-white/40 transition-colors" />
+                <ArrowRight className="w-6 h-6 text-slate-300 dark:text-white/20 group-hover:text-slate-900 dark:group-hover:text-white/50 transition-colors" />
               </div>
             </motion.div>
           ))}
@@ -183,11 +198,11 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
             <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", uploadMode === 'gpx' ? "bg-blue-400/10" : "bg-purple-400/10")}>
               {uploadMode === 'gpx' ? <Upload className="h-4 w-4 text-blue-400" /> : <Camera className="h-4 w-4 text-purple-400" />}
             </div>
-            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">KROK 01: NAHRÁNÍ</span>
+            <span className="text-[10px] font-black text-slate-400 dark:text-white/40 uppercase tracking-[0.2em]">KROK 01: NAHRÁNÍ</span>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter italic">
+          <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
             {uploadMode === 'gpx' ? 'NAHRÁT ' : 'NAHRÁT '}
-            <span className="text-white/30">{uploadMode === 'gpx' ? 'GPX SOUBOR' : 'SCREENSHOT'}</span>
+            <span className="text-slate-300 dark:text-white/30">{uploadMode === 'gpx' ? 'GPX SOUBOR' : 'SCREENSHOT'}</span>
           </h2>
         </div>
         <motion.button
@@ -197,7 +212,7 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
             setTrackPoints([]);
             setSelectedFile(null);
           }}
-          className="text-[10px] font-black text-white/20 hover:text-white uppercase tracking-[0.3em] pb-1 border-b border-transparent hover:border-white/20 transition-all italic"
+          className="text-[10px] font-black text-slate-400 dark:text-white/20 hover:text-slate-900 dark:hover:text-white uppercase tracking-[0.3em] pb-1 border-b border-transparent hover:border-slate-900 dark:hover:border-white/20 transition-all italic"
         >
           ZMĚNIT TYP
         </motion.button>
@@ -235,14 +250,9 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
             </motion.div>
           )}
 
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-blue-500/10 rounded-2xl border border-blue-500/10 shadow-2xl">
-            <Info className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-[9px] font-black text-blue-200 uppercase tracking-[0.2em]">
-              ROČNÍK 2025/2026: POVOLENA POUZE CHŮZE
-            </span>
-          </div>
 
-          <div className="bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
+
+          <div className="bg-white/80 dark:bg-white/5 backdrop-blur-3xl border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
             <FormRenderer
               slug={uploadMode === 'gpx' ? 'gpx-upload' : 'screenshot-upload'}
               stepId="upload"
@@ -293,8 +303,8 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
                 className={cn(
                   "px-12 h-16 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-[0.2em] italic text-sm shadow-2xl",
                   isSaving || !routeName
-                    ? "bg-white/5 text-white/10 cursor-not-allowed"
-                    : "bg-white text-black hover:bg-slate-200 shadow-white/5"
+                    ? "bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/10 cursor-not-allowed"
+                    : "bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-200 shadow-slate-900/5 dark:shadow-white/5"
                 )}
               >
                 {isSaving ? <Loader2 className="animate-spin w-5 h-5" /> : <><ArrowRight className="w-5 h-5" /> ULOŽIT A POKRAČOVAT</>}
@@ -305,10 +315,10 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
 
         <div className="lg:col-span-4 space-y-6">
           {/* Guidelines side card */}
-          <div className="p-8 bg-white/5 backdrop-blur-2xl border border-white/5 rounded-[2rem] space-y-6 sticky top-24">
+          <div className="p-8 bg-white/80 dark:bg-white/5 backdrop-blur-2xl border border-slate-200 dark:border-white/5 rounded-[2rem] space-y-6 sticky top-24">
             <div className="flex items-center gap-2">
-              <Info className="w-3.5 h-3.5 text-white/40" />
-              <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">PRAVIDLA</span>
+              <Info className="w-3.5 h-3.5 text-slate-400 dark:text-white/40" />
+              <span className="text-[10px] font-black text-slate-500 dark:text-white/60 uppercase tracking-widest">PRAVIDLA</span>
             </div>
             <ul className="space-y-4">
               {[
@@ -318,8 +328,8 @@ export default function UploadStep({ onComplete, user, userRole, initialMode, au
                 'POUZE PĚŠÍ AKTIVITA'
               ].map((rule, i) => (
                 <li key={i} className="flex items-start gap-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-1.5 shrink-0" />
-                  <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest leading-loose">{rule}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-white/20 mt-1.5 shrink-0" />
+                  <span className="text-[9px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-widest leading-loose">{rule}</span>
                 </li>
               ))}
             </ul>
