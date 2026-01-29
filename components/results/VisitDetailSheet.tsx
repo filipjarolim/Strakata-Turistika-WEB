@@ -155,7 +155,7 @@ export function VisitDetailSheet({ visit, open, onClose }: VisitDetailSheetProps
     return (
       <div className="relative w-full h-56 sm:h-80 bg-gray-100 dark:bg-white/5 border-b border-gray-200 dark:border-white/10 overflow-hidden">
         <Image
-          src="/images/no-preview.png"
+          src="/images/misc/no-preview.png"
           alt="Náhled není k dispozici"
           fill
           className="object-cover opacity-80"

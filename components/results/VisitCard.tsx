@@ -46,7 +46,7 @@ export const VisitCard: React.FC<VisitCardProps> = ({ visit, onClick, className 
                 ) : (
                     <div className="relative w-full h-full">
                         <Image
-                            src="/images/no-preview.png"
+                            src="/images/misc/no-preview.png"
                             alt=""
                             fill
                             className="object-cover opacity-80"

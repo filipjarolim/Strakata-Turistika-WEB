@@ -10,11 +10,6 @@ import React from "react";
 
 import { currentUser } from "@/lib/auth";
 import { currentRole } from "@/lib/auth";
-import DogEmoji from "@/assets/img/dogEmoji.png";
-import PinEmoji from "@/assets/img/mapEmoji.png";
-import Showcase1 from "@/assets/img/showcase/1.png";
-import Showcase2 from "@/assets/img/showcase/3.png";
-import Showcase3 from "@/assets/img/showcase/2.png";
 import News from "@/components/blocks/News";
 import { MapPin, Calendar, Award, Users, Trophy, Camera, Apple, Play } from "lucide-react";
 import { IOSButton } from "@/components/ui/ios/button";
@@ -85,7 +80,7 @@ const Home = async () => {
                                 {" "}
                                 <IOSBadge
                                     label="Česko"
-                                    icon={PinEmoji}
+                                    icon="/images/icons/map-emoji.png"
                                     specialStyle={{ iconSize: 120 }}
                                     bgColor="bg-red-200"
                                     borderColor="border-red-400"
@@ -96,7 +91,7 @@ const Home = async () => {
                                 {" "}
                                 <IOSBadge
                                     label="psem"
-                                    icon={DogEmoji}
+                                    icon="/images/icons/dog-emoji.png"
                                     specialStyle={{ iconSize: 120 }}
                                     bgColor="bg-amber-200"
                                     borderColor="border-amber-400"

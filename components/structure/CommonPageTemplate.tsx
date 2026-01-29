@@ -5,7 +5,6 @@ import Header from "@/components/structure/Header";
 import Footer from "@/components/structure/Footer";
 import { cn } from "@/lib/utils";
 import Image from "next/image"
-import FooterDog from "@/assets/img/footerdog.png";
 import { ExtendedUser } from "@/next-auth";
 import { BugReportPanel } from "@/components/bug-report/BugReportPanel";
 
@@ -80,8 +79,10 @@ const CommonPageTemplate = ({
             {(contents?.complete || contents?.footer) && (
                 <div className="relative hidden sm:block" style={{ zIndex: 2, pointerEvents: 'none', userSelect: 'none' }}>
                     <Image
-                        src={FooterDog}
+                        src="/images/mascot/footer-dog.png"
                         alt="Strakatá turistika"
+                        width={2000}
+                        height={400}
                         className="w-full mt-[-110px] pointer-events-none"
                     />
                 </div>
